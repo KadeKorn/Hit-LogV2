@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2A is a docs lock. Do not write app code during this phase. The goal is to align the repo around the V2 product direction before implementation begins.
+Phase 2B - Navigation Shell is complete. The app now uses the V2 bottom navigation model with Train, Library, History, Progress, and Settings tabs while keeping template, active-routine, progression, charts, and integration work deferred to later phases.

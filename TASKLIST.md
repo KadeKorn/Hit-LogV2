@@ -9,10 +9,10 @@
 
 ## Phase 2B - Navigation Shell
 
-- [ ] Add Train / Library / History / Progress / Settings
-- [ ] Preserve existing working app behavior
-- [ ] Use placeholders where needed
-- [ ] Do not build template engine yet
+- [x] Add Train / Library / History / Progress / Settings
+- [x] Preserve existing working app behavior
+- [x] Use placeholders where needed
+- [x] Do not build template engine yet
 
 ## Phase 2C - Template Data Model
 

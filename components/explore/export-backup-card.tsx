@@ -38,7 +38,15 @@ function getPalette(colorScheme: 'light' | 'dark'): ExplorePalette {
   };
 }
 
-export function ExportBackupCard() {
+type ExportBackupCardProps = {
+  eyebrow?: string;
+  title?: string;
+};
+
+export function ExportBackupCard({
+  eyebrow = 'Explore',
+  title = 'Backup',
+}: ExportBackupCardProps) {
   const colorScheme = useColorScheme() ?? 'dark';
   const theme = Colors[colorScheme];
   const palette = getPalette(colorScheme);
@@ -51,11 +59,9 @@ export function ExportBackupCard() {
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="automatic">
         <View style={styles.header}>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>
-            Explore
-          </ThemedText>
+          <ThemedText style={[styles.caption, { color: palette.muted }]}>{eyebrow}</ThemedText>
           <ThemedText type="title" style={styles.title}>
-            Backup
+            {title}
           </ThemedText>
         </View>
 
