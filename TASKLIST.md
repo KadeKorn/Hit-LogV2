@@ -16,12 +16,12 @@
 
 ## Phase 2C - Template Data Model
 
-- [ ] Add WorkoutTemplate
-- [ ] Add ActiveRoutine
-- [ ] Add TemplateDay
-- [ ] Add ExerciseDefinition
-- [ ] Add ExercisePrescription
-- [ ] Add ProgressionPolicy
+- [x] Add WorkoutTemplate
+- [x] Add ActiveRoutine
+- [x] Add TemplateDay
+- [x] Add ExerciseDefinition
+- [x] Add ExercisePrescription
+- [x] Add ProgressionPolicy
 
 ## Phase 2D - Library UI
 

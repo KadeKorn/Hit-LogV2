@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2B - Navigation Shell is complete. The app now uses the V2 bottom navigation model with Train, Library, History, Progress, and Settings tabs while keeping template, active-routine, progression, charts, and integration work deferred to later phases.
+Phase 2C - Template Data Model is complete. The app now has the SQLite schema, TypeScript domain types, repository foundation, and skeletal read-only prebuilt template seed data needed for template-driven training, while Library UI, active-routine workout behavior, progression calculations, charts, and integrations remain deferred to later phases.

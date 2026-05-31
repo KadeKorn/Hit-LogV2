@@ -1,8 +1,8 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { schemaStatements } from '@/db/schema';
+import { schemaStatements, templateDataModelSchemaStatements } from '@/db/schema';
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 type UserVersionRow = {
   user_version: number;
@@ -24,6 +24,12 @@ async function migrateToVersion1(database: SQLiteDatabase): Promise<void> {
   }
 }
 
+async function migrateToVersion2(database: SQLiteDatabase): Promise<void> {
+  for (const statement of templateDataModelSchemaStatements) {
+    await database.execAsync(statement);
+  }
+}
+
 export async function runMigrations(database: SQLiteDatabase): Promise<number> {
   let migratedVersion = SCHEMA_VERSION;
 
@@ -37,6 +43,10 @@ export async function runMigrations(database: SQLiteDatabase): Promise<number> {
 
     if (currentVersion < 1) {
       await migrateToVersion1(database);
+    }
+
+    if (currentVersion < 2) {
+      await migrateToVersion2(database);
     }
 
     await setUserVersion(database, SCHEMA_VERSION);
