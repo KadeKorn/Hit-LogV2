@@ -1,83 +1,74 @@
-# HIT Log
+# HIT Log V2
 
-A mobile-first, local-first workout logging app for HIT / Dorian Yates style training.
+HIT Log V2 is a template-library-first, guided-progressive-overload training system.
 
-## Current MVP
+The app starts as a simple training library: browse best-practice training information, choose from prebuilt evidence-based templates, create custom templates, duplicate prebuilt templates, and set one routine as active. Once an active routine exists, the product shifts from library browsing to guided training: the Train tab should show the next workout, last-time comparison, best-ever context, recent history, prior notes, and deterministic progression recommendations.
 
-The current MVP is focused on one clear use case:
+## Product Direction
 
-- seeded Day 1 / Day 2 / Day 5 workout templates
-- next-workout recommendation logic
-- latest logs by active template
-- fast workout logging
-- exercise history
-- editable workout templates
-- SQLite local persistence
-- offline-first behavior
+HIT Log V2 is personal-first and hypertrophy / mass-gain focused. It prioritizes:
 
-This is **not** the full future-state fitness platform yet.
+- physique-building volume
+- progressive overload
+- repeatable training routines
+- fast workout execution
+- simple logging
+- history comparison
+- next-workout guidance
 
-The current MVP does **not** include:
-- cloud sync
-- authentication
-- analytics
-- AI coaching
-- calendar scheduling engine
-- wearable integrations
-- custom multi-program builder
-- search/filter UI
+The app should stay structured cleanly enough to support other lifters later, but V2 decisions should serve the founder's personal training workflow first.
 
-## Current progress
+## Core V2 Scope
 
-### Completed
-- [x] Expo SDK 54 app setup
-- [x] GitHub repo setup
-- [x] Product spec
-- [x] Architecture doc
-- [x] Scope and coding standards docs
-- [x] SQLite foundation
-- [x] Schema + migration bootstrap
-- [x] Plan C seed templates and exercises
-- [x] Repository read queries
-- [x] Queue recommendation logic
-- [x] DB-backed Home screen
-- [x] Workout logger flow
-- [x] Atomic workout save
-- [x] Validation for empty workout saves
-- [x] Home refresh after save
+- Reusable workout templates
+- Prebuilt evidence-based templates
+- Custom template creation
+- One active routine at a time
+- Deterministic progression recommendations
+- Better history comparison
+- Cleaner mobile UX
+- Safer local-first data and export structure
+- Training charts later, after the template and progression flow works
 
-### In progress - DONE GOING TO FORK
-- [ ] Exercise history screen
-- [ ] Template editor
+## Initial Prebuilt Templates
 
-### Future state
-- [ ] Exercise history screen
-- [ ] Previous-performance display in logger
-- [ ] Template editor
-- [ ] Header/navigation polish
-- [ ] Dark-theme polish
-- [ ] Multiple training systems/templates
-- [ ] Custom template builder
-- [ ] Home workout mode
-- [ ] Calisthenics mode
-- [ ] CrossFit-style templates
-- [ ] Search / filter UI
-- [ ] Cloud sync
-- [ ] Broader progression tooling
+- Full Body Hypertrophy 3x/week
+- Push / Pull / Legs
+- HIT-Inspired Low-Volume Routine
 
-## What this repo is
+Prebuilt templates are read-only. They can be duplicated into editable custom templates. Custom templates should be fast to create, simple to edit, and require only the minimum fields needed for progression.
 
-HIT Log is a local-first workout logger built for fast gym use.
+## Navigation Model
 
-The current product direction is:
-- open the app
-- see what workout is next
-- review latest logs
-- log a workout quickly
-- save it locally
-- come back next time and compare against prior performance
+Bottom navigation for V2:
 
-## Tech stack
+- Train
+- Library
+- History
+- Progress
+- Settings
+
+Before an active routine exists, Library is central. After an active routine exists, Train becomes central.
+
+## Training Flow
+
+The core V2 product flow is:
+
+```txt
+Template Library -> Active Routine -> Workout Session -> History Comparison -> Progression Recommendation
+```
+
+Progression should be deterministic, explainable, and testable. V2 does not use AI for progression.
+
+Supported progression methods:
+
+- `double_progression`
+- `top_set_progression`
+- `rep_progression`
+- `manual`
+- `none`
+
+## Tech Stack
 
 - Expo
 - React Native
@@ -85,7 +76,7 @@ The current product direction is:
 - Expo Router
 - expo-sqlite
 
-## Repository docs
+## Repository Docs
 
 Read these before making meaningful changes:
 
@@ -96,9 +87,6 @@ Read these before making meaningful changes:
 - `CODING_STANDARDS.md`
 - `CONTRIBUTING.md`
 
-## Bootstrap
+## Current Phase
 
-```bash
-npx create-expo-app@latest --template default hit-log
-cd hit-log
-npx expo install expo-router expo-sqlite react-native-safe-area-context react-native-screens expo-status-bar
+Phase 2A is a docs lock. Do not write app code during this phase. The goal is to align the repo around the V2 product direction before implementation begins.

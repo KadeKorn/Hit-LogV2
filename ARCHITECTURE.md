@@ -2,7 +2,13 @@
 
 ## Architecture summary
 
-Use a thin screen layer, reusable presentational components, a repository layer for all database access, and small domain services for queueing, summaries, and comparisons.
+HIT Log V2 should use a thin screen layer, reusable components, a repository layer for local persistence, and small domain services for active-routine logic, history comparison, and progression recommendations.
+
+The core V2 product flow is:
+
+```txt
+Template Library -> Active Routine -> Workout Session -> History Comparison -> Progression Recommendation
+```
 
 ## Guiding decisions
 
@@ -11,353 +17,385 @@ Use a thin screen layer, reusable presentational components, a repository layer 
 | Router | Expo Router |
 | Language | TypeScript, strict mode |
 | Persistence | expo-sqlite |
-| Data access | Repository pattern only |
+| Data access | Repository pattern |
 | Primary ID strategy | TEXT UUIDs |
 | Timestamp format | ISO 8601 strings |
 | UI state | Local component state + hooks |
-| Sync | None in MVP |
-| Web | Not targeted in MVP |
+| Sync | None in V2 MVP |
+| Progression | Deterministic domain service |
+| Charts | Later phase, after progression flow works |
+
+Core entities should include `id`, `createdAt`, and `updatedAt` where appropriate.
+
+## Domain boundaries
+
+Templates, active routines, workout sessions, completed exercises, set logs, and progression recommendations are separate concepts.
+
+- A template is a reusable plan.
+- An active routine is the user's currently selected running plan.
+- V2 allows only one active routine at a time.
+- A workout session is an actual performed workout.
+- Planned exercises and performed exercises are separated.
+- Substitutions are tracked without corrupting the original template or original exercise progression history.
+- Barbell bench and dumbbell bench have separate progression histories.
+- Progression recommendations are generated from completed working sets and the exercise's progression policy.
+- Warmups are excluded from progression calculations.
+- Local-first data remains export-friendly.
+
+## Why ActiveRoutine exists
+
+`WorkoutTemplate` describes a reusable plan. It should not also carry the user's current position, next workout, or running status.
+
+`ActiveRoutine` represents the user's selected routine in motion. It can track the selected template, current day, status, and next workout logic while leaving the underlying template reusable and safe to duplicate or inspect. This separation lets the app support a library-first state before selection, then a guided Train state after selection.
 
 ## Architecture diagram
 
 ```mermaid
 flowchart TD
-    U[User] --> R[Expo Router screens]
-    R --> C[UI components]
-    R --> H[Hooks]
-    H --> Q[Queue service]
-    H --> S[Summary formatter]
-    H --> P[Progress comparison service]
-    H --> Repo[Repository layer]
-    Repo --> DBClient[SQLite client]
-    DBClient --> DB[(SQLite database)]
-    DB --> T1[workout_templates]
-    DB --> T2[workout_template_exercises]
-    DB --> T3[workout_logs]
-    DB --> T4[exercise_logs]
-    DB --> T5[exercise_sets]
-
-## Workout save data flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Screen as Workout Logger
-    participant Repo as Workout Repository
-    participant DB as SQLite Transaction
-    participant Home as Home Screen
-
-    User->>Screen: Enter sets, notes, carry-forward flags
-    User->>Screen: Tap Complete Workout
-    Screen->>Repo: saveCompletedWorkout(draft)
-    Repo->>DB: begin exclusive transaction
-    DB->>DB: insert workout_log
-    DB->>DB: insert exercise_logs
-    DB->>DB: insert exercise_sets
-    DB->>DB: generate and save summary
-    DB->>DB: commit
-    Repo-->>Screen: success
-    Screen-->>Home: refresh latest logs and next-up card
+    User[User] --> Screens[Expo Router screens]
+    Screens --> Components[UI components]
+    Screens --> Hooks[Feature hooks]
+    Hooks --> ActiveRoutineService[Active routine service]
+    Hooks --> HistoryService[History comparison service]
+    Hooks --> ProgressionService[Progression service]
+    Hooks --> Repositories[Repository layer]
+    ActiveRoutineService --> Repositories
+    HistoryService --> Repositories
+    ProgressionService --> Repositories
+    Repositories --> SQLite[SQLite database]
+    SQLite --> Templates[WorkoutTemplate]
+    SQLite --> ActiveRoutine[ActiveRoutine]
+    SQLite --> Sessions[WorkoutSession]
+    SQLite --> Completed[CompletedExercise]
+    SQLite --> Sets[SetLog]
 ```
 
-## Folder structure
+## Core entities
 
-app/
-  _layout.tsx
-  index.tsx
-  workout/
-    [templateCode].tsx
-  exercise/
-    [templateExerciseId].tsx
-  templates/
-    index.tsx
-    [templateCode].tsx
+### WorkoutTemplate
 
-components/
-  WorkoutDayCard.tsx
-  NextUpCard.tsx
-  LatestLogCard.tsx
-  ExerciseLogRow.tsx
-  SetRow.tsx
-  SetTypeChip.tsx
-  HistoryCard.tsx
-  NoteField.tsx
-  TemplateExerciseRow.tsx
+Reusable training plan. Can be prebuilt or custom.
 
-constants/
-  theme.ts
-  tokens.ts
+Key notes:
 
+- Prebuilt templates are read-only.
+- Custom templates are editable.
+- Prebuilt templates can be duplicated into custom templates.
+- A template contains one or more `TemplateDay` records.
+
+Suggested fields:
+
+- `id`
+- `name`
+- `description`
+- `source`: `prebuilt | custom`
+- `goal`
+- `daysPerWeek`
+- `createdAt`
+- `updatedAt`
+
+### ActiveRoutine
+
+The user's currently selected routine. Tracks current day, status, and next workout logic.
+
+Key notes:
+
+- V2 supports one active routine at a time.
+- The active routine references a template but does not mutate the template during workout execution.
+- Advancing the active routine should happen after a completed workout.
+
+Suggested fields:
+
+- `id`
+- `templateId`
+- `status`: `active | paused | completed | archived`
+- `currentTemplateDayId`
+- `startedAt`
+- `lastWorkoutSessionId`
+- `createdAt`
+- `updatedAt`
+
+### TemplateDay
+
+One workout day inside a template, such as Full Body Day A, Push, Pull, or Legs.
+
+Suggested fields:
+
+- `id`
+- `templateId`
+- `name`
+- `orderIndex`
+- `notes`
+- `createdAt`
+- `updatedAt`
+
+### ExerciseDefinition
+
+Reusable exercise metadata, such as name, primary muscle group, secondary muscle groups, category, default rep range, default progression method, and default load increment.
+
+Suggested fields:
+
+- `id`
+- `name`
+- `primaryMuscleGroup`
+- `secondaryMuscleGroups`
+- `category`
+- `defaultRepMin`
+- `defaultRepMax`
+- `defaultProgressionMethod`
+- `defaultLoadIncrement`
+- `defaultRestSeconds`
+- `createdAt`
+- `updatedAt`
+
+### ExercisePrescription
+
+A planned exercise inside a template day. Stores planned sets, rep range, progression policy, order, and notes.
+
+Progression happens at this level so different exercises in the same workout can use different progression methods.
+
+Suggested fields:
+
+- `id`
+- `templateDayId`
+- `exerciseDefinitionId`
+- `orderIndex`
+- `sets`
+- `repMin`
+- `repMax`
+- `muscleGroup`
+- `progressionPolicyId`
+- `loadIncrement`
+- `restSeconds`
+- `notes`
+- `createdAt`
+- `updatedAt`
+
+### ProgressionPolicy
+
+Defines how next-session recommendations are calculated.
+
+Supported V2 methods:
+
+- `double_progression`
+- `top_set_progression`
+- `rep_progression`
+- `manual`
+- `none`
+
+Suggested fields:
+
+- `id`
+- `method`
+- `loadIncrement`
+- `targetRepMin`
+- `targetRepMax`
+- `notes`
+- `createdAt`
+- `updatedAt`
+
+### WorkoutSession
+
+An active, completed, or abandoned workout.
+
+Key notes:
+
+- A session is actual performed training.
+- It may start from an active routine and template day.
+- Completed sessions become durable history records.
+
+Suggested fields:
+
+- `id`
+- `activeRoutineId`
+- `templateDayId`
+- `status`: `active | completed | abandoned`
+- `startedAt`
+- `completedAt`
+- `notes`
+- `createdAt`
+- `updatedAt`
+
+### CompletedExercise
+
+What the user actually performed during a workout. Can match the planned exercise or represent a substitution.
+
+Key notes:
+
+- `exerciseDefinitionId` should identify the performed movement.
+- `plannedExercisePrescriptionId` can point back to the original planned exercise.
+- Substitutions should not silently mutate the template.
+- Optional effort/RIR belongs at this level for V2.
+
+Suggested fields:
+
+- `id`
+- `workoutSessionId`
+- `plannedExercisePrescriptionId`
+- `exerciseDefinitionId`
+- `isSubstitution`
+- `substitutedForExerciseDefinitionId`
+- `orderIndex`
+- `notes`
+- `effortRating`: `easy | moderate | hard | failure`
+- `estimatedRir`: `3 | 2 | 1 | 0`
+- `createdAt`
+- `updatedAt`
+
+### SetLog
+
+A single logged set. Should include weight, reps, set number, and `isWarmup`.
+
+Warmup sets may be logged, but they do not count toward progression recommendations, PRs, working-set volume, charts, or muscle-group weekly set totals.
+
+Suggested fields:
+
+- `id`
+- `completedExerciseId`
+- `setNumber`
+- `weight`
+- `reps`
+- `isWarmup`
+- `notes`
+- `createdAt`
+- `updatedAt`
+
+### ProgressionRecommendation
+
+A deterministic recommendation for what to do next time, including recommendation type, recommended weight, recommended rep target, reason, and the previous performance used.
+
+Recommendations may be calculated on demand or persisted if the app needs a stable audit trail after workout completion.
+
+Suggested fields:
+
+- `id`
+- `exercisePrescriptionId`
+- `exerciseDefinitionId`
+- `method`
+- `recommendationType`
+- `recommendedWeight`
+- `recommendedRepTarget`
+- `reason`
+- `previousPerformanceSummary`
+- `sourceWorkoutSessionId`
+- `createdAt`
+- `updatedAt`
+
+## Progression service
+
+Progression should be deterministic, explainable, and testable. V2 should not use AI for progression.
+
+Inputs:
+
+- exercise prescription
+- progression policy
+- completed working sets
+- relevant prior sessions
+- warmup exclusion
+
+Outputs:
+
+- recommendation type
+- recommended weight
+- recommended rep target
+- reason text
+- previous performance used
+
+Load-only progression is not part of V2 scope.
+
+## History comparison service
+
+History comparison should make progressive overload visible during training.
+
+For a given exercise, the service should return:
+
+- last time
+- best ever / PR
+- last five sessions
+- notes from prior sessions
+
+Working sets should be used for comparison. Warmups should be excluded.
+
+## Substitution rules
+
+- A workout substitution creates a performed exercise record tied to the session.
+- The original template prescription remains unchanged.
+- The app may offer to save the substitution back to a custom template after completion.
+- Saving changes back to a custom template must be explicit.
+- Prebuilt templates remain read-only.
+- Different movements keep separate progression histories.
+
+## Local-first and export-friendly structure
+
+SQLite remains the local persistence layer. Data should be normalized enough that templates, active routine state, sessions, completed exercises, set logs, notes, and progression context can be exported without parsing display-only strings.
+
+Prefer stable IDs, ISO timestamps, explicit foreign keys, and deterministic enum values.
+
+## Suggested repository modules
+
+```txt
 db/
-  client.ts
-  migrate.ts
-  schema.ts
   repositories/
     templates.ts
-    workoutLogs.ts
-    latestLogs.ts
+    activeRoutine.ts
+    exerciseDefinitions.ts
+    workoutSessions.ts
     history.ts
-    queue.ts
-
-hooks/
-  useBootstrap.ts
-  useLatestLogs.ts
-  useQueue.ts
-  useWorkoutDraft.ts
+    progressionRecommendations.ts
 
 lib/
-  ids.ts
-  summary.ts
-  comparison.ts
-  exerciseDisplay.ts
-
-data/
-  planCSeed.ts
+  activeRoutine.ts
+  historyComparison.ts
+  progression.ts
+  templateDuplication.ts
+  workoutSubstitutions.ts
 
 types/
   domain.ts
   db.ts
-
-scripts/
-  validate-db.ts
-  validate-seed.ts
-  validate-queue.ts
-  validate-summary.ts
-
-## Component list
-
-| Component | Role |
-|---|---|
-| WorkoutDayCard | Quick-start card for a workout day |
-| NextUpCard | Home card showing queue recommendation |
-| LatestLogCard | Shows latest completed log for one day |
-| ExerciseLogRow | Main logger row for one exercise |
-| SetRow | One editable set row |
-| SetTypeChip | Working/drop/burnout selector |
-| HistoryCard | History entry with comparison marker |
-| NoteField | Reusable notes input |
-| TemplateExerciseRow | Template editor row with reorder controls |
-
-## Database schema
-
-| Table | Key columns | Notes |
-|---|---|---|
-| workout_templates | id, code, name, order_index, is_active | One row per workout day |
-| workout_template_exercises | id, template_id, name, order_index, is_active | Stable exercise slots inside a template |
-| workout_logs | id, template_id, started_at, completed_at, status, summary | Parent workout session row |
-| exercise_logs | id, workout_log_id, template_exercise_id, exercise_name_snapshot, order_index, notes, carry_forward, carry_forward_note | One row per exercise in a workout |
-| exercise_sets | id, exercise_log_id, set_index, set_type, weight_text, reps_text, side, note | One row per logged set |
-
-## Schema sketch
-
-```sql
-CREATE TABLE IF NOT EXISTS workout_templates (
-  id TEXT PRIMARY KEY NOT NULL,
-  code TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  order_index INTEGER NOT NULL,
-  is_active INTEGER NOT NULL DEFAULT 1
-);
-
-CREATE TABLE IF NOT EXISTS workout_template_exercises (
-  id TEXT PRIMARY KEY NOT NULL,
-  template_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  order_index INTEGER NOT NULL,
-  is_active INTEGER NOT NULL DEFAULT 1,
-  FOREIGN KEY (template_id) REFERENCES workout_templates(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS workout_logs (
-  id TEXT PRIMARY KEY NOT NULL,
-  template_id TEXT NOT NULL,
-  started_at TEXT NOT NULL,
-  completed_at TEXT,
-  status TEXT NOT NULL,
-  summary TEXT,
-  FOREIGN KEY (template_id) REFERENCES workout_templates(id) ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS exercise_logs (
-  id TEXT PRIMARY KEY NOT NULL,
-  workout_log_id TEXT NOT NULL,
-  template_exercise_id TEXT,
-  exercise_name_snapshot TEXT NOT NULL,
-  order_index INTEGER NOT NULL,
-  notes TEXT,
-  carry_forward INTEGER NOT NULL DEFAULT 0,
-  carry_forward_note TEXT,
-  FOREIGN KEY (workout_log_id) REFERENCES workout_logs(id) ON DELETE CASCADE,
-  FOREIGN KEY (template_exercise_id) REFERENCES workout_template_exercises(id) ON DELETE SET NULL
-);
-
-CREATE TABLE IF NOT EXISTS exercise_sets (
-  id TEXT PRIMARY KEY NOT NULL,
-  exercise_log_id TEXT NOT NULL,
-  set_index INTEGER NOT NULL,
-  set_type TEXT NOT NULL,
-  weight_text TEXT NOT NULL,
-  reps_text TEXT NOT NULL,
-  side TEXT,
-  note TEXT,
-  FOREIGN KEY (exercise_log_id) REFERENCES exercise_logs(id) ON DELETE CASCADE
-);
 ```
 
-## Template data semantics
-
-- Renaming an exercise preserves the same `template_exercise_id`.
-- Removing an exercise marks it inactive.
-- Replacing a movement creates a new exercise slot.
-- History must never be destructively overwritten by template editing.
-
-## Queue logic
-
-The queue algorithm is a product recommendation, not a strict scheduler.
-
-1. Keep a fixed split order: `day1 -> day2 -> day5`.
-2. If there are no completed workouts, queue `day1`.
-3. Otherwise, find the most recent completed workout overall and queue the next template in the split order.
-4. Show:
-   - next workout day
-   - last completed workout day
-   - elapsed days since last workout
-   - elapsed days since this specific day was last trained
-5. If the previous matching workout contains `carry_forward = 1`, surface those notes or exercise reminders in the draft.
-6. Keep full calendar scheduling out of MVP.
-
-## Sample SQL queries
-
-### Latest completed log per template
-
-```sql
-SELECT
-  wt.id,
-  wt.code,
-  wt.name,
-  wt.order_index,
-  wl.completed_at,
-  wl.summary
-FROM workout_templates wt
-LEFT JOIN workout_logs wl
-  ON wl.id = (
-    SELECT id
-    FROM workout_logs x
-    WHERE x.template_id = wt.id
-      AND x.status = 'completed'
-    ORDER BY x.completed_at DESC
-    LIMIT 1
-  )
-WHERE wt.is_active = 1
-ORDER BY wt.order_index ASC;
-```
-
-### Exercise history for one template exercise
-
-```sql
-SELECT
-  wl.completed_at,
-  es.set_type,
-  es.weight_text,
-  es.reps_text,
-  es.side,
-  el.notes
-FROM exercise_logs el
-JOIN workout_logs wl
-  ON wl.id = el.workout_log_id
-JOIN exercise_sets es
-  ON es.exercise_log_id = el.id
-WHERE el.template_exercise_id = ?
-  AND wl.status = 'completed'
-ORDER BY wl.completed_at DESC, es.set_index ASC;
-```
-
-### Most recent completed workout overall
-
-```sql
-SELECT
-  wl.id,
-  wt.code,
-  wt.name,
-  wl.completed_at
-FROM workout_logs wl
-JOIN workout_templates wt
-  ON wt.id = wl.template_id
-WHERE wl.status = 'completed'
-ORDER BY wl.completed_at DESC
-LIMIT 1;
-```
-
-### Seed template upsert
-
-```sql
-INSERT INTO workout_templates (id, code, name, order_index, is_active)
-VALUES (?, ?, ?, ?, 1)
-ON CONFLICT(code) DO UPDATE SET
-  name = excluded.name,
-  order_index = excluded.order_index,
-  is_active = 1;
-```
-
-## Transaction patterns
-
-| Operation | Pattern |
-|---|---|
-| Bootstrap DB | `execAsync()` for PRAGMAs and `CREATE TABLE IF NOT EXISTS` |
-| Save completed workout | `withExclusiveTransactionAsync(async txn => ...)` |
-| Template reorder | Exclusive transaction; rewrite all active `order_index` values together |
-| User-input writes | `runAsync()` with bound params |
-| Reads | `getFirstAsync()` / `getAllAsync()` |
-| Bulk schema migrations | `execAsync()` only for static SQL, never user input |
-
-## Migration strategy
-
-1. Keep current version in `PRAGMA user_version`.
-2. Write one migration per version.
-3. Never edit old migrations after they ship.
-4. For simple adds or renames, use supported ALTER TABLE operations.
-5. For complex changes:
-   - create a new table
-   - copy and transform data
-   - recreate indexes and foreign keys
-   - drop old table
-   - rename new table
-6. Run seeds idempotently after migrations.
-7. Keep migration-side SQL deterministic and free of user input.
-
-## Validation scripts
+## Suggested validation scripts
 
 | Script | Purpose |
 |---|---|
 | validate-db.ts | Tables, indexes, PRAGMAs, and foreign keys exist |
-| validate-seed.ts | Plan C templates and exercises are present exactly once |
-| validate-queue.ts | Queue returns the correct next day for several fixture states |
-| validate-summary.ts | Workout summary formatter matches expected text style |
+| validate-prebuilt-templates.ts | Initial prebuilt templates are present and read-only |
+| validate-active-routine.ts | One active routine and next-workout behavior are correct |
+| validate-history-comparison.ts | Last time, PR, last five sessions, and notes are returned correctly |
+| validate-progression.ts | Progression policies produce deterministic recommendations |
 
 ## Canonical enum values
 
-### workout_logs.status
-- in_progress
-- completed
-- abandoned
+### Template source
 
-### exercise_sets.set_type
-- warmup
-- working
-- drop
-- burnout
+- `prebuilt`
+- `custom`
 
-### exercise_sets.side
-- left
-- right
-- bilateral
-- per_leg
-- per_side
+### Active routine status
 
-## Recommended indexes
+- `active`
+- `paused`
+- `completed`
+- `archived`
 
-- workout_templates(code) unique
-- workout_logs(template_id, completed_at desc)
-- workout_logs(status, completed_at desc)
-- exercise_logs(template_exercise_id, workout_log_id)
-- exercise_sets(exercise_log_id, set_index)
+### Workout session status
+
+- `active`
+- `completed`
+- `abandoned`
+
+### Progression method
+
+- `double_progression`
+- `top_set_progression`
+- `rep_progression`
+- `manual`
+- `none`
+
+### Effort rating
+
+- `easy`
+- `moderate`
+- `hard`
+- `failure`

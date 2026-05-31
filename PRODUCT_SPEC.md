@@ -2,185 +2,294 @@
 
 ## Title
 
-HIT Log
+HIT Log V2
 
 ## One-sentence summary
 
-A mobile-first, dark-mode workout logger for HIT / Dorian Yates style training that queues the next workout day, lets the user log fast with minimal typing, and shows the latest and previous performance for each exercise.
+HIT Log V2 is a mobile-first, local-first training system that begins as a template library and becomes a guided progressive-overload workout companion once the user selects an active routine.
 
-## Product goals
+## Product thesis
 
-| Goal | Meaning in practice |
-|---|---|
-| Fast logging | The user can open a workout day and enter working sets in seconds. |
-| Local-first | The app works fully offline and feels instant in the gym. |
-| Preserve log fidelity | Store the user's weight and rep notation exactly as entered. |
-| Queue-based guidance | Show which workout day should be done next and relevant elapsed-time context. |
-| Useful history | Show most recent and previous exercise performances clearly. |
-| Editable templates | Workout day templates can be changed without code changes. |
+HIT Log V2 is template-library-first and guide-centered.
 
-## MVP scope
+The app should first help the user understand good training structure, browse prebuilt templates, create custom templates, duplicate prebuilt templates, and set one routine as active. After an active routine exists, the app should guide the user into the next workout with relevant context instead of making them search history manually.
+
+## Primary user
+
+V2 is personal-first and hypertrophy / mass-gain focused. It should optimize for:
+
+- physique-building volume
+- progressive overload
+- repeatable routines
+- fast workout execution
+- simple logging
+- history comparison
+- next-workout guidance
+
+The data model and UI should remain clean enough to support other users later, but V2 MVP choices should serve the founder's training workflow first.
+
+## Core V2 scope
 
 ### In scope
-- Plan C seed templates
-- Home dashboard with next-up and latest logs
-- Workout logger with multiple sets
-- Text-friendly weight and rep entry
-- Exercise history
-- Template editor
-- Local SQLite persistence
-- Carry-forward notes and selected exercise carryover
-- Simple progress comparison markers
 
-### Out of scope
+- Reusable workout templates
+- Prebuilt evidence-based templates
+- Custom template creation
+- Duplicating prebuilt templates into editable custom templates
+- One active routine at a time
+- Workout execution from the active routine
+- Controlled workout substitutions
+- Deterministic progression recommendations
+- Better history comparison
+- Optional exercise-level effort tracking
+- Optional warmup set logging
+- Cleaner mobile UX
+- Local-first persistence with export-friendly structure
+
+### Later, after template/progression flow works
+
+- Exercise strength trend chart
+- Volume trend chart
+- Muscle-group weekly sets chart
+- Consistency chart
+
+### Out of active V2 MVP scope
+
+- Oura integration
+- Withings integration
+- AI coach
 - Cloud sync
-- Authentication
-- Calendar scheduling engine
-- AI coaching
-- Wearables
-- Voice logging
-- Remote notifications
-- Obsidian sync
-- Search/filter UI
+- Bodyweight tracking
+- Advanced periodization
+- Public or social features
 
-## Primary user jobs
+## Navigation
+
+Use this bottom navigation model:
+
+- Train
+- Library
+- History
+- Progress
+- Settings
+
+Before an active routine exists, the Library experience is central. After an active routine exists, the Train tab becomes central.
+
+### Train tab
+
+The Train tab should eventually show:
+
+- active routine
+- next workout
+- resume active workout
+- last completed workout
+- next-up recommendations
+
+### Library tab
+
+The Library tab should eventually show:
+
+- prebuilt templates
+- custom templates
+- best-practice explanations
+- create custom template
+- duplicate template
+- template detail screen
+- set as active routine
+
+### History tab
+
+The History tab should focus on completed workout sessions and exercise history lookup.
+
+### Progress tab
+
+The Progress tab should remain lightweight until charts are implemented. Charts come after templates, active routine, workout execution, history comparison, and progression recommendations are working.
+
+### Settings tab
+
+Settings should contain app preferences, local data controls, and export/import surfaces when those exist.
+
+## Template model
+
+Templates are reusable training plans. V2 should support prebuilt templates and custom templates.
+
+### Initial prebuilt templates
+
+- Full Body Hypertrophy 3x/week
+- Push / Pull / Legs
+- HIT-Inspired Low-Volume Routine
+
+### Template behavior
+
+- Prebuilt templates are read-only.
+- Prebuilt templates can be duplicated into editable custom templates.
+- Custom templates are editable.
+- Custom template creation should be fast, low-friction, simple, and elegant.
+- Custom templates should require only the minimum fields needed for progression.
+- The app may auto-fill sensible defaults such as muscle group, progression method, increment, and rest time.
+- Templates should be flexible but controlled during workout execution.
+- Workout substitutions are allowed.
+- Substitutions should not silently mutate the original template.
+- After a workout, the user may optionally save changes back to a custom template.
+
+### Planned exercise fields
+
+Each planned exercise should be able to define:
+
+- sets
+- rep range
+- muscle group
+- progression method
+- load increment
+- optional rest time
+- optional notes
+
+Progression happens at the exercise prescription level, not only at the workout or template level.
+
+## Active routine
+
+An active routine is the user's currently selected running plan. V2 should allow only one active routine at a time.
+
+ActiveRoutine is needed because a reusable template is not the same thing as the user's current place in a running plan. The active routine should track the selected template, current day, status, and next workout logic without mutating the underlying template.
+
+Once an active routine exists, the app should guide the user toward the next scheduled workout.
+
+## Workout execution
 
 The user should be able to:
 
-1. Open the app and instantly see what workout day is next.
-2. Tap a quick-start card and begin logging.
-3. Enter weight and reps with minimal typing.
-4. Compare today’s performance to the prior relevant performance.
-5. Finish the workout and save a readable summary.
-6. Edit workout day templates without touching code.
+1. Start the next workout from the active routine.
+2. Log working sets quickly.
+3. Log optional warmup sets.
+4. Substitute an exercise without corrupting the original template.
+5. Add exercise-level notes.
+6. Optionally record exercise-level effort.
+7. Complete the workout and save a durable history record.
 
-## Product principles
+Workout execution should be flexible in the moment, but template mutation should be explicit. Substituting dumbbell bench for barbell bench during a workout should not silently merge or rewrite the barbell bench progression history.
 
-1. Do not normalize away the user’s notation. Store raw `weight_text` and `reps_text`.
-2. Templates drive logging.
-3. History is linked to a stable template exercise slot.
-4. Queue over calendar for MVP.
-5. Dark, minimal, thumb-friendly UI.
+## Progression
 
-## Template semantics
+Progression should be deterministic, explainable, and testable.
 
-These rules must stay consistent throughout the repo:
+Do not use AI for progression in V2. Do not include load-only progression in V2 scope.
 
-- **Rename** preserves the same `template_exercise_id` and keeps history attached.
-- **Remove** marks the exercise slot inactive so old history remains intact.
-- **Replace with a new movement** creates a new exercise slot rather than mutating old history into a different movement.
+Supported progression methods:
 
-## Workout day seeds
+- `double_progression`
+- `top_set_progression`
+- `rep_progression`
+- `manual`
+- `none`
 
-| Template code | Name | Seed exercises |
-|---|---|---|
-| day1 | Day 1 – Chest + Back | Chest Press, Chest Fly, Seated Row, Lat Pulldown, Ab Rotation Machine, DB Shrugs, Back Extensions |
-| day2 | Day 2 – Legs | Bulgarian Split Squat, Leg Extension, Seated Leg Curl, Seated Leg Press, Calf Raise |
-| day5 | Day 5 – Shoulders + Arms | Overhead Press, Lateral Raise, Triceps, DB Curls, Curl Machine |
+Progression recommendations should be generated from completed working sets and the exercise's progression policy. Warmups should be excluded from progression calculations.
 
-## Supported logging notation
+### Recommendation locations
 
-| Field | Examples |
-|---|---|
-| weight_text | 125, 45s, 3 plates per side, bodyweight + 25 |
-| reps_text | 8, 10, 20 per leg, 10 per side |
-| set_type | working, drop, burnout, warmup |
-| side | L, R, both, per_leg, per_side |
+Progression recommendations should appear in three places eventually:
 
-## Core MVP screens
+- before the workout
+- during the workout
+- after workout completion
 
-| Screen | Purpose |
-|---|---|
-| Home | Show next-up day, quick-start actions, latest logs, carry-forward notes, recent highlights |
-| Workout Logger | Log one workout day fast |
-| Exercise History | Show latest and previous performances for one exercise |
-| Templates | View and edit workout day templates |
-
-## V2 screens
-
-| Screen | Purpose |
-|---|---|
-| Search | Search exercises and filter history |
-| Calendar | Browse workout history by day |
-
-## Acceptance criteria for MVP features
-
-| Feature | Done when |
-|---|---|
-| Template editor | User can rename, add, remove, and reorder exercises for any day template, and order persists after restart. |
-| Latest-log queries | Home shows the latest completed workout for each template after app restart, with date and readable summary. |
-| Workout logger | User can log multiple sets per exercise, use text-friendly inputs, add notes, mark set types, and save a completed workout atomically. |
-| Exercise history | User can open an exercise and see the most recent result first, followed by earlier results in reverse chronological order. |
-| Queue | Home recommends the next workout day in split order, shows elapsed time, and can surface carry-forward notes or exercises. |
-| Carry-forward | User can mark an exercise or note to carry forward and see it next time that workout day is opened. |
-| Progress comparison | Latest versus previous comparison is visible in history and may optionally appear inline in the logger. |
-
-## Progress rules for MVP
-
-A performance improvement marker is allowed if any of these are true:
-
-1. Same weight, higher reps.
-2. Clearly heavier weight for the same exercise and set type.
-3. Same movement and notation, with no ambiguity from a changed exercise identity.
-
-Do not attempt estimated 1RM, RIR, or effort prediction in MVP.
-
-## Expected output examples
-
-### Readable workout summary
+### Before workout example
 
 ```txt
-Day 1 – Chest + Back
-Chest Press: 125 x 8
-Drop Set: 55 x 9
-Chest Fly: 135 x 10
-Seated Row: 125 x 10
-Lat Pulldown: 125 x 10
-Ab Rotation Machine (L): 105 x 10
-Ab Rotation Machine (R): 105 x 10
-DB Shrugs: 45s x 26
-Back Extensions: 40 x 20
+Bench Press
+Last time: 135 x 10, 9, 8
+Today: Repeat 135 and aim for more total reps.
 ```
 
-### Example latest-log card text
+### During workout example
 
 ```txt
-Day 2 – Legs
-Last completed: 2026-04-13
-Leg Extension: 180 x 15
-Bulgarian Split Squat: 30 x 20 per leg
-Seated Leg Curl: 115 x 10
+Last time:
+135 x 10
+135 x 9
+135 x 8
+
+Today's target:
+135 x 10+
 ```
 
-## Non-goals for MVP
+### After workout example
 
-Do not add cloud sync, auth, a heavy analytics layer, auto-progression math, or a scheduling engine before the core logger, latest-log queries, history, template editor, and queue are solid.
+```txt
+Next time:
+Repeat 135 lb.
 
+Reason:
+You improved from 10/9/8 to 11/10/9, but did not yet hit 12/12/12.
+```
 
-## Workout lifecycle for MVP
+## History comparison
 
-- Opening a workout day does not create a persisted workout row yet.
-- A workout is saved only when the user taps Complete Workout.
-- In-progress local screen state may exist during editing, but draft persistence is out of scope for MVP.
-- Completed workouts are immutable history records except for future explicit edit support.
+History comparison should support progressive overload in the gym without forcing the user to manually search old workouts.
 
-## Carry-forward behavior
+For a planned exercise or substituted exercise, the app should be able to show:
 
-Carry-forward in MVP means:
-- the user may mark an exercise or note to be shown next time that workout day is opened
-- carry-forward does not automatically clone prior set values into history
-- carry-forward is a reminder mechanism, not a hidden rewrite of workout data
+- last time
+- best ever / PR
+- last five sessions
+- notes from prior sessions
 
-## Next-up recommendation rules
+Barbell bench and dumbbell bench should have separate progression histories. Substitutions should be tracked clearly so the user can compare like with like.
 
-- The split order is fixed: day1 -> day2 -> day5.
-- If there are no completed workouts, recommend day1.
-- Otherwise recommend the next template in split order after the most recently completed workout.
-- Show elapsed time since the last completed workout.
-- Show elapsed time since the recommended workout day was last completed.
+## Effort and RIR
 
-## Display versus storage rules
+V2 should support optional exercise-level effort tracking.
 
-- The app may display friendly labels such as L, R, or Both.
-- Internal code should use canonical enum values for consistency.
-- Raw weight_text and reps_text must be stored exactly as entered.
+Do not require RIR per set in V2. At the completed exercise level, optionally store:
+
+- `effortRating`: `easy | moderate | hard | failure`
+- `estimatedRir`: `3 | 2 | 1 | 0`
+
+Suggested labels:
+
+- Easy - 3+ RIR
+- Moderate - 2 RIR
+- Hard - 1 RIR
+- Failure - 0 RIR
+
+## Warmups
+
+Warmup sets may be logged, but they should not count toward:
+
+- progression recommendations
+- PRs
+- working-set volume
+- charts
+- muscle-group weekly set totals
+
+`SetLog` should support an `isWarmup` flag.
+
+## Charts
+
+Charts should come after templates, active routine, workout execution, history comparison, and progression recommendations are working.
+
+Initial chart focus later:
+
+- exercise strength trend
+- volume trend
+- muscle-group weekly sets
+- consistency
+
+Do not include bodyweight charts in the initial V2 chart scope.
+
+## Local-first data
+
+V2 should remain local-first and export-friendly. Core records should use stable IDs and timestamps where appropriate. The app should preserve enough structure to export templates, sessions, completed exercises, set logs, notes, and progression context without reverse-engineering display text.
+
+## Acceptance criteria
+
+- The app can present a library-first experience before an active routine exists.
+- The app can switch emphasis to Train once an active routine exists.
+- Prebuilt templates are readable but not directly editable.
+- Prebuilt templates can be duplicated into custom templates.
+- Custom templates can be edited.
+- One active routine is supported at a time.
+- Workout sessions are saved separately from templates.
+- Planned exercises and completed exercises are separated.
+- Warmups are excluded from progression, PRs, working-set volume, charts, and weekly set totals.
+- Progression recommendations are deterministic and include reason text.
+- History comparison includes last time, best ever / PR, last five sessions, and prior notes.
