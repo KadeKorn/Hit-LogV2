@@ -33,10 +33,12 @@
 
 ## Phase 2E - Active Routine
 
-- [ ] Track one active routine
-- [ ] Track current day
-- [ ] Determine next workout
-- [ ] Advance routine after completed workout
+- [x] Load the persisted active routine on Train
+- [x] Show a no-active-routine Train empty state
+- [x] Show active routine template details on Train
+- [x] Resolve the current or next template day for display
+- [x] Navigate from Train to Library to choose or change a routine
+- [x] Preserve existing Yates Log access
 
 ## Phase 2F - Workout Execution
 
@@ -46,6 +48,7 @@
 - [ ] Allow controlled substitutions
 - [ ] Add exercise-level notes
 - [ ] Add optional effort/RIR at exercise level
+- [ ] Advance routine after completed workout
 
 ## Phase 2G - History Comparison
 

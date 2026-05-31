@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2D - Library UI is complete. The Library tab now reads persisted Phase 2C template data, separates prebuilt and custom templates, shows template details, duplicates prebuilt templates into custom templates without mutating the source, and persists the selected template as the active routine. Guided Train behavior, next-workout logic, progression calculations, charts, and integrations remain deferred to later phases.
+Phase 2E - Active Routine is complete. The Train tab now reads the persisted active routine, shows a V2 empty state when no routine is selected, summarizes the active template and current/next template day when available, links back to Library to choose or change a routine, and preserves access to the existing Yates Log surface. Full workout execution from templates, history comparison, progression calculations, charts, and integrations remain deferred to later phases.
