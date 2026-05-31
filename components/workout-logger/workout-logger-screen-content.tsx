@@ -1,0 +1,306 @@
+import { useRef } from 'react';
+import {
+  ActivityIndicator,
+  findNodeHandle,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
+
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { Colors } from '@/constants/theme';
+import type { LatestExercisePerformance } from '@/db/repositories/exercise-log-repository';
+import type { ActiveWorkoutTemplateDetail } from '@/db/repositories/template-repository';
+import type { WorkoutLoggerExerciseDraft } from '@/hooks/use-workout-logger-screen';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import type { ProgressionSuggestion } from '@/lib/progression/get-progression-suggestion';
+
+import { ExerciseLogCard } from './exercise-log-card';
+
+type WorkoutLoggerScreenContentProps = {
+  error: Error | null;
+  exercises: WorkoutLoggerExerciseDraft[];
+  isLoading: boolean;
+  isSaving: boolean;
+  latestPerformanceByExerciseId: Record<string, LatestExercisePerformance>;
+  progressionSuggestionByExerciseId: Record<string, ProgressionSuggestion>;
+  saveError: string | null;
+  template: ActiveWorkoutTemplateDetail | null;
+  onAddSet: (exerciseId: string) => void;
+  onDismissSaveError: () => void;
+  onOpenHistory: (templateExerciseId: string) => void;
+  onRemoveSet: (exerciseId: string, setId: string) => void;
+  onSaveWorkout: () => void;
+  onToggleExerciseNote: (exerciseId: string) => void;
+  onToggleSetNote: (exerciseId: string, setId: string) => void;
+  onUpdateExerciseNotes: (exerciseId: string, value: string) => void;
+  onUpdateSetField: (
+    exerciseId: string,
+    setId: string,
+    field: 'note' | 'repsText' | 'setType' | 'weightText',
+    value: string
+  ) => void;
+};
+
+type LoggerPalette = {
+  accent: string;
+  border: string;
+  muted: string;
+  surface: string;
+  surfaceMuted: string;
+};
+
+function getPalette(colorScheme: 'light' | 'dark'): LoggerPalette {
+  if (colorScheme === 'light') {
+    return {
+      surface: '#F3F5F7',
+      surfaceMuted: '#E8EDF1',
+      border: '#D5DDE5',
+      muted: '#5E6A75',
+      accent: '#0A7EA4',
+    };
+  }
+
+  return {
+    surface: '#171B20',
+    surfaceMuted: '#11151A',
+    border: '#2A3138',
+    muted: '#93A0AB',
+    accent: '#D7F75B',
+  };
+}
+
+export function WorkoutLoggerScreenContent({
+  error,
+  exercises,
+  isLoading,
+  isSaving,
+  latestPerformanceByExerciseId,
+  progressionSuggestionByExerciseId,
+  saveError,
+  template,
+  onAddSet,
+  onDismissSaveError,
+  onOpenHistory,
+  onRemoveSet,
+  onSaveWorkout,
+  onToggleExerciseNote,
+  onToggleSetNote,
+  onUpdateExerciseNotes,
+  onUpdateSetField,
+}: WorkoutLoggerScreenContentProps) {
+  const colorScheme = useColorScheme() ?? 'dark';
+  const theme = Colors[colorScheme];
+  const palette = getPalette(colorScheme);
+  const scrollViewRef = useRef<ScrollView | null>(null);
+
+  function handleFieldFocus(input: TextInput | null): void {
+    if (!input || !scrollViewRef.current) {
+      return;
+    }
+
+    const scrollResponder =
+      scrollViewRef.current.getScrollResponder?.() as
+        | {
+            scrollResponderScrollNativeHandleToKeyboard?: (
+              nodeHandle: number | null,
+              additionalOffset?: number,
+              preventNegativeScrollOffset?: boolean
+            ) => void;
+          }
+        | undefined;
+
+    scrollResponder?.scrollResponderScrollNativeHandleToKeyboard?.(
+      findNodeHandle(input),
+      120,
+      true
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <ThemedView style={styles.centeredState}>
+        <ActivityIndicator color={palette.accent} />
+        <ThemedText style={[styles.stateText, { color: palette.muted }]}>
+          Loading workout logger
+        </ThemedText>
+      </ThemedView>
+    );
+  }
+
+  if (error || !template) {
+    return (
+      <ThemedView style={styles.centeredState}>
+        <ThemedText type="subtitle">Workout Logger</ThemedText>
+        <ThemedText style={[styles.stateText, { color: palette.muted }]}>
+          {error?.message ?? 'Workout template unavailable.'}
+        </ThemedText>
+      </ThemedView>
+    );
+  }
+
+  return (
+    <ThemedView style={styles.screen}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 96 : 24}
+        style={styles.screen}>
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <View style={styles.headerText}>
+              <ThemedText style={[styles.eyebrow, { color: palette.accent }]}>
+                Workout Logger
+              </ThemedText>
+              <ThemedText type="title" style={styles.title}>
+                {template.name}
+              </ThemedText>
+              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+                Log the sets you complete. Empty rows are skipped when you save.
+              </ThemedText>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Complete workout"
+              disabled={isSaving}
+              onPress={onSaveWorkout}
+              style={[
+                styles.completeButton,
+                {
+                  backgroundColor: palette.accent,
+                  opacity: isSaving ? 0.7 : 1,
+                },
+              ]}>
+              <ThemedText style={styles.completeButtonText}>
+                {isSaving ? 'Saving...' : 'Complete workout'}
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          {saveError ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={onDismissSaveError}
+              style={[
+                styles.validationCard,
+                {
+                  backgroundColor: palette.surfaceMuted,
+                  borderColor: palette.border,
+                },
+              ]}>
+              <ThemedText style={[styles.validationText, { color: theme.text }]}>
+                {saveError}
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
+          <View style={styles.exerciseList}>
+            {exercises.map((exercise) => (
+              <ExerciseLogCard
+                key={exercise.id}
+                exercise={exercise}
+                latestPerformance={
+                  latestPerformanceByExerciseId[exercise.templateExerciseId] ?? null
+                }
+                progressionSuggestion={
+                  progressionSuggestionByExerciseId[exercise.templateExerciseId] ?? null
+                }
+                palette={palette}
+                onAddSet={() => onAddSet(exercise.id)}
+                onFieldFocus={handleFieldFocus}
+                onOpenHistory={() => onOpenHistory(exercise.templateExerciseId)}
+                onRemoveSet={(setId) => onRemoveSet(exercise.id, setId)}
+                onToggleExerciseNote={() => onToggleExerciseNote(exercise.id)}
+                onToggleSetNote={(setId) => onToggleSetNote(exercise.id, setId)}
+                onUpdateExerciseNotes={(value) => onUpdateExerciseNotes(exercise.id, value)}
+                onUpdateSetField={(setId, field, value) =>
+                  onUpdateSetField(exercise.id, setId, field, value)
+                }
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ThemedView>
+  );
+}
+
+const styles = StyleSheet.create({
+  centeredState: {
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  completeButton: {
+    alignItems: 'center',
+    borderRadius: 16,
+    minHeight: 56,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  completeButtonText: {
+    color: '#151718',
+    fontSize: 16,
+    fontWeight: '800',
+    lineHeight: 20,
+  },
+  content: {
+    gap: 14,
+    paddingBottom: 140,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+  },
+  exerciseList: {
+    gap: 12,
+  },
+  header: {
+    gap: 12,
+  },
+  headerText: {
+    gap: 6,
+  },
+  eyebrow: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.9,
+    lineHeight: 16,
+    textTransform: 'uppercase',
+  },
+  screen: {
+    flex: 1,
+  },
+  stateText: {
+    textAlign: 'center',
+  },
+  supportingText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  title: {
+    fontSize: 30,
+    lineHeight: 34,
+  },
+  validationCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  validationText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+});
