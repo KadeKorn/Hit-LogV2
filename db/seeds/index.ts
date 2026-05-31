@@ -1,9 +1,15 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import {
+  mvpExerciseDefinitionSeeds,
+  mvpExercisePrescriptionSeeds,
+  mvpProgressionPolicySeeds,
   prebuiltTemplateDaySeeds,
   prebuiltTemplateSeeds,
+  type SeedExerciseDefinitionRecord,
+  type SeedExercisePrescriptionRecord,
   type SeedPrebuiltTemplateRecord,
+  type SeedProgressionPolicyRecord,
   type SeedTemplateDayRecord,
 } from '@/db/seeds/prebuilt-templates';
 import {
@@ -136,6 +142,146 @@ async function upsertTemplateDay(
   );
 }
 
+async function upsertExerciseDefinition(
+  database: SQLiteDatabase,
+  exerciseDefinition: SeedExerciseDefinitionRecord
+): Promise<void> {
+  await database.runAsync(
+    `INSERT INTO exercise_definitions (
+       id,
+       name,
+       primary_muscle_group,
+       secondary_muscle_groups,
+       category,
+       default_rep_min,
+       default_rep_max,
+       default_progression_method,
+       default_load_increment,
+       default_rest_seconds,
+       created_at,
+       updated_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name = excluded.name,
+       primary_muscle_group = excluded.primary_muscle_group,
+       secondary_muscle_groups = excluded.secondary_muscle_groups,
+       category = excluded.category,
+       default_rep_min = excluded.default_rep_min,
+       default_rep_max = excluded.default_rep_max,
+       default_progression_method = excluded.default_progression_method,
+       default_load_increment = excluded.default_load_increment,
+       default_rest_seconds = excluded.default_rest_seconds,
+       updated_at = excluded.updated_at;`,
+    exerciseDefinition.id,
+    exerciseDefinition.name,
+    exerciseDefinition.primaryMuscleGroup,
+    exerciseDefinition.secondaryMuscleGroups
+      ? JSON.stringify(exerciseDefinition.secondaryMuscleGroups)
+      : null,
+    exerciseDefinition.category,
+    exerciseDefinition.defaultRepMin,
+    exerciseDefinition.defaultRepMax,
+    exerciseDefinition.defaultProgressionMethod,
+    exerciseDefinition.defaultLoadIncrement,
+    exerciseDefinition.defaultRestSeconds,
+    exerciseDefinition.createdAt,
+    exerciseDefinition.updatedAt
+  );
+}
+
+async function upsertProgressionPolicy(
+  database: SQLiteDatabase,
+  progressionPolicy: SeedProgressionPolicyRecord
+): Promise<void> {
+  await database.runAsync(
+    `INSERT INTO progression_policies (
+       id,
+       method,
+       target_rep_min,
+       target_rep_max,
+       load_increment,
+       require_all_sets_at_top,
+       allow_deload_flag,
+       notes,
+       created_at,
+       updated_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       method = excluded.method,
+       target_rep_min = excluded.target_rep_min,
+       target_rep_max = excluded.target_rep_max,
+       load_increment = excluded.load_increment,
+       require_all_sets_at_top = excluded.require_all_sets_at_top,
+       allow_deload_flag = excluded.allow_deload_flag,
+       notes = excluded.notes,
+       updated_at = excluded.updated_at;`,
+    progressionPolicy.id,
+    progressionPolicy.method,
+    progressionPolicy.targetRepMin,
+    progressionPolicy.targetRepMax,
+    progressionPolicy.loadIncrement,
+    toSqliteBoolean(progressionPolicy.requireAllSetsAtTop),
+    toSqliteBoolean(progressionPolicy.allowDeloadFlag),
+    progressionPolicy.notes,
+    progressionPolicy.createdAt,
+    progressionPolicy.updatedAt
+  );
+}
+
+async function upsertExercisePrescription(
+  database: SQLiteDatabase,
+  prescription: SeedExercisePrescriptionRecord
+): Promise<void> {
+  await database.runAsync(
+    `INSERT INTO exercise_prescriptions (
+       id,
+       template_day_id,
+       exercise_definition_id,
+       progression_policy_id,
+       exercise_order,
+       sets,
+       rep_range_min,
+       rep_range_max,
+       muscle_group,
+       load_increment,
+       rest_seconds,
+       notes,
+       created_at,
+       updated_at
+     )
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       template_day_id = excluded.template_day_id,
+       exercise_definition_id = excluded.exercise_definition_id,
+       progression_policy_id = excluded.progression_policy_id,
+       exercise_order = excluded.exercise_order,
+       sets = excluded.sets,
+       rep_range_min = excluded.rep_range_min,
+       rep_range_max = excluded.rep_range_max,
+       muscle_group = excluded.muscle_group,
+       load_increment = excluded.load_increment,
+       rest_seconds = excluded.rest_seconds,
+       notes = excluded.notes,
+       updated_at = excluded.updated_at;`,
+    prescription.id,
+    prescription.templateDayId,
+    prescription.exerciseDefinitionId,
+    prescription.progressionPolicyId,
+    prescription.exerciseOrder,
+    prescription.sets,
+    prescription.repRangeMin,
+    prescription.repRangeMax,
+    prescription.muscleGroup,
+    prescription.loadIncrement,
+    prescription.restSeconds,
+    prescription.notes,
+    prescription.createdAt,
+    prescription.updatedAt
+  );
+}
+
 export async function runSeeds(database: SQLiteDatabase): Promise<void> {
   await database.withTransactionAsync(async () => {
     for (const template of planCTemplateSeeds) {
@@ -152,6 +298,18 @@ export async function runSeeds(database: SQLiteDatabase): Promise<void> {
 
     for (const templateDay of prebuiltTemplateDaySeeds) {
       await upsertTemplateDay(database, templateDay);
+    }
+
+    for (const exerciseDefinition of mvpExerciseDefinitionSeeds) {
+      await upsertExerciseDefinition(database, exerciseDefinition);
+    }
+
+    for (const progressionPolicy of mvpProgressionPolicySeeds) {
+      await upsertProgressionPolicy(database, progressionPolicy);
+    }
+
+    for (const prescription of mvpExercisePrescriptionSeeds) {
+      await upsertExercisePrescription(database, prescription);
     }
   });
 }

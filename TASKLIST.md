@@ -42,13 +42,13 @@
 
 ## Phase 2F - Workout Execution
 
-- [ ] Start workout from active routine
-- [ ] Log working sets
-- [ ] Log optional warmup sets
-- [ ] Allow controlled substitutions
-- [ ] Add exercise-level notes
-- [ ] Add optional effort/RIR at exercise level
-- [ ] Advance routine after completed workout
+- [x] Start workout from active routine
+- [x] Log working sets
+- [x] Log optional warmup sets
+- [x] Allow controlled substitutions
+- [x] Add exercise-level notes
+- [x] Add optional effort/RIR at exercise level
+- [x] Advance routine after completed workout
 
 ## Phase 2G - History Comparison
 

@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2E - Active Routine is complete. The Train tab now reads the persisted active routine, shows a V2 empty state when no routine is selected, summarizes the active template and current/next template day when available, links back to Library to choose or change a routine, and preserves access to the existing Yates Log surface. Full workout execution from templates, history comparison, progression calculations, charts, and integrations remain deferred to later phases.
+Phase 2F - V2 Workout Execution is complete. The Train tab can start or resume a V2 workout session from the active routine, the workout screen shows planned exercises from the current template day, and completed sessions persist V2 completed exercises, set logs, warmup markers, notes, effort/RIR, and basic substitutions without mutating templates. Active routines advance to the next template day after completion. History comparison, progression recommendations, charts, and integrations remain deferred to later phases.

@@ -5,3 +5,4 @@ export { ProgressionPoliciesRepository } from '@/db/repositories/progression-pol
 export { TemplateRepository } from '@/db/repositories/template-repository';
 export { WorkoutLogRepository } from '@/db/repositories/workout-log-repository';
 export { WorkoutLoggerRepository } from '@/db/repositories/workout-logger-repository';
+export { WorkoutSessionRepository } from '@/db/repositories/workout-session-repository';

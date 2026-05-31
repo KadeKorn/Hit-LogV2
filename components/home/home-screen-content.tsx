@@ -6,17 +6,20 @@ import { Colors } from '@/constants/theme';
 import type { NextRecommendedWorkoutDay } from '@/db/repositories/template-repository';
 import type { TemplateLatestCompletedWorkout } from '@/db/repositories/workout-log-repository';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { ActiveRoutine, TemplateDay, WorkoutTemplateWithDays } from '@/types/domain';
+import type { ActiveRoutine, TemplateDay, WorkoutSession, WorkoutTemplateWithDays } from '@/types/domain';
 
 type HomeScreenContentProps = {
   activeRoutine: ActiveRoutine | null;
   activeRoutineTemplate: WorkoutTemplateWithDays | null;
+  activeWorkoutSession: WorkoutSession | null;
   currentTemplateDay: TemplateDay | null;
   error: Error | null;
   isLoading: boolean;
+  isStartingWorkout: boolean;
   latestPerTemplate: TemplateLatestCompletedWorkout[];
   nextWorkout: NextRecommendedWorkoutDay | null;
   onLibraryPress: () => void;
+  onStartWorkout: () => void;
   onTemplatePress: (templateId: string) => void;
 };
 
@@ -149,12 +152,15 @@ function MetaTile({
 export function HomeScreenContent({
   activeRoutine,
   activeRoutineTemplate,
+  activeWorkoutSession,
   currentTemplateDay,
   error,
   isLoading,
+  isStartingWorkout,
   latestPerTemplate,
   nextWorkout,
   onLibraryPress,
+  onStartWorkout,
   onTemplatePress,
 }: HomeScreenContentProps) {
   const colorScheme = useColorScheme() ?? 'dark';
@@ -262,9 +268,17 @@ export function HomeScreenContent({
 
               <View style={styles.actionGroup}>
                 <ActionButton
-                  accessibilityLabel="View next workout placeholder"
-                  label="View Next Workout"
-                  onPress={() => undefined}
+                  accessibilityLabel={
+                    activeWorkoutSession ? 'Resume active workout' : 'Start active routine workout'
+                  }
+                  label={
+                    isStartingWorkout
+                      ? 'Opening Workout'
+                      : activeWorkoutSession
+                        ? 'Resume Workout'
+                        : 'Start Workout'
+                  }
+                  onPress={onStartWorkout}
                   palette={palette}
                   variant="primary"
                 />

@@ -122,15 +122,63 @@ export type ExportActiveRoutineRow = {
   updated_at: string;
 };
 
+export type ExportWorkoutSessionRow = {
+  active_routine_id: string | null;
+  completed_at: string | null;
+  created_at: string;
+  id: string;
+  notes: string | null;
+  started_at: string;
+  status: string;
+  template_day_id: string | null;
+  template_id: string | null;
+  updated_at: string;
+};
+
+export type ExportCompletedExerciseRow = {
+  created_at: string;
+  effort_rating: string | null;
+  estimated_rir: number | null;
+  exercise_definition_id: string | null;
+  exercise_name: string;
+  id: string;
+  is_substitution: number;
+  muscle_group: string | null;
+  notes: string | null;
+  order_index: number;
+  planned_exercise_prescription_id: string | null;
+  planned_rep_max: number | null;
+  planned_rep_min: number | null;
+  planned_sets: number | null;
+  substituted_for_exercise_definition_id: string | null;
+  updated_at: string;
+  workout_session_id: string;
+};
+
+export type ExportSetLogRow = {
+  completed_exercise_id: string;
+  created_at: string;
+  id: string;
+  is_warmup: number;
+  notes: string | null;
+  reps: number | null;
+  set_number: number;
+  updated_at: string;
+  weight: number | null;
+};
+
 export type WorkoutJsonExportData = {
   activeRoutines: ExportActiveRoutineRow[];
+  completedExercises: ExportCompletedExerciseRow[];
   exerciseDefinitions: ExportExerciseDefinitionRow[];
   exerciseLogs: ExportExerciseLogRow[];
   exercisePrescriptions: ExportExercisePrescriptionRow[];
   exerciseSets: ExportExerciseSetRow[];
   progressionPolicies: ExportProgressionPolicyRow[];
+  setLogs: ExportSetLogRow[];
   templateDays: ExportTemplateDayRow[];
   workoutLogs: ExportWorkoutLogRow[];
+  workoutSessions: ExportWorkoutSessionRow[];
   workoutTemplateExercises: ExportWorkoutTemplateExerciseRow[];
   workoutTemplates: ExportWorkoutTemplateRow[];
 };
@@ -150,6 +198,9 @@ export class JsonExportRepository {
       progressionPolicies,
       exercisePrescriptions,
       activeRoutines,
+      workoutSessions,
+      completedExercises,
+      setLogs,
     ] = await Promise.all([
       this.getWorkoutTemplates(),
       this.getWorkoutTemplateExercises(),
@@ -161,10 +212,14 @@ export class JsonExportRepository {
       this.getProgressionPolicies(),
       this.getExercisePrescriptions(),
       this.getActiveRoutines(),
+      this.getWorkoutSessions(),
+      this.getCompletedExercises(),
+      this.getSetLogs(),
     ]);
 
     return {
       activeRoutines,
+      completedExercises,
       exerciseDefinitions,
       workoutTemplates,
       workoutTemplateExercises,
@@ -173,7 +228,9 @@ export class JsonExportRepository {
       exercisePrescriptions,
       exerciseSets,
       progressionPolicies,
+      setLogs,
       templateDays,
+      workoutSessions,
     };
   }
 
@@ -346,6 +403,66 @@ export class JsonExportRepository {
          updated_at
        FROM active_routines
        ORDER BY started_at ASC, id ASC;`
+    );
+  }
+
+  private async getWorkoutSessions(): Promise<ExportWorkoutSessionRow[]> {
+    return this.database.getAllAsync<ExportWorkoutSessionRow>(
+      `SELECT
+         id,
+         active_routine_id,
+         template_id,
+         template_day_id,
+         status,
+         started_at,
+         completed_at,
+         notes,
+         created_at,
+         updated_at
+       FROM workout_sessions
+       ORDER BY started_at ASC, id ASC;`
+    );
+  }
+
+  private async getCompletedExercises(): Promise<ExportCompletedExerciseRow[]> {
+    return this.database.getAllAsync<ExportCompletedExerciseRow>(
+      `SELECT
+         id,
+         workout_session_id,
+         planned_exercise_prescription_id,
+         exercise_definition_id,
+         exercise_name,
+         muscle_group,
+         planned_sets,
+         planned_rep_min,
+         planned_rep_max,
+         is_substitution,
+         substituted_for_exercise_definition_id,
+         order_index,
+         notes,
+         effort_rating,
+         estimated_rir,
+         created_at,
+         updated_at
+       FROM completed_exercises
+       ORDER BY workout_session_id ASC, order_index ASC, id ASC;`
+    );
+  }
+
+  private async getSetLogs(): Promise<ExportSetLogRow[]> {
+    return this.database.getAllAsync<ExportSetLogRow>(
+      `SELECT
+         id,
+         completed_exercise_id,
+         set_number,
+         weight,
+         reps,
+         is_warmup,
+         notes,
+         created_at,
+         updated_at
+       FROM set_logs
+       ORDER BY completed_exercise_id ASC, set_number ASC, id ASC;`
     );
   }
 }

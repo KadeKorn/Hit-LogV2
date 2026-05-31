@@ -129,4 +129,68 @@ export class ActiveRoutineRepository {
       new Date().toISOString()
     );
   }
+
+  async advanceActiveRoutineToNextTemplateDay(activeRoutineId: string): Promise<ActiveRoutine> {
+    const activeRoutine = await this.database.getFirstAsync<ActiveRoutineRow>(
+      `SELECT
+         id,
+         template_id,
+         current_template_day_id,
+         current_day_index,
+         status,
+         started_at,
+         last_workout_session_id,
+         created_at,
+         updated_at
+       FROM active_routines
+       WHERE id = ?
+         AND status = 'active'
+       LIMIT 1;`,
+      activeRoutineId
+    );
+
+    if (!activeRoutine) {
+      throw new Error('Active routine not found.');
+    }
+
+    const templateDays = await this.database.getAllAsync<{ id: string }>(
+      `SELECT id
+       FROM template_days
+       WHERE template_id = ?
+       ORDER BY day_order ASC, id ASC;`,
+      activeRoutine.template_id
+    );
+
+    if (templateDays.length === 0) {
+      return mapActiveRoutineRow(activeRoutine);
+    }
+
+    const currentIndex = Math.max(
+      0,
+      templateDays.findIndex((day) => day.id === activeRoutine.current_template_day_id)
+    );
+    const nextIndex = (currentIndex + 1) % templateDays.length;
+    const now = new Date().toISOString();
+
+    await this.database.runAsync(
+      `UPDATE active_routines
+       SET current_template_day_id = ?,
+           current_day_index = ?,
+           updated_at = ?
+       WHERE id = ?
+         AND status = 'active';`,
+      templateDays[nextIndex].id,
+      nextIndex,
+      now,
+      activeRoutineId
+    );
+
+    const updatedRoutine = await this.getActiveRoutine();
+
+    if (!updatedRoutine || updatedRoutine.id !== activeRoutineId) {
+      throw new Error('Failed to advance active routine.');
+    }
+
+    return updatedRoutine;
+  }
 }

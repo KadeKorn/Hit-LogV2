@@ -1,0 +1,34 @@
+import { router, useLocalSearchParams } from 'expo-router';
+
+import { WorkoutSessionScreenContent } from '@/components/workout-session/workout-session-screen-content';
+import { useWorkoutSessionScreen } from '@/hooks/use-workout-session-screen';
+
+function getSessionIdParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    return value[0] ?? '';
+  }
+
+  return value ?? '';
+}
+
+export default function WorkoutSessionScreen() {
+  const params = useLocalSearchParams<{ sessionId?: string | string[] }>();
+  const sessionId = getSessionIdParam(params.sessionId);
+  const { completeWorkout, error, isCompleting, isLoading, session } =
+    useWorkoutSessionScreen(sessionId);
+
+  return (
+    <WorkoutSessionScreenContent
+      error={error}
+      isCompleting={isCompleting}
+      isLoading={isLoading}
+      onBack={() => router.replace('/')}
+      onComplete={(input) => {
+        void completeWorkout(input).then(() => {
+          router.replace('/');
+        });
+      }}
+      session={session}
+    />
+  );
+}

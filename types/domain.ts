@@ -1,6 +1,8 @@
 export type TemplateSource = 'prebuilt' | 'custom';
 
 export type ActiveRoutineStatus = 'active' | 'paused' | 'completed' | 'archived';
+export type WorkoutSessionStatus = 'active' | 'completed' | 'abandoned';
+export type EffortRating = 'easy' | 'moderate' | 'hard' | 'failure';
 
 export type ProgressionMethod =
   | 'double_progression'
@@ -94,4 +96,49 @@ export type ActiveRoutine = {
 
 export type WorkoutTemplateWithDays = WorkoutTemplate & {
   days: TemplateDay[];
+};
+
+export type WorkoutSession = {
+  activeRoutineId: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  id: string;
+  notes: string | null;
+  startedAt: string;
+  status: WorkoutSessionStatus;
+  templateDayId: string | null;
+  templateId: string | null;
+  updatedAt: string;
+};
+
+export type CompletedExercise = {
+  createdAt: string;
+  effortRating: EffortRating | null;
+  estimatedRir: 0 | 1 | 2 | 3 | null;
+  exerciseDefinitionId: string | null;
+  exerciseName: string;
+  id: string;
+  isSubstitution: boolean;
+  muscleGroup: string | null;
+  notes: string | null;
+  orderIndex: number;
+  plannedExercisePrescriptionId: string | null;
+  plannedRepMax: number | null;
+  plannedRepMin: number | null;
+  plannedSets: number | null;
+  substitutedForExerciseDefinitionId: string | null;
+  updatedAt: string;
+  workoutSessionId: string;
+};
+
+export type SetLog = {
+  completedExerciseId: string;
+  createdAt: string;
+  id: string;
+  isWarmup: boolean;
+  notes: string | null;
+  reps: number | null;
+  setNumber: number;
+  updatedAt: string;
+  weight: number | null;
 };

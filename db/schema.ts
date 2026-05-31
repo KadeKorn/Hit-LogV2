@@ -183,3 +183,67 @@ export const templateDataModelSchemaStatements = [
     ON active_routines(status)
     WHERE status = 'active';`,
 ] as const;
+
+export const workoutExecutionSchemaStatements = [
+  `CREATE TABLE IF NOT EXISTS workout_sessions (
+    id TEXT PRIMARY KEY NOT NULL,
+    active_routine_id TEXT,
+    template_id TEXT,
+    template_day_id TEXT,
+    status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'abandoned')),
+    started_at TEXT NOT NULL,
+    completed_at TEXT,
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (active_routine_id) REFERENCES active_routines(id),
+    FOREIGN KEY (template_id) REFERENCES workout_templates(id),
+    FOREIGN KEY (template_day_id) REFERENCES template_days(id)
+  );`,
+  `CREATE TABLE IF NOT EXISTS completed_exercises (
+    id TEXT PRIMARY KEY NOT NULL,
+    workout_session_id TEXT NOT NULL,
+    planned_exercise_prescription_id TEXT,
+    exercise_definition_id TEXT,
+    exercise_name TEXT NOT NULL,
+    muscle_group TEXT,
+    planned_sets INTEGER,
+    planned_rep_min INTEGER,
+    planned_rep_max INTEGER,
+    is_substitution INTEGER NOT NULL DEFAULT 0,
+    substituted_for_exercise_definition_id TEXT,
+    order_index INTEGER NOT NULL,
+    notes TEXT,
+    effort_rating TEXT CHECK (effort_rating IN ('easy', 'moderate', 'hard', 'failure')),
+    estimated_rir INTEGER CHECK (estimated_rir IN (0, 1, 2, 3)),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (workout_session_id) REFERENCES workout_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (planned_exercise_prescription_id) REFERENCES exercise_prescriptions(id),
+    FOREIGN KEY (exercise_definition_id) REFERENCES exercise_definitions(id)
+  );`,
+  `CREATE TABLE IF NOT EXISTS set_logs (
+    id TEXT PRIMARY KEY NOT NULL,
+    completed_exercise_id TEXT NOT NULL,
+    set_number INTEGER NOT NULL,
+    weight REAL,
+    reps INTEGER,
+    is_warmup INTEGER NOT NULL DEFAULT 0,
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (completed_exercise_id) REFERENCES completed_exercises(id) ON DELETE CASCADE
+  );`,
+  `CREATE INDEX IF NOT EXISTS idx_workout_sessions_status
+    ON workout_sessions(status);`,
+  `CREATE INDEX IF NOT EXISTS idx_workout_sessions_active_routine_id
+    ON workout_sessions(active_routine_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_workout_sessions_template_day_id
+    ON workout_sessions(template_day_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_completed_exercises_workout_session_id
+    ON completed_exercises(workout_session_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_completed_exercises_exercise_definition_id
+    ON completed_exercises(exercise_definition_id);`,
+  `CREATE INDEX IF NOT EXISTS idx_set_logs_completed_exercise_id
+    ON set_logs(completed_exercise_id);`,
+] as const;
