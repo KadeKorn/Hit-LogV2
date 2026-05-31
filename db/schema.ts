@@ -71,7 +71,7 @@ export const templateDataModelSchemaStatements = [
     ADD COLUMN split_type TEXT;`,
   `ALTER TABLE workout_templates
     ADD COLUMN source_type TEXT NOT NULL DEFAULT 'custom'
-      CHECK source_type IN ('prebuilt', 'custom');`,
+      CHECK (source_type IN ('prebuilt', 'custom'));`,
   `ALTER TABLE workout_templates
     ADD COLUMN is_editable INTEGER NOT NULL DEFAULT 1;`,
   `ALTER TABLE workout_templates
@@ -99,13 +99,13 @@ export const templateDataModelSchemaStatements = [
     default_rep_min INTEGER,
     default_rep_max INTEGER,
     default_progression_method TEXT
-      CHECK default_progression_method IN (
+      CHECK (default_progression_method IN (
         'double_progression',
         'top_set_progression',
         'rep_progression',
         'manual',
         'none'
-      ),
+      )),
     default_load_increment REAL,
     default_rest_seconds INTEGER,
     created_at TEXT NOT NULL,
@@ -113,13 +113,13 @@ export const templateDataModelSchemaStatements = [
   );`,
   `CREATE TABLE IF NOT EXISTS progression_policies (
     id TEXT PRIMARY KEY NOT NULL,
-    method TEXT NOT NULL CHECK method IN (
+    method TEXT NOT NULL CHECK (method IN (
       'double_progression',
       'top_set_progression',
       'rep_progression',
       'manual',
       'none'
-    ),
+    )),
     target_rep_min INTEGER,
     target_rep_max INTEGER,
     load_increment REAL,
@@ -153,7 +153,7 @@ export const templateDataModelSchemaStatements = [
     template_id TEXT NOT NULL,
     current_template_day_id TEXT,
     current_day_index INTEGER NOT NULL DEFAULT 0,
-    status TEXT NOT NULL CHECK status IN ('active', 'paused', 'completed', 'archived'),
+    status TEXT NOT NULL CHECK (status IN ('active', 'paused', 'completed', 'archived')),
     started_at TEXT NOT NULL,
     last_workout_session_id TEXT,
     created_at TEXT NOT NULL,
