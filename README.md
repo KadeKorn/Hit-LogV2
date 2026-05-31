@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2C - Template Data Model is complete. The app now has the SQLite schema, TypeScript domain types, repository foundation, and skeletal read-only prebuilt template seed data needed for template-driven training, while Library UI, active-routine workout behavior, progression calculations, charts, and integrations remain deferred to later phases.
+Phase 2D - Library UI is complete. The Library tab now reads persisted Phase 2C template data, separates prebuilt and custom templates, shows template details, duplicates prebuilt templates into custom templates without mutating the source, and persists the selected template as the active routine. Guided Train behavior, next-workout logic, progression calculations, charts, and integrations remain deferred to later phases.

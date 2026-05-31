@@ -25,11 +25,11 @@
 
 ## Phase 2D - Library UI
 
-- [ ] Add prebuilt template list
-- [ ] Add custom template list
-- [ ] Add template detail screen
-- [ ] Add duplicate prebuilt template
-- [ ] Add set as active routine
+- [x] Add prebuilt template list
+- [x] Add custom template list
+- [x] Add template detail screen
+- [x] Add duplicate prebuilt template
+- [x] Add set as active routine
 
 ## Phase 2E - Active Routine
 

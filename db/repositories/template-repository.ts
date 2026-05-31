@@ -32,6 +32,23 @@ export type NextRecommendedWorkoutDay = {
   recommendedTemplate: ActiveWorkoutTemplate;
 };
 
+export type WorkoutTemplateListItem = WorkoutTemplate & {
+  dayCount: number;
+};
+
+export type ExercisePrescriptionDetail = ExercisePrescription & {
+  exerciseName: string;
+  progressionMethod: string | null;
+};
+
+export type TemplateDayDetail = TemplateDay & {
+  prescriptions: ExercisePrescriptionDetail[];
+};
+
+export type WorkoutTemplateDetail = WorkoutTemplate & {
+  days: TemplateDayDetail[];
+};
+
 type ActiveWorkoutTemplateRow = {
   code: string;
   id: string;
@@ -69,6 +86,10 @@ type WorkoutTemplateRow = {
   updated_at: string;
 };
 
+type WorkoutTemplateListItemRow = WorkoutTemplateRow & {
+  day_count: number;
+};
+
 type TemplateDayRow = {
   created_at: string;
   day_order: number;
@@ -77,6 +98,11 @@ type TemplateDayRow = {
   name: string;
   template_id: string;
   updated_at: string;
+};
+
+type ExercisePrescriptionDetailRow = ExercisePrescriptionRow & {
+  exercise_name: string;
+  progression_method: string | null;
 };
 
 type ExercisePrescriptionRow = {
@@ -95,6 +121,14 @@ type ExercisePrescriptionRow = {
   template_day_id: string;
   updated_at: string;
 };
+
+function createEntityId(prefix: string): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function mapWorkoutTemplateRow(row: WorkoutTemplateRow): WorkoutTemplate {
   return {
@@ -142,6 +176,16 @@ function mapExercisePrescriptionRow(row: ExercisePrescriptionRow): ExercisePresc
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function mapExercisePrescriptionDetailRow(
+  row: ExercisePrescriptionDetailRow
+): ExercisePrescriptionDetail {
+  return {
+    ...mapExercisePrescriptionRow(row),
+    exerciseName: row.exercise_name,
+    progressionMethod: row.progression_method,
   };
 }
 
@@ -278,6 +322,39 @@ export class TemplateRepository {
     return rows.map(mapWorkoutTemplateRow);
   }
 
+  async listWorkoutTemplateItems(): Promise<WorkoutTemplateListItem[]> {
+    const rows = await this.database.getAllAsync<WorkoutTemplateListItemRow>(
+      `SELECT
+         wt.id,
+         wt.code,
+         wt.name,
+         wt.order_index,
+         wt.is_active,
+         wt.description,
+         wt.goal,
+         wt.split_type,
+         wt.source_type,
+         wt.is_editable,
+         wt.origin_template_id,
+         wt.created_at,
+         wt.updated_at,
+         COUNT(td.id) AS day_count
+       FROM workout_templates wt
+       LEFT JOIN template_days td ON td.template_id = wt.id
+       GROUP BY wt.id
+       ORDER BY
+         CASE wt.source_type WHEN 'prebuilt' THEN 0 ELSE 1 END,
+         wt.order_index ASC,
+         wt.name ASC,
+         wt.id ASC;`
+    );
+
+    return rows.map((row) => ({
+      ...mapWorkoutTemplateRow(row),
+      dayCount: row.day_count,
+    }));
+  }
+
   async getWorkoutTemplateById(id: string): Promise<WorkoutTemplate | null> {
     const row = await this.database.getFirstAsync<WorkoutTemplateRow>(
       `SELECT
@@ -348,6 +425,36 @@ export class TemplateRepository {
     return rows.map(mapExercisePrescriptionRow);
   }
 
+  async listExercisePrescriptionDetails(templateDayId: string): Promise<ExercisePrescriptionDetail[]> {
+    const rows = await this.database.getAllAsync<ExercisePrescriptionDetailRow>(
+      `SELECT
+         ep.id,
+         ep.template_day_id,
+         ep.exercise_definition_id,
+         ep.progression_policy_id,
+         ep.exercise_order,
+         ep.sets,
+         ep.rep_range_min,
+         ep.rep_range_max,
+         ep.muscle_group,
+         ep.load_increment,
+         ep.rest_seconds,
+         ep.notes,
+         ep.created_at,
+         ep.updated_at,
+         ed.name AS exercise_name,
+         pp.method AS progression_method
+       FROM exercise_prescriptions ep
+       INNER JOIN exercise_definitions ed ON ed.id = ep.exercise_definition_id
+       LEFT JOIN progression_policies pp ON pp.id = ep.progression_policy_id
+       WHERE ep.template_day_id = ?
+       ORDER BY ep.exercise_order ASC, ep.id ASC;`,
+      templateDayId
+    );
+
+    return rows.map(mapExercisePrescriptionDetailRow);
+  }
+
   async getTemplateWithDays(templateId: string): Promise<WorkoutTemplateWithDays | null> {
     const template = await this.getWorkoutTemplateById(templateId);
 
@@ -359,5 +466,150 @@ export class TemplateRepository {
       ...template,
       days: await this.listTemplateDays(templateId),
     };
+  }
+
+  async getWorkoutTemplateDetail(templateId: string): Promise<WorkoutTemplateDetail | null> {
+    const template = await this.getWorkoutTemplateById(templateId);
+
+    if (!template) {
+      return null;
+    }
+
+    const days = await this.listTemplateDays(templateId);
+    const daysWithPrescriptions = await Promise.all(
+      days.map(async (day) => ({
+        ...day,
+        prescriptions: await this.listExercisePrescriptionDetails(day.id),
+      }))
+    );
+
+    return {
+      ...template,
+      days: daysWithPrescriptions,
+    };
+  }
+
+  async duplicateTemplateToCustom(templateId: string): Promise<WorkoutTemplate> {
+    const sourceTemplate = await this.getWorkoutTemplateById(templateId);
+
+    if (!sourceTemplate) {
+      throw new Error('Template not found.');
+    }
+
+    const now = new Date().toISOString();
+    const duplicateTemplateId = createEntityId('custom-template');
+    const duplicateCode = `${sourceTemplate.code}-copy-${Date.now()}`;
+    let duplicateOrderIndex = sourceTemplate.orderIndex + 1000;
+
+    await this.database.withTransactionAsync(async () => {
+      const maxCustomOrder = await this.database.getFirstAsync<{ max_order_index: number | null }>(
+        `SELECT MAX(order_index) AS max_order_index
+         FROM workout_templates
+         WHERE source_type = 'custom';`
+      );
+
+      duplicateOrderIndex = (maxCustomOrder?.max_order_index ?? 199) + 1;
+
+      await this.database.runAsync(
+        `INSERT INTO workout_templates (
+           id,
+           code,
+           name,
+           order_index,
+           is_active,
+           description,
+           goal,
+           split_type,
+           source_type,
+           is_editable,
+           origin_template_id,
+           created_at,
+           updated_at
+         )
+         VALUES (?, ?, ?, ?, 0, ?, ?, ?, 'custom', 1, ?, ?, ?);`,
+        duplicateTemplateId,
+        duplicateCode,
+        `${sourceTemplate.name} (Copy)`,
+        duplicateOrderIndex,
+        sourceTemplate.description,
+        sourceTemplate.goal,
+        sourceTemplate.splitType,
+        sourceTemplate.id,
+        now,
+        now
+      );
+
+      const sourceDays = await this.listTemplateDays(sourceTemplate.id);
+
+      for (const sourceDay of sourceDays) {
+        const duplicateDayId = createEntityId('custom-day');
+
+        await this.database.runAsync(
+          `INSERT INTO template_days (
+             id,
+             template_id,
+             name,
+             day_order,
+             focus,
+             created_at,
+             updated_at
+           )
+           VALUES (?, ?, ?, ?, ?, ?, ?);`,
+          duplicateDayId,
+          duplicateTemplateId,
+          sourceDay.name,
+          sourceDay.dayOrder,
+          sourceDay.focus,
+          now,
+          now
+        );
+
+        const sourcePrescriptions = await this.listExercisePrescriptions(sourceDay.id);
+
+        for (const sourcePrescription of sourcePrescriptions) {
+          await this.database.runAsync(
+            `INSERT INTO exercise_prescriptions (
+               id,
+               template_day_id,
+               exercise_definition_id,
+               progression_policy_id,
+               exercise_order,
+               sets,
+               rep_range_min,
+               rep_range_max,
+               muscle_group,
+               load_increment,
+               rest_seconds,
+               notes,
+               created_at,
+               updated_at
+             )
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+            createEntityId('custom-prescription'),
+            duplicateDayId,
+            sourcePrescription.exerciseDefinitionId,
+            sourcePrescription.progressionPolicyId,
+            sourcePrescription.exerciseOrder,
+            sourcePrescription.sets,
+            sourcePrescription.repRangeMin,
+            sourcePrescription.repRangeMax,
+            sourcePrescription.muscleGroup,
+            sourcePrescription.loadIncrement,
+            sourcePrescription.restSeconds,
+            sourcePrescription.notes,
+            now,
+            now
+          );
+        }
+      }
+    });
+
+    const duplicatedTemplate = await this.getWorkoutTemplateById(duplicateTemplateId);
+
+    if (!duplicatedTemplate) {
+      throw new Error('Failed to duplicate template.');
+    }
+
+    return duplicatedTemplate;
   }
 }
