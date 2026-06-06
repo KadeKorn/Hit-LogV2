@@ -11,6 +11,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
+import type { ExerciseHistoryComparison } from '@/db/repositories/history-comparison-repository';
 import type {
   CompleteWorkoutSessionInput,
   WorkoutSessionDetail,
@@ -37,7 +38,10 @@ type ExerciseDraft = {
 
 type WorkoutSessionScreenContentProps = {
   error: Error | null;
+  historyComparisons: Record<string, ExerciseHistoryComparison>;
+  historyError: Error | null;
   isCompleting: boolean;
+  isHistoryLoading: boolean;
   isLoading: boolean;
   onBack: () => void;
   onComplete: (input: CompleteWorkoutSessionInput) => void;
@@ -107,6 +111,34 @@ function formatTarget(exercise: WorkoutSessionExerciseDetail): string {
   return `${sets} x ${reps}`;
 }
 
+function formatHistoryDate(value: string): string {
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+  }).format(parsedDate);
+}
+
+function formatHistorySet(weight: number | null, reps: number | null): string {
+  const weightLabel = weight == null ? '-' : String(weight);
+  const repsLabel = reps == null ? '-' : String(reps);
+
+  return `${weightLabel} x ${repsLabel}`;
+}
+
+function formatHistorySets(sets: { reps: number | null; weight: number | null }[]): string {
+  if (sets.length === 0) {
+    return 'No working sets';
+  }
+
+  return sets.map((set) => formatHistorySet(set.weight, set.reps)).join(', ');
+}
+
 function createSetDraft(index: number): SetDraft {
   return {
     id: `draft-set-${Date.now()}-${index}`,
@@ -162,6 +194,9 @@ function parseNumberText(value: string): number | null {
 function ExerciseCard({
   draft,
   exercise,
+  historyComparison,
+  historyError,
+  isHistoryLoading,
   onAddSet,
   onSetDraftChange,
   onSetEffort,
@@ -174,6 +209,9 @@ function ExerciseCard({
 }: {
   draft: ExerciseDraft;
   exercise: WorkoutSessionExerciseDetail;
+  historyComparison: ExerciseHistoryComparison | null;
+  historyError: Error | null;
+  isHistoryLoading: boolean;
   onAddSet: (exerciseId: string) => void;
   onSetDraftChange: (
     exerciseId: string,
@@ -202,6 +240,75 @@ function ExerciseCard({
           {formatToken(exercise.progressionMethod)}
           {exercise.restSeconds ? ` - ${exercise.restSeconds}s rest` : ''}
         </ThemedText>
+      </View>
+
+      <View
+        style={[
+          styles.historyPanel,
+          { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
+        ]}>
+        <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>History</ThemedText>
+        {isHistoryLoading ? (
+          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+            Loading history
+          </ThemedText>
+        ) : historyError ? (
+          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+            History unavailable
+          </ThemedText>
+        ) : historyComparison?.lastTime ? (
+          <View style={styles.historyContent}>
+            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
+              Last time:{' '}
+              <ThemedText style={styles.historyValue}>
+                {formatHistorySets(historyComparison.lastTime.sets)}
+              </ThemedText>
+            </ThemedText>
+            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
+              Best:{' '}
+              <ThemedText style={styles.historyValue}>
+                {historyComparison.bestSet
+                  ? formatHistorySet(
+                      historyComparison.bestSet.weight,
+                      historyComparison.bestSet.reps
+                    )
+                  : 'No PR yet'}
+              </ThemedText>
+            </ThemedText>
+            {historyComparison.lastFive.length > 0 ? (
+              <View style={styles.historySubsection}>
+                <ThemedText style={[styles.historySubhead, { color: palette.muted }]}>
+                  Last 5
+                </ThemedText>
+                {historyComparison.lastFive.map((item) => (
+                  <ThemedText
+                    key={`${item.workoutSessionId}-${item.completedAt}`}
+                    style={styles.historyDetailLine}>
+                    {formatHistoryDate(item.completedAt)} - {item.setSummary}
+                  </ThemedText>
+                ))}
+              </View>
+            ) : null}
+            {historyComparison.priorNotes.length > 0 ? (
+              <View style={styles.historySubsection}>
+                <ThemedText style={[styles.historySubhead, { color: palette.muted }]}>
+                  Notes
+                </ThemedText>
+                {historyComparison.priorNotes.slice(0, 3).map((item) => (
+                  <ThemedText
+                    key={`${item.workoutSessionId}-${item.completedAt}`}
+                    style={styles.historyDetailLine}>
+                    {formatHistoryDate(item.completedAt)} - {item.notes}
+                  </ThemedText>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : (
+          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+            No prior history yet.
+          </ThemedText>
+        )}
       </View>
 
       <View style={styles.setList}>
@@ -365,7 +472,10 @@ function ExerciseCard({
 
 export function WorkoutSessionScreenContent({
   error,
+  historyComparisons,
+  historyError,
   isCompleting,
+  isHistoryLoading,
   isLoading,
   onBack,
   onComplete,
@@ -496,6 +606,13 @@ export function WorkoutSessionScreenContent({
                 <ExerciseCard
                   draft={draft}
                   exercise={exercise}
+                  historyComparison={
+                    exercise.exerciseDefinitionId
+                      ? historyComparisons[exercise.exerciseDefinitionId] ?? null
+                      : null
+                  }
+                  historyError={historyError}
+                  isHistoryLoading={isHistoryLoading}
                   key={exercise.id}
                   onAddSet={(exerciseId) => {
                     updateDraft(exerciseId, (currentDraft) => ({
@@ -676,6 +793,45 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 5,
+  },
+  historyContent: {
+    gap: 7,
+  },
+  historyDetailLine: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  historyEmptyText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  historyLine: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  historyPanel: {
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+    padding: 12,
+  },
+  historySubhead: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    textTransform: 'uppercase',
+  },
+  historySubsection: {
+    gap: 4,
+  },
+  historyTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+    textTransform: 'uppercase',
+  },
+  historyValue: {
+    fontWeight: '700',
   },
   input: {
     borderRadius: 12,

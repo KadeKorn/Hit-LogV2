@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2F.5 - Template and Workout UX Cleanup is complete. The Train tab now centers the V2 active routine experience, workout set rows use explicit Warmup/Working controls, mobile card layouts are less prone to awkward text wrapping, the Library custom section filters out legacy day-level logger templates, and editable custom templates support basic metadata changes. History comparison, progression recommendations, charts, and integrations remain deferred to later phases.
+Phase 2G - History Comparison is complete. The V2 workout screen now loads completed-session history for each planned exercise, excludes warmup sets, shows last-time performance, simple best-set PR context, last five recent sessions, and concise prior exercise notes. Progression recommendations, charts, and integrations remain deferred to later phases.

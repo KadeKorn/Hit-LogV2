@@ -14,13 +14,25 @@ function getSessionIdParam(value: string | string[] | undefined): string {
 export default function WorkoutSessionScreen() {
   const params = useLocalSearchParams<{ sessionId?: string | string[] }>();
   const sessionId = getSessionIdParam(params.sessionId);
-  const { completeWorkout, error, isCompleting, isLoading, session } =
+  const {
+    completeWorkout,
+    error,
+    historyComparisons,
+    historyError,
+    isCompleting,
+    isHistoryLoading,
+    isLoading,
+    session,
+  } =
     useWorkoutSessionScreen(sessionId);
 
   return (
     <WorkoutSessionScreenContent
       error={error}
+      historyComparisons={historyComparisons}
+      historyError={historyError}
       isCompleting={isCompleting}
+      isHistoryLoading={isHistoryLoading}
       isLoading={isLoading}
       onBack={() => router.replace('/')}
       onComplete={(input) => {

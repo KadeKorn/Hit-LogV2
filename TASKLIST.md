@@ -60,10 +60,10 @@
 
 ## Phase 2G - History Comparison
 
-- [ ] Show last time
-- [ ] Show best ever / PR
-- [ ] Show last five sessions
-- [ ] Show prior notes
+- [x] Show last time
+- [x] Show best ever / PR
+- [x] Show last five sessions
+- [x] Show prior notes
 
 ## Phase 2H - Progression Engine
 

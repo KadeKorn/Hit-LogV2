@@ -1,6 +1,7 @@
 export { ActiveRoutineRepository } from '@/db/repositories/active-routine-repository';
 export { ExerciseDefinitionsRepository } from '@/db/repositories/exercise-definitions-repository';
 export { ExerciseLogRepository } from '@/db/repositories/exercise-log-repository';
+export { HistoryComparisonRepository } from '@/db/repositories/history-comparison-repository';
 export { ProgressionPoliciesRepository } from '@/db/repositories/progression-policies-repository';
 export { TemplateRepository } from '@/db/repositories/template-repository';
 export { WorkoutLogRepository } from '@/db/repositories/workout-log-repository';
