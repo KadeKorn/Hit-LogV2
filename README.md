@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2F - V2 Workout Execution is complete. The Train tab can start or resume a V2 workout session from the active routine, the workout screen shows planned exercises from the current template day, and completed sessions persist V2 completed exercises, set logs, warmup markers, notes, effort/RIR, and basic substitutions without mutating templates. Active routines advance to the next template day after completion. History comparison, progression recommendations, charts, and integrations remain deferred to later phases.
+Phase 2F.5 - Template and Workout UX Cleanup is complete. The Train tab now centers the V2 active routine experience, workout set rows use explicit Warmup/Working controls, mobile card layouts are less prone to awkward text wrapping, the Library custom section filters out legacy day-level logger templates, and editable custom templates support basic metadata changes. History comparison, progression recommendations, charts, and integrations remain deferred to later phases.

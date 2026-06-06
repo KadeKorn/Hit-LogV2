@@ -206,59 +206,68 @@ function ExerciseCard({
 
       <View style={styles.setList}>
         {draft.setDrafts.map((setDraft, setIndex) => (
-          <View key={setDraft.id} style={styles.setRow}>
-            <ThemedText style={[styles.setNumber, { color: palette.muted }]}>
-              {setIndex + 1}
-            </ThemedText>
-            <TextInput
-              accessibilityLabel={`${exercise.exerciseName} set ${setIndex + 1} weight`}
-              keyboardType="decimal-pad"
-              onChangeText={(value) =>
-                onSetDraftChange(exercise.id, setIndex, 'weightText', value)
-              }
-              placeholder="Weight"
-              placeholderTextColor={palette.muted}
-              style={[
-                styles.input,
-                { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
-              ]}
-              value={setDraft.weightText}
-            />
-            <TextInput
-              accessibilityLabel={`${exercise.exerciseName} set ${setIndex + 1} reps`}
-              keyboardType="number-pad"
-              onChangeText={(value) => onSetDraftChange(exercise.id, setIndex, 'repsText', value)}
-              placeholder="Reps"
-              placeholderTextColor={palette.muted}
-              style={[
-                styles.input,
-                { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
-              ]}
-              value={setDraft.repsText}
-            />
-            <Pressable
-              accessibilityLabel={
-                setDraft.isWarmup
-                  ? `Mark ${exercise.exerciseName} set ${setIndex + 1} as working`
-                  : `Mark ${exercise.exerciseName} set ${setIndex + 1} as warmup`
-              }
-              accessibilityRole="button"
-              onPress={() => onToggleWarmup(exercise.id, setIndex)}
-              style={[
-                styles.warmupChip,
-                {
-                  backgroundColor: setDraft.isWarmup ? palette.accent : 'transparent',
-                  borderColor: setDraft.isWarmup ? palette.accent : palette.border,
-                },
-              ]}>
-              <ThemedText
-                style={[
-                  styles.warmupChipText,
-                  { color: setDraft.isWarmup ? palette.primaryButtonText : palette.muted },
-                ]}>
-                W
+          <View
+            key={setDraft.id}
+            style={[
+              styles.setCard,
+              { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
+            ]}>
+            <View style={styles.setCardHeader}>
+              <ThemedText style={[styles.setNumber, { color: palette.muted }]}>
+                Set {setIndex + 1}
               </ThemedText>
-            </Pressable>
+              <Pressable
+                accessibilityLabel={
+                  setDraft.isWarmup
+                    ? `Mark ${exercise.exerciseName} set ${setIndex + 1} as working`
+                    : `Mark ${exercise.exerciseName} set ${setIndex + 1} as warmup`
+                }
+                accessibilityRole="button"
+                onPress={() => onToggleWarmup(exercise.id, setIndex)}
+                style={[
+                  styles.warmupChip,
+                  {
+                    backgroundColor: setDraft.isWarmup ? palette.accent : 'transparent',
+                    borderColor: setDraft.isWarmup ? palette.accent : palette.border,
+                  },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.warmupChipText,
+                    { color: setDraft.isWarmup ? palette.primaryButtonText : palette.muted },
+                  ]}>
+                  {setDraft.isWarmup ? 'Warmup' : 'Working'}
+                </ThemedText>
+              </Pressable>
+            </View>
+            <View style={styles.setInputRow}>
+              <TextInput
+                accessibilityLabel={`${exercise.exerciseName} set ${setIndex + 1} weight`}
+                keyboardType="decimal-pad"
+                onChangeText={(value) =>
+                  onSetDraftChange(exercise.id, setIndex, 'weightText', value)
+                }
+                placeholder="Weight"
+                placeholderTextColor={palette.muted}
+                style={[
+                  styles.input,
+                  { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
+                ]}
+                value={setDraft.weightText}
+              />
+              <TextInput
+                accessibilityLabel={`${exercise.exerciseName} set ${setIndex + 1} reps`}
+                keyboardType="number-pad"
+                onChangeText={(value) => onSetDraftChange(exercise.id, setIndex, 'repsText', value)}
+                placeholder="Reps"
+                placeholderTextColor={palette.muted}
+                style={[
+                  styles.input,
+                  { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
+                ]}
+                value={setDraft.repsText}
+              />
+            </View>
           </View>
         ))}
       </View>
@@ -656,10 +665,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   exerciseMeta: {
+    flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
   },
   exerciseName: {
+    flexShrink: 1,
     fontSize: 19,
     lineHeight: 25,
   },
@@ -715,16 +726,26 @@ const styles = StyleSheet.create({
   setList: {
     gap: 8,
   },
+  setCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+    padding: 10,
+  },
+  setCardHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  setInputRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   setNumber: {
     fontSize: 14,
     fontWeight: '700',
     lineHeight: 20,
-    width: 18,
-  },
-  setRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 8,
   },
   supportingText: {
     fontSize: 14,
@@ -738,9 +759,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 999,
     borderWidth: 1,
-    height: 38,
     justifyContent: 'center',
-    width: 38,
+    minHeight: 34,
+    minWidth: 86,
+    paddingHorizontal: 12,
   },
   warmupChipText: {
     fontSize: 13,

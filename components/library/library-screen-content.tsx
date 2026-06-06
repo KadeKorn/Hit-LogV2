@@ -333,16 +333,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   templateMeta: {
+    flexShrink: 1,
     fontSize: 13,
     lineHeight: 18,
   },
   templateName: {
+    flexShrink: 1,
     fontSize: 18,
     lineHeight: 24,
   },
   templateTitleBlock: {
     flex: 1,
     gap: 4,
+    minWidth: 0,
   },
   title: {
     fontSize: 34,

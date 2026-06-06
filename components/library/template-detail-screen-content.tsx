@@ -1,4 +1,12 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -16,10 +24,17 @@ type TemplateDetailScreenContentProps = {
   error: Error | null;
   isDuplicating: boolean;
   isLoading: boolean;
+  isSaving: boolean;
   isSettingActive: boolean;
   onBack: () => void;
   onDuplicate: () => void;
   onSetActive: () => void;
+  onUpdateMetadata: (input: {
+    description: string | null;
+    goal: string | null;
+    name: string;
+    splitType: string | null;
+  }) => Promise<void>;
   template: WorkoutTemplateDetail | null;
 };
 
@@ -174,10 +189,12 @@ export function TemplateDetailScreenContent({
   error,
   isDuplicating,
   isLoading,
+  isSaving,
   isSettingActive,
   onBack,
   onDuplicate,
   onSetActive,
+  onUpdateMetadata,
   template,
 }: TemplateDetailScreenContentProps) {
   const colorScheme = useColorScheme() ?? 'dark';
@@ -185,6 +202,20 @@ export function TemplateDetailScreenContent({
   const theme = Colors[colorScheme];
   const isActiveRoutine = activeRoutine?.templateId === template?.id;
   const isPrebuilt = template?.sourceType === 'prebuilt';
+  const canEdit = template?.sourceType === 'custom' && template.isEditable;
+  const [isEditing, setIsEditing] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState('');
+  const [goalDraft, setGoalDraft] = useState('');
+  const [nameDraft, setNameDraft] = useState('');
+  const [splitTypeDraft, setSplitTypeDraft] = useState('');
+
+  useEffect(() => {
+    setDescriptionDraft(template?.description ?? '');
+    setGoalDraft(template?.goal ?? '');
+    setNameDraft(template?.name ?? '');
+    setSplitTypeDraft(template?.splitType ?? '');
+    setIsEditing(false);
+  }, [template?.description, template?.goal, template?.id, template?.name, template?.splitType]);
 
   if (isLoading) {
     return (
@@ -235,14 +266,84 @@ export function TemplateDetailScreenContent({
           <ThemedText style={[styles.caption, { color: palette.muted }]}>
             {isPrebuilt ? 'Prebuilt Template' : 'Custom Template'}
           </ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            {template.name}
-          </ThemedText>
-          {template.description ? (
-            <ThemedText style={[styles.description, { color: theme.text }]}>
-              {template.description}
-            </ThemedText>
-          ) : null}
+          {isEditing ? (
+            <View style={styles.editForm}>
+              <View style={styles.inputGroup}>
+                <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Name</ThemedText>
+                <TextInput
+                  accessibilityLabel="Template name"
+                  onChangeText={setNameDraft}
+                  placeholder="Template name"
+                  placeholderTextColor={palette.muted}
+                  style={[
+                    styles.textInput,
+                    { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: theme.text },
+                  ]}
+                  value={nameDraft}
+                />
+              </View>
+              <View style={styles.inputGroup}>
+                <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>
+                  Description
+                </ThemedText>
+                <TextInput
+                  accessibilityLabel="Template description"
+                  multiline
+                  onChangeText={setDescriptionDraft}
+                  placeholder="Description"
+                  placeholderTextColor={palette.muted}
+                  style={[
+                    styles.textArea,
+                    { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: theme.text },
+                  ]}
+                  value={descriptionDraft}
+                />
+              </View>
+              <View style={styles.editMetaGrid}>
+                <View style={styles.editMetaField}>
+                  <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Goal</ThemedText>
+                  <TextInput
+                    accessibilityLabel="Template goal"
+                    autoCapitalize="none"
+                    onChangeText={setGoalDraft}
+                    placeholder="hypertrophy"
+                    placeholderTextColor={palette.muted}
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: theme.text },
+                    ]}
+                    value={goalDraft}
+                  />
+                </View>
+                <View style={styles.editMetaField}>
+                  <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Split</ThemedText>
+                  <TextInput
+                    accessibilityLabel="Template split type"
+                    autoCapitalize="none"
+                    onChangeText={setSplitTypeDraft}
+                    placeholder="full_body"
+                    placeholderTextColor={palette.muted}
+                    style={[
+                      styles.textInput,
+                      { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: theme.text },
+                    ]}
+                    value={splitTypeDraft}
+                  />
+                </View>
+              </View>
+            </View>
+          ) : (
+            <>
+              <ThemedText type="title" style={styles.title}>
+                {template.name}
+              </ThemedText>
+              {template.description ? (
+                <ThemedText style={[styles.description, { color: theme.text }]}>
+                  {template.description}
+                </ThemedText>
+              ) : null}
+            </>
+          )}
         </View>
 
         <View style={styles.metaGrid}>
@@ -304,6 +405,48 @@ export function TemplateDetailScreenContent({
               palette={palette}
               variant="secondary"
             />
+          ) : null}
+          {canEdit && !isEditing ? (
+            <DetailButton
+              accessibilityLabel="Edit custom template metadata"
+              label="Edit Template"
+              onPress={() => setIsEditing(true)}
+              palette={palette}
+              variant="secondary"
+            />
+          ) : null}
+          {canEdit && isEditing ? (
+            <>
+              <DetailButton
+                accessibilityLabel="Save custom template changes"
+                disabled={isSaving || !nameDraft.trim()}
+                label={isSaving ? 'Saving' : 'Save Changes'}
+                onPress={() => {
+                  void onUpdateMetadata({
+                    name: nameDraft,
+                    description: descriptionDraft,
+                    goal: goalDraft,
+                    splitType: splitTypeDraft,
+                  }).then(() => setIsEditing(false));
+                }}
+                palette={palette}
+                variant="primary"
+              />
+              <DetailButton
+                accessibilityLabel="Cancel custom template editing"
+                disabled={isSaving}
+                label="Cancel"
+                onPress={() => {
+                  setDescriptionDraft(template.description ?? '');
+                  setGoalDraft(template.goal ?? '');
+                  setNameDraft(template.name);
+                  setSplitTypeDraft(template.splitType ?? '');
+                  setIsEditing(false);
+                }}
+                palette={palette}
+                variant="secondary"
+              />
+            </>
           ) : null}
         </View>
 
@@ -403,6 +546,19 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  editForm: {
+    gap: 12,
+  },
+  editMetaField: {
+    flexBasis: 150,
+    flexGrow: 1,
+    gap: 6,
+  },
+  editMetaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
   emptyText: {
     fontSize: 14,
     lineHeight: 20,
@@ -416,6 +572,15 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: 6,
+  },
+  inputGroup: {
+    gap: 6,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    textTransform: 'uppercase',
   },
   loadingContainer: {
     alignItems: 'center',
@@ -446,10 +611,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 4,
     minHeight: 78,
-    minWidth: 98,
+    minWidth: 150,
     padding: 12,
   },
   metaValue: {
+    flexShrink: 1,
     fontSize: 16,
     lineHeight: 21,
   },
@@ -485,7 +651,25 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 28,
   },
+  textArea: {
+    borderRadius: 14,
+    borderWidth: 1,
+    fontSize: 15,
+    minHeight: 90,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    textAlignVertical: 'top',
+  },
+  textInput: {
+    borderRadius: 14,
+    borderWidth: 1,
+    fontSize: 15,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
   title: {
+    flexShrink: 1,
     fontSize: 34,
     lineHeight: 38,
   },

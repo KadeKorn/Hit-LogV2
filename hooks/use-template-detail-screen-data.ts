@@ -3,7 +3,10 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { bootstrapDatabase } from '@/db/bootstrap';
 import { ActiveRoutineRepository, TemplateRepository } from '@/db/repositories';
-import type { WorkoutTemplateDetail } from '@/db/repositories/template-repository';
+import type {
+  UpdateCustomTemplateMetadataInput,
+  WorkoutTemplateDetail,
+} from '@/db/repositories/template-repository';
 import type { ActiveRoutine, WorkoutTemplate } from '@/types/domain';
 
 type TemplateDetailScreenDataState = {
@@ -12,8 +15,10 @@ type TemplateDetailScreenDataState = {
   error: Error | null;
   isDuplicating: boolean;
   isLoading: boolean;
+  isSaving: boolean;
   isSettingActive: boolean;
   reload: () => Promise<void>;
+  saveTemplateMetadata: (input: UpdateCustomTemplateMetadataInput) => Promise<WorkoutTemplateDetail>;
   setTemplateAsActive: () => Promise<ActiveRoutine>;
   template: WorkoutTemplateDetail | null;
 };
@@ -24,6 +29,7 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
   const [error, setError] = useState<Error | null>(null);
   const [isDuplicating, setIsDuplicating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [isSettingActive, setIsSettingActive] = useState(false);
   const [template, setTemplate] = useState<WorkoutTemplateDetail | null>(null);
 
@@ -121,14 +127,47 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
     }
   }, [templateId]);
 
+  const saveTemplateMetadata = useCallback(
+    async (input: UpdateCustomTemplateMetadataInput): Promise<WorkoutTemplateDetail> => {
+      try {
+        setIsSaving(true);
+        setError(null);
+
+        const database = await bootstrapDatabase();
+        const templateRepository = new TemplateRepository(database);
+        await templateRepository.updateCustomTemplateMetadata(templateId, input);
+
+        const updatedTemplate = await templateRepository.getWorkoutTemplateDetail(templateId);
+
+        if (!updatedTemplate) {
+          throw new Error('Unable to reload updated template.');
+        }
+
+        setTemplate(updatedTemplate);
+        return updatedTemplate;
+      } catch (saveError) {
+        const nextError =
+          saveError instanceof Error ? saveError : new Error('Unable to save this template.');
+
+        setError(nextError);
+        throw nextError;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [templateId]
+  );
+
   return {
     activeRoutine,
     duplicateTemplate,
     error,
     isDuplicating,
     isLoading,
+    isSaving,
     isSettingActive,
     reload,
+    saveTemplateMetadata,
     setTemplateAsActive,
     template,
   };

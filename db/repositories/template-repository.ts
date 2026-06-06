@@ -49,6 +49,13 @@ export type WorkoutTemplateDetail = WorkoutTemplate & {
   days: TemplateDayDetail[];
 };
 
+export type UpdateCustomTemplateMetadataInput = {
+  description: string | null;
+  goal: string | null;
+  name: string;
+  splitType: string | null;
+};
+
 type ActiveWorkoutTemplateRow = {
   code: string;
   id: string;
@@ -341,6 +348,12 @@ export class TemplateRepository {
          COUNT(td.id) AS day_count
        FROM workout_templates wt
        LEFT JOIN template_days td ON td.template_id = wt.id
+       WHERE wt.source_type = 'prebuilt'
+          OR EXISTS (
+            SELECT 1
+            FROM template_days v2_td
+            WHERE v2_td.template_id = wt.id
+          )
        GROUP BY wt.id
        ORDER BY
          CASE wt.source_type WHEN 'prebuilt' THEN 0 ELSE 1 END,
@@ -487,6 +500,55 @@ export class TemplateRepository {
       ...template,
       days: daysWithPrescriptions,
     };
+  }
+
+  async updateCustomTemplateMetadata(
+    templateId: string,
+    input: UpdateCustomTemplateMetadataInput
+  ): Promise<WorkoutTemplate> {
+    const existingTemplate = await this.getWorkoutTemplateById(templateId);
+
+    if (!existingTemplate) {
+      throw new Error('Template not found.');
+    }
+
+    if (existingTemplate.sourceType !== 'custom' || !existingTemplate.isEditable) {
+      throw new Error('Only editable custom templates can be updated.');
+    }
+
+    const name = input.name.trim();
+
+    if (!name) {
+      throw new Error('Template name is required.');
+    }
+
+    const now = new Date().toISOString();
+
+    await this.database.runAsync(
+      `UPDATE workout_templates
+       SET name = ?,
+           description = ?,
+           goal = ?,
+           split_type = ?,
+           updated_at = ?
+       WHERE id = ?
+         AND source_type = 'custom'
+         AND is_editable = 1;`,
+      name,
+      input.description?.trim() || null,
+      input.goal?.trim() || null,
+      input.splitType?.trim() || null,
+      now,
+      templateId
+    );
+
+    const updatedTemplate = await this.getWorkoutTemplateById(templateId);
+
+    if (!updatedTemplate) {
+      throw new Error('Failed to update template.');
+    }
+
+    return updatedTemplate;
   }
 
   async duplicateTemplateToCustom(templateId: string): Promise<WorkoutTemplate> {

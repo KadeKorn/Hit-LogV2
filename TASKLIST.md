@@ -50,6 +50,14 @@
 - [x] Add optional effort/RIR at exercise level
 - [x] Advance routine after completed workout
 
+## Phase 2F.5 - Template and Workout UX Cleanup
+
+- [x] Remove/de-emphasize legacy Yates Log UI
+- [x] Improve workout set warmup UX
+- [x] Fix mobile text wrapping/layout issues
+- [x] Fix custom templates list
+- [x] Add basic custom template editing
+
 ## Phase 2G - History Comparison
 
 - [ ] Show last time

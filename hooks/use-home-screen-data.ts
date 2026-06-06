@@ -5,11 +5,8 @@ import { bootstrapDatabase } from '@/db/bootstrap';
 import {
   ActiveRoutineRepository,
   TemplateRepository,
-  WorkoutLogRepository,
   WorkoutSessionRepository,
 } from '@/db/repositories';
-import type { NextRecommendedWorkoutDay } from '@/db/repositories/template-repository';
-import type { TemplateLatestCompletedWorkout } from '@/db/repositories/workout-log-repository';
 import type { ActiveRoutine, TemplateDay, WorkoutSession, WorkoutTemplateWithDays } from '@/types/domain';
 
 type HomeScreenDataState = {
@@ -20,8 +17,6 @@ type HomeScreenDataState = {
   error: Error | null;
   isLoading: boolean;
   isStartingWorkout: boolean;
-  latestPerTemplate: TemplateLatestCompletedWorkout[];
-  nextWorkout: NextRecommendedWorkoutDay | null;
   startOrResumeWorkout: () => Promise<WorkoutSession>;
 };
 
@@ -50,8 +45,6 @@ export function useHomeScreenData(): HomeScreenDataState {
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
-  const [latestPerTemplate, setLatestPerTemplate] = useState<TemplateLatestCompletedWorkout[]>([]);
-  const [nextWorkout, setNextWorkout] = useState<NextRecommendedWorkoutDay | null>(null);
 
   useEffect(() => {
     if (!isFocused) {
@@ -68,15 +61,9 @@ export function useHomeScreenData(): HomeScreenDataState {
         const database = await bootstrapDatabase();
         const activeRoutineRepository = new ActiveRoutineRepository(database);
         const templateRepository = new TemplateRepository(database);
-        const workoutLogRepository = new WorkoutLogRepository(database);
         const workoutSessionRepository = new WorkoutSessionRepository(database);
 
-        const [currentActiveRoutine, recommendedWorkout, latestCompletedPerTemplate] =
-          await Promise.all([
-            activeRoutineRepository.getActiveRoutine(),
-            templateRepository.getNextRecommendedWorkoutDay(),
-            workoutLogRepository.getLatestCompletedWorkoutsPerTemplate(),
-          ]);
+        const currentActiveRoutine = await activeRoutineRepository.getActiveRoutine();
 
         const currentActiveTemplate = currentActiveRoutine
           ? await templateRepository.getTemplateWithDays(currentActiveRoutine.templateId)
@@ -93,8 +80,6 @@ export function useHomeScreenData(): HomeScreenDataState {
         setActiveRoutineTemplate(currentActiveTemplate);
         setActiveWorkoutSession(currentWorkoutSession);
         setCurrentTemplateDay(resolveCurrentTemplateDay(currentActiveRoutine, currentActiveTemplate));
-        setLatestPerTemplate(latestCompletedPerTemplate);
-        setNextWorkout(recommendedWorkout);
       } catch (loadError) {
         if (!isMounted) {
           return;
@@ -147,8 +132,6 @@ export function useHomeScreenData(): HomeScreenDataState {
     error,
     isLoading,
     isStartingWorkout,
-    latestPerTemplate,
-    nextWorkout,
     startOrResumeWorkout,
   };
 }

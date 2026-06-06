@@ -2,9 +2,6 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import type { NextRecommendedWorkoutDay } from '@/db/repositories/template-repository';
-import type { TemplateLatestCompletedWorkout } from '@/db/repositories/workout-log-repository';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { ActiveRoutine, TemplateDay, WorkoutSession, WorkoutTemplateWithDays } from '@/types/domain';
 
@@ -16,11 +13,8 @@ type HomeScreenContentProps = {
   error: Error | null;
   isLoading: boolean;
   isStartingWorkout: boolean;
-  latestPerTemplate: TemplateLatestCompletedWorkout[];
-  nextWorkout: NextRecommendedWorkoutDay | null;
   onLibraryPress: () => void;
   onStartWorkout: () => void;
-  onTemplatePress: (templateId: string) => void;
 };
 
 type HomePalette = {
@@ -31,20 +25,6 @@ type HomePalette = {
   surface: string;
   surfaceMuted: string;
 };
-
-function formatCompletedDate(value: string): string {
-  const parsedDate = new Date(value);
-
-  if (Number.isNaN(parsedDate.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(parsedDate);
-}
 
 function getPalette(colorScheme: 'light' | 'dark'): HomePalette {
   if (colorScheme === 'light') {
@@ -157,14 +137,10 @@ export function HomeScreenContent({
   error,
   isLoading,
   isStartingWorkout,
-  latestPerTemplate,
-  nextWorkout,
   onLibraryPress,
   onStartWorkout,
-  onTemplatePress,
 }: HomeScreenContentProps) {
   const colorScheme = useColorScheme() ?? 'dark';
-  const theme = Colors[colorScheme];
   const palette = getPalette(colorScheme);
 
   if (isLoading) {
@@ -343,112 +319,6 @@ export function HomeScreenContent({
           </View>
         )}
 
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Current Logging
-          </ThemedText>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>
-            Yates Log
-          </ThemedText>
-        </View>
-
-        {nextWorkout ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${nextWorkout.recommendedTemplate.name} workout logger`}
-            onPress={() => onTemplatePress(nextWorkout.recommendedTemplate.id)}
-            style={[
-              styles.nextUpCard,
-              {
-                backgroundColor: palette.surface,
-                borderColor: palette.border,
-              },
-            ]}>
-            <ThemedText style={[styles.sectionLabel, { color: palette.accent }]}>
-              Legacy Logger
-            </ThemedText>
-            <ThemedText type="subtitle" style={styles.legacyLoggerName}>
-              {nextWorkout.recommendedTemplate.name}
-            </ThemedText>
-            <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-              Preserved access to the existing workout logger.
-            </ThemedText>
-          </Pressable>
-        ) : null}
-
-        <View style={styles.sectionHeader}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Latest Logs
-          </ThemedText>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>
-            Active templates
-          </ThemedText>
-        </View>
-
-        <View style={styles.cardList}>
-          {latestPerTemplate.length > 0 ? (
-            latestPerTemplate.map((template) => {
-              const latestWorkout = template.latestCompletedWorkout;
-
-              return (
-                <Pressable
-                  key={template.templateId}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${template.templateName} workout logger`}
-                  onPress={() => onTemplatePress(template.templateId)}
-                  style={[
-                    styles.templateCard,
-                    {
-                      backgroundColor: latestWorkout ? palette.surface : palette.surfaceMuted,
-                      borderColor: palette.border,
-                    },
-                  ]}>
-                  <View style={styles.templateHeader}>
-                    <ThemedText type="defaultSemiBold" style={styles.templateName}>
-                      {template.templateName}
-                    </ThemedText>
-                    <ThemedText style={[styles.templateCode, { color: palette.muted }]}>
-                      {template.templateCode.toUpperCase()}
-                    </ThemedText>
-                  </View>
-
-                  {latestWorkout ? (
-                    <View style={styles.summaryBlock}>
-                      <ThemedText style={[styles.summaryMeta, { color: palette.muted }]}>
-                        Last completed {formatCompletedDate(latestWorkout.completedAt)}
-                      </ThemedText>
-                      <ThemedText style={[styles.summaryText, { color: theme.text }]}>
-                        {latestWorkout.summary?.trim() || 'Completed workout summary unavailable.'}
-                      </ThemedText>
-                    </View>
-                  ) : (
-                    <View style={styles.summaryBlock}>
-                      <ThemedText style={[styles.summaryMeta, { color: palette.muted }]}>
-                        No completed workouts yet
-                      </ThemedText>
-                      <ThemedText style={[styles.summaryText, { color: theme.text }]}>
-                        This template is active and ready when you log the first completed session.
-                      </ThemedText>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })
-          ) : (
-            <View
-                style={[
-                  styles.templateCard,
-                  {
-                    backgroundColor: palette.surfaceMuted,
-                    borderColor: palette.border,
-                  },
-                ]}>
-              <ThemedText style={[styles.summaryText, { color: palette.muted }]}>
-                No legacy logging templates are available right now.
-              </ThemedText>
-            </View>
-          )}
-        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -490,9 +360,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  cardList: {
-    gap: 12,
-  },
   content: {
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -516,10 +383,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  legacyLoggerName: {
-    fontSize: 20,
-    lineHeight: 26,
-  },
   metaGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -538,10 +401,11 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     gap: 4,
     minHeight: 78,
-    minWidth: 98,
+    minWidth: 150,
     padding: 12,
   },
   metaValue: {
+    flexShrink: 1,
     fontSize: 16,
     lineHeight: 21,
   },
@@ -555,22 +419,13 @@ const styles = StyleSheet.create({
     gap: 5,
     padding: 14,
   },
-  nextUpCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 16,
-    gap: 6,
-  },
   nextUpName: {
+    flexShrink: 1,
     fontSize: 24,
     lineHeight: 30,
   },
   screen: {
     flex: 1,
-  },
-  sectionHeader: {
-    gap: 4,
-    marginTop: 2,
   },
   sectionLabel: {
     fontSize: 12,
@@ -578,10 +433,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 1.1,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    lineHeight: 28,
   },
   statusPill: {
     borderRadius: 999,
@@ -595,43 +446,14 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     textTransform: 'uppercase',
   },
-  summaryBlock: {
-    gap: 6,
-  },
-  summaryMeta: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  summaryText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
   supportingText: {
     fontSize: 14,
     lineHeight: 20,
   },
-  templateCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 15,
-    gap: 10,
-  },
-  templateCode: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
-    letterSpacing: 0.8,
-  },
-  templateHeader: {
-    gap: 4,
-  },
   templateTitleBlock: {
     flex: 1,
     gap: 4,
-  },
-  templateName: {
-    fontSize: 18,
-    lineHeight: 24,
+    minWidth: 0,
   },
   title: {
     fontSize: 34,

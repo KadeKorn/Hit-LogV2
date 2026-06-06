@@ -12,8 +12,6 @@ export default function HomeScreen() {
     error,
     isLoading,
     isStartingWorkout,
-    latestPerTemplate,
-    nextWorkout,
     startOrResumeWorkout,
   } = useHomeScreenData();
 
@@ -26,8 +24,6 @@ export default function HomeScreen() {
       error={error}
       isLoading={isLoading}
       isStartingWorkout={isStartingWorkout}
-      latestPerTemplate={latestPerTemplate}
-      nextWorkout={nextWorkout}
       onLibraryPress={() => router.push('/library')}
       onStartWorkout={() => {
         void startOrResumeWorkout().then((session) => {
@@ -37,12 +33,6 @@ export default function HomeScreen() {
           });
         });
       }}
-      onTemplatePress={(templateId) =>
-        router.push({
-          pathname: '/workout-logger/[templateId]',
-          params: { templateId },
-        })
-      }
     />
   );
 }

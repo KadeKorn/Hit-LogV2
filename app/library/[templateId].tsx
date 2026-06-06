@@ -20,7 +20,9 @@ export default function TemplateDetailScreen() {
     error,
     isDuplicating,
     isLoading,
+    isSaving,
     isSettingActive,
+    saveTemplateMetadata,
     setTemplateAsActive,
     template,
   } = useTemplateDetailScreenData(templateId);
@@ -31,6 +33,7 @@ export default function TemplateDetailScreen() {
       error={error}
       isDuplicating={isDuplicating}
       isLoading={isLoading}
+      isSaving={isSaving}
       isSettingActive={isSettingActive}
       onBack={() => router.back()}
       onDuplicate={() => {
@@ -43,6 +46,9 @@ export default function TemplateDetailScreen() {
       }}
       onSetActive={() => {
         void setTemplateAsActive();
+      }}
+      onUpdateMetadata={async (input) => {
+        await saveTemplateMetadata(input);
       }}
       template={template}
     />
