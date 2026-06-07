@@ -5,6 +5,7 @@ export { HistoryComparisonRepository } from '@/db/repositories/history-compariso
 export { ProgressionPoliciesRepository } from '@/db/repositories/progression-policies-repository';
 export { ProgressionRecommendationRepository } from '@/db/repositories/progression-recommendation-repository';
 export { TemplateRepository } from '@/db/repositories/template-repository';
+export { V2HistoryRepository } from '@/db/repositories/v2-history-repository';
 export { WorkoutLogRepository } from '@/db/repositories/workout-log-repository';
 export { WorkoutLoggerRepository } from '@/db/repositories/workout-logger-repository';
 export { WorkoutSessionRepository } from '@/db/repositories/workout-session-repository';

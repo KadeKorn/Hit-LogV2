@@ -81,7 +81,14 @@
 - [x] Validate exercise selections
 - [x] Validate progression defaults
 
-## Phase 4 - Charts
+## Phase 4 - History Tab Activation
+
+- [x] Add completed V2 workout sessions list
+- [x] Add completed V2 workout session detail
+- [x] Add V2 exercise history lookup
+- [x] Add History tab empty states
+
+## Later - Charts
 
 - [ ] Add exercise strength trend
 - [ ] Add volume trend

@@ -1,21 +1,29 @@
-import { PlaceholderScreen } from '@/components/navigation-shell/placeholder-screen';
+import { router } from 'expo-router';
+
+import { V2HistoryScreenContent } from '@/components/history/v2-history-screen-content';
+import { useV2HistoryScreen } from '@/hooks/use-v2-history-screen';
 
 export default function HistoryScreen() {
+  const {
+    completedSessions,
+    error,
+    exerciseHistoryLookup,
+    exerciseHistoryPerformances,
+    isLoading,
+    selectedExerciseHistoryKey,
+    setSelectedExerciseHistoryKey,
+  } = useV2HistoryScreen();
+
   return (
-    <PlaceholderScreen
-      eyebrow="History"
-      title="Workout History"
-      intro="Completed workout sessions and exercise lookup will be collected here."
-      sections={[
-        {
-          title: 'Completed Sessions',
-          body: 'Saved workouts will become the main history list in a later phase.',
-        },
-        {
-          title: 'Exercise History',
-          body: 'Exercise-level history remains available from the workout logger where prior performance is needed.',
-        },
-      ]}
+    <V2HistoryScreenContent
+      completedSessions={completedSessions}
+      error={error}
+      exerciseHistoryLookup={exerciseHistoryLookup}
+      exerciseHistoryPerformances={exerciseHistoryPerformances}
+      isLoading={isLoading}
+      onOpenSession={(sessionId) => router.push(`/history/session/${sessionId}`)}
+      onSelectExercise={setSelectedExerciseHistoryKey}
+      selectedExerciseHistoryKey={selectedExerciseHistoryKey}
     />
   );
 }
