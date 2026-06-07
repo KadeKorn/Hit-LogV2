@@ -149,6 +149,7 @@ Templates are reusable training plans. V2 should support prebuilt templates and 
 - Custom templates are editable.
 - Custom templates can be structurally edited: days can be added, renamed, reordered, and deleted while preserving at least one day.
 - Custom template exercise prescriptions can be added from existing exercise definitions, removed, reordered, and edited for sets, rep range, progression method, rest guidance, and notes.
+- Custom exercises can be created while editing a custom template. A custom exercise requires a name and primary muscle group, can include optional notes/cues, appears in the grouped exercise picker, and can be used in custom template prescriptions.
 - Custom template creation should be fast, low-friction, simple, and elegant.
 - Custom templates should require only the minimum fields needed for progression.
 - The app may auto-fill sensible defaults such as muscle group, progression method, increment, and rest time.
@@ -186,7 +187,7 @@ Initial labels:
 - Needs review
 - Low signal / insufficient metadata
 
-Current metadata counts each prescription toward its available `muscleGroup`. Phase 9 may improve analysis with primary and secondary muscle metadata; Phase 5 does not invent fractional secondary-muscle counting.
+Current analysis counts each prescription toward its stored prescription `muscleGroup`, which is derived from the exercise definition primary muscle when prescriptions are created or updated. Phase 9 adds secondary muscle, equipment, movement pattern, difficulty, source, and notes/cues metadata to exercise definitions, but template analysis remains primary-muscle-only for now and does not invent fractional secondary-muscle counting.
 
 Goal-fit labels should avoid over-penalizing minor near-misses caused by the current one-muscle-per-prescription metadata. `Needs review` is reserved for major structural issues such as multiple required muscles with 0 sets, severe undertraining across the template, clearly overloaded groups, or very low total analysis signal. Guardrail notes should remain visible even when the overall label is `Good fit`.
 
@@ -456,6 +457,16 @@ Goal: strengthen exercise metadata and substitution support.
 High-level scope: primary muscle, secondary muscles, equipment, movement pattern, difficulty, notes/cues, and substitutions.
 
 Intended user value: the user gets better template structure, clearer substitutions, and more accurate analysis inputs.
+
+Implemented behavior:
+
+- Default exercise definitions were expanded across chest, lats, upper back, delts, legs, arms, abs, calves, and traps.
+- Exercise definitions now carry deterministic metadata for primary muscle group, optional secondary muscle groups, equipment, movement pattern, difficulty, notes/cues, and source type.
+- Custom template editing includes exercise search/filtering by exercise, muscle, equipment, movement pattern, and notes.
+- Custom exercises can be created inline while adding or editing a custom template prescription.
+- Seed updates are idempotent by stable exercise IDs and do not delete existing definitions or completed workout history.
+- Substitution behavior remains explicit and history-safe. Full substitution recommendation metadata is deferred; current substitution clarity is supported by names, muscle groups, and richer exercise metadata.
+- Progress and Training Analysis remain primary-muscle-only and continue to exclude warmups and incomplete sets.
 
 ### Phase 10 - Export / Backup / Import
 

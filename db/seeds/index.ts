@@ -153,6 +153,11 @@ async function upsertExerciseDefinition(
        primary_muscle_group,
        secondary_muscle_groups,
        category,
+       equipment,
+       movement_pattern,
+       difficulty,
+       notes,
+       source_type,
        default_rep_min,
        default_rep_max,
        default_progression_method,
@@ -161,12 +166,17 @@ async function upsertExerciseDefinition(
        created_at,
        updated_at
      )
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        name = excluded.name,
        primary_muscle_group = excluded.primary_muscle_group,
        secondary_muscle_groups = excluded.secondary_muscle_groups,
        category = excluded.category,
+       equipment = excluded.equipment,
+       movement_pattern = excluded.movement_pattern,
+       difficulty = excluded.difficulty,
+       notes = excluded.notes,
+       source_type = excluded.source_type,
        default_rep_min = excluded.default_rep_min,
        default_rep_max = excluded.default_rep_max,
        default_progression_method = excluded.default_progression_method,
@@ -180,6 +190,11 @@ async function upsertExerciseDefinition(
       ? JSON.stringify(exerciseDefinition.secondaryMuscleGroups)
       : null,
     exerciseDefinition.category,
+    exerciseDefinition.equipment,
+    exerciseDefinition.movementPattern,
+    exerciseDefinition.difficulty,
+    exerciseDefinition.notes,
+    exerciseDefinition.sourceType,
     exerciseDefinition.defaultRepMin,
     exerciseDefinition.defaultRepMax,
     exerciseDefinition.defaultProgressionMethod,

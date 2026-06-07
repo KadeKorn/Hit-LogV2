@@ -18,6 +18,7 @@ export default function TemplateDetailScreen() {
     activeRoutine,
     addExercisePrescription,
     addTemplateDay,
+    createCustomExerciseDefinition,
     deleteExercisePrescription,
     deleteTemplateDay,
     duplicateTemplate,
@@ -50,6 +51,7 @@ export default function TemplateDetailScreen() {
       onBack={() => router.back()}
       onAddExercisePrescription={addExercisePrescription}
       onAddTemplateDay={addTemplateDay}
+      onCreateCustomExerciseDefinition={createCustomExerciseDefinition}
       onDeleteExercisePrescription={deleteExercisePrescription}
       onDeleteTemplateDay={deleteTemplateDay}
       onDuplicate={() => {

@@ -136,7 +136,7 @@ Suggested fields:
 
 ### ExerciseDefinition
 
-Reusable exercise metadata, such as name, primary muscle group, secondary muscle groups, category, default rep range, default progression method, and default load increment.
+Reusable exercise metadata, such as name, primary muscle group, secondary muscle groups, equipment, movement pattern, difficulty, source type, notes/cues, category, default rep range, default progression method, and default load increment.
 
 Suggested fields:
 
@@ -144,12 +144,17 @@ Suggested fields:
 - `name`
 - `primaryMuscleGroup`
 - `secondaryMuscleGroups`
+- `equipment`
+- `movementPattern`
+- `difficulty`
+- `sourceType`: `prebuilt | custom`
 - `category`
 - `defaultRepMin`
 - `defaultRepMax`
 - `defaultProgressionMethod`
 - `defaultLoadIncrement`
 - `defaultRestSeconds`
+- `notes`
 - `createdAt`
 - `updatedAt`
 
@@ -357,7 +362,7 @@ Outputs:
 
 The service must stay deterministic and testable. It must not read completed workout sessions, set logs, legacy Yates data, chart state, or remote services.
 
-Phase 5 target-profile constants live in `lib/template-analysis.ts`. Current metadata counts a prescription toward its available `muscleGroup`; Phase 9 may improve this with richer primary and secondary muscle metadata. Do not add fractional secondary-muscle counting until the data model supports it cleanly.
+Phase 5 target-profile constants live in `lib/template-analysis.ts`. Phase 9 stores richer exercise definition metadata, including secondary muscles, equipment, movement pattern, difficulty, and notes/cues, but template analysis still counts each prescription toward its stored primary `muscleGroup`. Do not add fractional secondary-muscle counting until the analysis rule is intentionally designed and covered.
 
 ## Progress analysis service
 
@@ -377,7 +382,7 @@ Rules:
 - Exclude blank or incomplete sets.
 - Use weighted `weight x reps` volume only when weight exists.
 - Show reps history instead of fake volume when an exercise has reps-only data.
-- Count available exercise muscle-group metadata directly; do not add fractional secondary-muscle counting in Phase 8.
+- Count available exercise muscle-group metadata directly; do not add fractional secondary-muscle counting in Phase 8 or Phase 9.
 
 Outputs:
 
@@ -404,6 +409,21 @@ Rules:
 - Supported progression methods remain `double_progression`, `top_set_progression`, `rep_progression`, `manual`, and `none`; load-only progression is not introduced.
 - Deleting an active routine's current day updates the routine to a remaining day before the day is deleted.
 - Removing a prescription clears completed-exercise foreign-key references to that prescription so historical completed exercise snapshots remain readable while the custom template changes.
+
+## Exercise library expansion
+
+Phase 9 expands exercise definitions through schema version 4 and repository-owned creation.
+
+Rules:
+
+- Exercise definition seed rows use stable IDs and are upserted idempotently.
+- Seed updates may update prebuilt exercise definition metadata for known seed IDs, but they must not delete exercise definitions or completed history.
+- Custom exercise definitions are inserted with `source_type = 'custom'`.
+- Custom exercise creation requires a name and primary muscle group, accepts optional notes/cues, and uses conservative defaults for template editing: 8-12 reps, `double_progression`, 5 lb load increment, and 90 seconds rest.
+- Custom exercise names are checked case-insensitively to avoid exact duplicate exercise definitions.
+- The grouped exercise picker reads all exercise definitions and groups by primary muscle group.
+- Training Analysis and Progress remain primary-muscle-only. Secondary muscle groups are stored for future analysis/substitution work but are not fractionally counted.
+- Substitution behavior remains explicit and history-safe; Phase 9 does not add an automatic substitution recommendation engine.
 
 ## Substitution rules
 

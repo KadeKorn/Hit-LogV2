@@ -34,6 +34,12 @@ type PrescriptionFormInput = {
   sets: number;
 };
 
+type CustomExerciseFormInput = {
+  name: string;
+  notes: string | null;
+  primaryMuscleGroup: string;
+};
+
 type TemplateDetailScreenContentProps = {
   activeRoutine: ActiveRoutine | null;
   error: Error | null;
@@ -49,6 +55,7 @@ type TemplateDetailScreenContentProps = {
   ) => TemplateMutationResult;
   onAddTemplateDay: (input: { focus: string | null; name: string }) => TemplateMutationResult;
   onBack: () => void;
+  onCreateCustomExerciseDefinition: (input: CustomExerciseFormInput) => Promise<ExerciseDefinition>;
   onDeleteExercisePrescription: (prescriptionId: string) => TemplateMutationResult;
   onDeleteTemplateDay: (templateDayId: string) => TemplateMutationResult;
   onDuplicate: () => void;
@@ -102,6 +109,29 @@ const PROGRESSION_HELP_TEXT: Record<ProgressionMethod, string> = {
   none: 'No progression target. Useful for warmups, technique work, or non-progressive accessories.',
 };
 
+const MUSCLE_GROUP_ORDER = [
+  'chest',
+  'lats',
+  'upper_back',
+  'side_delts',
+  'rear_delts',
+  'front_delts',
+  'quads',
+  'hamstrings',
+  'glutes',
+  'biceps',
+  'triceps',
+  'abs',
+  'calves',
+  'traps',
+  'forearms',
+  'unknown',
+] as const;
+
+const CUSTOM_EXERCISE_MUSCLE_GROUPS = MUSCLE_GROUP_ORDER.filter(
+  (muscleGroup) => muscleGroup !== 'unknown' && muscleGroup !== 'forearms'
+);
+
 function getPalette(colorScheme: 'light' | 'dark'): DetailPalette {
   if (colorScheme === 'light') {
     return {
@@ -144,9 +174,10 @@ function groupExerciseDefinitionsByMuscleGroup(
   const groups = new Map<string, ExerciseDefinition[]>();
 
   for (const exerciseDefinition of exerciseDefinitions) {
-    const exercises = groups.get(exerciseDefinition.primaryMuscleGroup) ?? [];
+    const muscleGroup = exerciseDefinition.primaryMuscleGroup || 'unknown';
+    const exercises = groups.get(muscleGroup) ?? [];
     exercises.push(exerciseDefinition);
-    groups.set(exerciseDefinition.primaryMuscleGroup, exercises);
+    groups.set(muscleGroup, exercises);
   }
 
   return Array.from(groups.entries())
@@ -155,6 +186,17 @@ function groupExerciseDefinitionsByMuscleGroup(
       exercises: exercises.sort((a, b) => a.name.localeCompare(b.name)),
     }))
     .sort((a, b) => {
+      const firstIndex = MUSCLE_GROUP_ORDER.indexOf(
+        a.muscleGroup as (typeof MUSCLE_GROUP_ORDER)[number]
+      );
+      const secondIndex = MUSCLE_GROUP_ORDER.indexOf(
+        b.muscleGroup as (typeof MUSCLE_GROUP_ORDER)[number]
+      );
+
+      if (firstIndex >= 0 || secondIndex >= 0) {
+        return (firstIndex >= 0 ? firstIndex : 999) - (secondIndex >= 0 ? secondIndex : 999);
+      }
+
       const firstLabel = formatToken(a.muscleGroup) ?? a.muscleGroup;
       const secondLabel = formatToken(b.muscleGroup) ?? b.muscleGroup;
       return firstLabel.localeCompare(secondLabel);
@@ -368,17 +410,54 @@ function ExerciseSelector({
   palette: DetailPalette;
   selectedExerciseDefinitionId: string;
 }) {
+  const colorScheme = useColorScheme() ?? 'dark';
+  const theme = Colors[colorScheme];
+  const [searchQuery, setSearchQuery] = useState('');
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const filteredExerciseDefinitions = useMemo(() => {
+    if (!normalizedSearchQuery) {
+      return exerciseDefinitions;
+    }
+
+    return exerciseDefinitions.filter((exerciseDefinition) => {
+      const searchText = [
+        exerciseDefinition.name,
+        exerciseDefinition.primaryMuscleGroup,
+        exerciseDefinition.equipment,
+        exerciseDefinition.movementPattern,
+        exerciseDefinition.notes,
+        ...(exerciseDefinition.secondaryMuscleGroups ?? []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchText.includes(normalizedSearchQuery);
+    });
+  }, [exerciseDefinitions, normalizedSearchQuery]);
   const exerciseGroups = useMemo(
-    () => groupExerciseDefinitionsByMuscleGroup(exerciseDefinitions),
-    [exerciseDefinitions]
+    () => groupExerciseDefinitionsByMuscleGroup(filteredExerciseDefinitions),
+    [filteredExerciseDefinitions]
   );
 
   return (
     <View style={styles.inputGroup}>
       <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Exercise</ThemedText>
+      <TextInput
+        accessibilityLabel="Search exercises"
+        onChangeText={setSearchQuery}
+        placeholder="Search by exercise, muscle, or equipment"
+        placeholderTextColor={palette.muted}
+        style={[
+          styles.textInput,
+          { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: theme.text },
+        ]}
+        value={searchQuery}
+      />
       <ScrollView nestedScrollEnabled style={styles.exerciseChoiceScroller}>
         <View style={styles.exerciseChoiceList}>
-          {exerciseGroups.map((group) => (
+          {exerciseGroups.length > 0 ? (
+            exerciseGroups.map((group) => (
             <View key={group.muscleGroup} style={styles.exerciseGroup}>
               <ThemedText style={[styles.exerciseGroupLabel, { color: palette.muted }]}>
                 {formatToken(group.muscleGroup)}
@@ -402,13 +481,137 @@ function ExerciseSelector({
                     <ThemedText type="defaultSemiBold" style={styles.exerciseChoiceName}>
                       {exerciseDefinition.name}
                     </ThemedText>
+                    <ThemedText style={[styles.exerciseChoiceMeta, { color: palette.muted }]}>
+                      {[formatToken(exerciseDefinition.equipment), formatToken(exerciseDefinition.movementPattern)]
+                        .filter(Boolean)
+                        .join(' - ') || 'Custom'}
+                    </ThemedText>
+                    {exerciseDefinition.sourceType === 'custom' ? (
+                      <ThemedText style={[styles.exerciseChoiceMeta, { color: palette.accent }]}>
+                        Custom exercise
+                      </ThemedText>
+                    ) : null}
                   </Pressable>
                 );
               })}
             </View>
-          ))}
+            ))
+          ) : (
+            <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+              No exercises match that search.
+            </ThemedText>
+          )}
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+function CustomExerciseCreator({
+  isSaving,
+  onCreate,
+  onCreated,
+  palette,
+}: {
+  isSaving: boolean;
+  onCreate: (input: CustomExerciseFormInput) => Promise<ExerciseDefinition>;
+  onCreated: (exerciseDefinition: ExerciseDefinition) => void;
+  palette: DetailPalette;
+}) {
+  const [isCreating, setIsCreating] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
+  const [notesDraft, setNotesDraft] = useState('');
+  const [primaryMuscleGroup, setPrimaryMuscleGroup] = useState('chest');
+
+  if (!isCreating) {
+    return (
+      <SmallButton
+        disabled={isSaving}
+        label="Create Exercise"
+        onPress={() => setIsCreating(true)}
+        palette={palette}
+        tone="muted"
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.customExercisePanel, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+      <LabeledInput
+        label="Exercise Name"
+        onChangeText={setNameDraft}
+        palette={palette}
+        placeholder="Exercise name"
+        value={nameDraft}
+      />
+      <View style={styles.inputGroup}>
+        <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>Primary Muscle</ThemedText>
+        <View style={styles.chipGrid}>
+          {CUSTOM_EXERCISE_MUSCLE_GROUPS.map((muscleGroup) => {
+            const isSelected = muscleGroup === primaryMuscleGroup;
+
+            return (
+              <Pressable
+                accessibilityLabel={`Set primary muscle to ${formatToken(muscleGroup)}`}
+                accessibilityRole="button"
+                key={muscleGroup}
+                onPress={() => setPrimaryMuscleGroup(muscleGroup)}
+                style={[
+                  styles.choiceChip,
+                  {
+                    backgroundColor: isSelected ? palette.accent : 'transparent',
+                    borderColor: isSelected ? palette.accent : palette.border,
+                  },
+                ]}>
+                <ThemedText
+                  style={[
+                    styles.choiceChipText,
+                    { color: isSelected ? palette.primaryButtonText : palette.accent },
+                  ]}>
+                  {formatToken(muscleGroup)}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+      <LabeledInput
+        label="Notes / Cues"
+        multiline
+        onChangeText={setNotesDraft}
+        palette={palette}
+        placeholder="Optional setup or execution cues"
+        value={notesDraft}
+      />
+      <View style={styles.inlineActions}>
+        <SmallButton
+          disabled={isSaving || !nameDraft.trim()}
+          label={isSaving ? 'Saving' : 'Save Exercise'}
+          onPress={() => {
+            void onCreate({
+              name: nameDraft,
+              notes: notesDraft,
+              primaryMuscleGroup,
+            })
+              .then((exerciseDefinition) => {
+                onCreated(exerciseDefinition);
+                setNameDraft('');
+                setNotesDraft('');
+                setPrimaryMuscleGroup('chest');
+                setIsCreating(false);
+              })
+              .catch(() => undefined);
+          }}
+          palette={palette}
+        />
+        <SmallButton
+          disabled={isSaving}
+          label="Cancel"
+          onPress={() => setIsCreating(false)}
+          palette={palette}
+          tone="muted"
+        />
+      </View>
     </View>
   );
 }
@@ -418,6 +621,7 @@ function PrescriptionEditor({
   initialPrescription,
   isSaving,
   onCancel,
+  onCreateCustomExerciseDefinition,
   onSave,
   palette,
 }: {
@@ -425,6 +629,7 @@ function PrescriptionEditor({
   initialPrescription?: ExercisePrescriptionDetail;
   isSaving: boolean;
   onCancel: () => void;
+  onCreateCustomExerciseDefinition: (input: CustomExerciseFormInput) => Promise<ExerciseDefinition>;
   onSave: (input: PrescriptionFormInput) => Promise<void>;
   palette: DetailPalette;
 }) {
@@ -479,6 +684,14 @@ function PrescriptionEditor({
         onChange={setExerciseDefinitionId}
         palette={palette}
         selectedExerciseDefinitionId={exerciseDefinitionId}
+      />
+      <CustomExerciseCreator
+        isSaving={isSaving}
+        onCreate={onCreateCustomExerciseDefinition}
+        onCreated={(exerciseDefinition) => {
+          setExerciseDefinitionId(exerciseDefinition.id);
+        }}
+        palette={palette}
       />
       <View style={styles.editMetaGrid}>
         <LabeledInput
@@ -556,6 +769,7 @@ function TemplateDayCard({
   onAddExercisePrescription,
   onDeleteDay,
   onDeleteExercisePrescription,
+  onCreateCustomExerciseDefinition,
   onMoveDay,
   onMoveExercisePrescription,
   onUpdateDay,
@@ -575,6 +789,7 @@ function TemplateDayCard({
   ) => TemplateMutationResult;
   onDeleteDay: (templateDayId: string) => TemplateMutationResult;
   onDeleteExercisePrescription: (prescriptionId: string) => TemplateMutationResult;
+  onCreateCustomExerciseDefinition: (input: CustomExerciseFormInput) => Promise<ExerciseDefinition>;
   onMoveDay: (templateDayId: string, direction: -1 | 1) => TemplateMutationResult;
   onMoveExercisePrescription: (
     prescriptionId: string,
@@ -724,6 +939,7 @@ function TemplateDayCard({
                     initialPrescription={prescription}
                     isSaving={isSaving}
                     onCancel={() => setEditingPrescriptionId(null)}
+                    onCreateCustomExerciseDefinition={onCreateCustomExerciseDefinition}
                     onSave={async (input) => {
                       await onUpdateExercisePrescription(prescription.id, input);
                       setEditingPrescriptionId(null);
@@ -817,6 +1033,7 @@ function TemplateDayCard({
             exerciseDefinitions={exerciseDefinitions}
             isSaving={isSaving}
             onCancel={() => setIsAddingPrescription(false)}
+            onCreateCustomExerciseDefinition={onCreateCustomExerciseDefinition}
             onSave={async (input) => {
               await onAddExercisePrescription(day.id, input);
               setIsAddingPrescription(false);
@@ -999,6 +1216,7 @@ export function TemplateDetailScreenContent({
   onAddExercisePrescription,
   onAddTemplateDay,
   onBack,
+  onCreateCustomExerciseDefinition,
   onDeleteExercisePrescription,
   onDeleteTemplateDay,
   onDuplicate,
@@ -1261,6 +1479,7 @@ export function TemplateDetailScreenContent({
                     isSaving={isSaving}
                     key={day.id}
                     onAddExercisePrescription={onAddExercisePrescription}
+                    onCreateCustomExerciseDefinition={onCreateCustomExerciseDefinition}
                     onDeleteDay={onDeleteTemplateDay}
                     onDeleteExercisePrescription={onDeleteExercisePrescription}
                     onMoveDay={onMoveTemplateDay}
@@ -1463,6 +1682,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 20,
   },
+  customExercisePanel: {
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+    padding: 12,
+  },
   dayActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1531,6 +1756,10 @@ const styles = StyleSheet.create({
   exerciseChoiceName: {
     fontSize: 14,
     lineHeight: 19,
+  },
+  exerciseChoiceMeta: {
+    fontSize: 12,
+    lineHeight: 16,
   },
   exerciseGroup: {
     gap: 7,

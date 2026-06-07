@@ -247,3 +247,19 @@ export const workoutExecutionSchemaStatements = [
   `CREATE INDEX IF NOT EXISTS idx_set_logs_completed_exercise_id
     ON set_logs(completed_exercise_id);`,
 ] as const;
+
+export const exerciseLibraryExpansionSchemaStatements = [
+  `ALTER TABLE exercise_definitions
+    ADD COLUMN equipment TEXT;`,
+  `ALTER TABLE exercise_definitions
+    ADD COLUMN movement_pattern TEXT;`,
+  `ALTER TABLE exercise_definitions
+    ADD COLUMN difficulty TEXT;`,
+  `ALTER TABLE exercise_definitions
+    ADD COLUMN notes TEXT;`,
+  `ALTER TABLE exercise_definitions
+    ADD COLUMN source_type TEXT NOT NULL DEFAULT 'prebuilt'
+      CHECK (source_type IN ('prebuilt', 'custom'));`,
+  `CREATE INDEX IF NOT EXISTS idx_exercise_definitions_source_type
+    ON exercise_definitions(source_type);`,
+] as const;

@@ -173,13 +173,17 @@
 
 ## Phase 9 - Exercise Library Expansion
 
-- [ ] Add primary muscle metadata
-- [ ] Add secondary muscle metadata
-- [ ] Add equipment metadata
-- [ ] Add movement pattern metadata
-- [ ] Add difficulty metadata
-- [ ] Add notes/cues
-- [ ] Add substitution metadata
+- [x] Add primary muscle metadata
+- [x] Add secondary muscle metadata
+- [x] Add equipment metadata
+- [x] Add movement pattern metadata
+- [x] Add difficulty metadata
+- [x] Add notes/cues
+- [x] Expand default exercise library
+- [x] Add custom exercise creation during custom template editing
+- [x] Add exercise picker search/filter
+- [x] Document substitution metadata limitations
+- [ ] Add full substitution metadata
 
 ## Phase 10 - Export / Backup / Import
 

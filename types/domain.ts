@@ -59,15 +59,20 @@ export type TemplateDay = {
 export type ExerciseDefinition = {
   category: string | null;
   createdAt: string;
+  difficulty: string | null;
   defaultLoadIncrement: number | null;
   defaultProgressionMethod: ProgressionMethod | null;
   defaultRepMax: number | null;
   defaultRepMin: number | null;
   defaultRestSeconds: number | null;
+  equipment: string | null;
   id: string;
+  movementPattern: string | null;
   name: string;
+  notes: string | null;
   primaryMuscleGroup: string;
   secondaryMuscleGroups: string[] | null;
+  sourceType: TemplateSource;
   updatedAt: string;
 };
 

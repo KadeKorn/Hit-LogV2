@@ -68,15 +68,20 @@ export type ExportTemplateDayRow = {
 export type ExportExerciseDefinitionRow = {
   category: string | null;
   created_at: string;
+  difficulty: string | null;
   default_load_increment: number | null;
   default_progression_method: string | null;
   default_rep_max: number | null;
   default_rep_min: number | null;
   default_rest_seconds: number | null;
+  equipment: string | null;
   id: string;
+  movement_pattern: string | null;
   name: string;
+  notes: string | null;
   primary_muscle_group: string;
   secondary_muscle_groups: string | null;
+  source_type: string;
   updated_at: string;
 };
 
@@ -337,6 +342,11 @@ export class JsonExportRepository {
          primary_muscle_group,
          secondary_muscle_groups,
          category,
+         equipment,
+         movement_pattern,
+         difficulty,
+         notes,
+         source_type,
          default_rep_min,
          default_rep_max,
          default_progression_method,

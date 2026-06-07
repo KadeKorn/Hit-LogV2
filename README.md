@@ -90,9 +90,9 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 8 - Progress Dashboard & Charts.
+Phase 9 - Exercise Library Expansion.
 
-Phase 7 is implemented. Phase 8 is implemented and ready for user manual verification.
+Phase 8 is complete. Phase 9 is implemented and ready for user manual verification.
 
 ## Current Status
 
@@ -118,9 +118,10 @@ The History tab is the top-level factual record for completed V2 workouts. Libra
 - Phase 6.1 cleanup for last-day deletion safety, grouped exercise selection, and progression-method help text
 - Workout experience revamp with current-exercise focus, grouped workout context, autosaved in-progress sessions, a simple rest timer, clearer warmup/working-set distinction, and a completion summary
 - Gated Progress dashboard with completed-workout baseline checks, exercise strength and volume trends, weekly muscle-group working sets, consistency summary, and cautious deterministic indicators
+- Expanded exercise library with richer deterministic metadata and inline custom exercise creation during custom template editing
 
 ## Upcoming Roadmap
 
-Next planned phases include exercise library expansion, export/import improvements, and the Lift Atlas brand pass.
+Next planned phases include export/import improvements and the Lift Atlas brand pass.
 
 See `docs/ROADMAP.md` for the full phase roadmap.

@@ -1,5 +1,8 @@
 export { ActiveRoutineRepository } from '@/db/repositories/active-routine-repository';
-export { ExerciseDefinitionsRepository } from '@/db/repositories/exercise-definitions-repository';
+export {
+  ExerciseDefinitionsRepository,
+  type CreateCustomExerciseDefinitionInput,
+} from '@/db/repositories/exercise-definitions-repository';
 export { ExerciseLogRepository } from '@/db/repositories/exercise-log-repository';
 export { HistoryComparisonRepository } from '@/db/repositories/history-comparison-repository';
 export { ProgressRepository } from '@/db/repositories/progress-repository';

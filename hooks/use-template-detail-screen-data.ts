@@ -5,6 +5,7 @@ import { bootstrapDatabase } from '@/db/bootstrap';
 import {
   ActiveRoutineRepository,
   ExerciseDefinitionsRepository,
+  type CreateCustomExerciseDefinitionInput,
   TemplateRepository,
 } from '@/db/repositories';
 import type {
@@ -24,6 +25,9 @@ type TemplateDetailScreenDataState = {
     input: AddCustomExercisePrescriptionInput
   ) => Promise<WorkoutTemplateDetail>;
   addTemplateDay: (input: AddCustomTemplateDayInput) => Promise<WorkoutTemplateDetail>;
+  createCustomExerciseDefinition: (
+    input: CreateCustomExerciseDefinitionInput
+  ) => Promise<ExerciseDefinition>;
   deleteExercisePrescription: (prescriptionId: string) => Promise<WorkoutTemplateDetail>;
   deleteTemplateDay: (templateDayId: string) => Promise<WorkoutTemplateDetail>;
   duplicateTemplate: () => Promise<WorkoutTemplate>;
@@ -299,10 +303,40 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
     [runTemplateMutation]
   );
 
+  const createCustomExerciseDefinition = useCallback(
+    async (input: CreateCustomExerciseDefinitionInput): Promise<ExerciseDefinition> => {
+      try {
+        setIsSaving(true);
+        setMutationError(null);
+
+        const database = await bootstrapDatabase();
+        const exerciseDefinitionsRepository = new ExerciseDefinitionsRepository(database);
+        const exerciseDefinition =
+          await exerciseDefinitionsRepository.createCustomExerciseDefinition(input);
+        const definitions = await exerciseDefinitionsRepository.listExerciseDefinitions();
+
+        setExerciseDefinitions(definitions);
+        return exerciseDefinition;
+      } catch (createError) {
+        const nextError =
+          createError instanceof Error
+            ? createError
+            : new Error('Unable to create this exercise.');
+
+        setMutationError(nextError);
+        throw nextError;
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    []
+  );
+
   return {
     activeRoutine,
     addExercisePrescription,
     addTemplateDay,
+    createCustomExerciseDefinition,
     deleteExercisePrescription,
     deleteTemplateDay,
     duplicateTemplate,

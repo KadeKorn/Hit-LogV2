@@ -268,9 +268,9 @@ Warmups, blank/incomplete sets, legacy Yates data, bodyweight data, wearable dat
 
 ## Current Phase
 
-Manual verification of Phase 8 is pending.
+Phase 9 is implemented and ready for manual verification.
 
-## Planned Phases
+## Recently Completed Phase
 
 ### Phase 9 - Exercise Library Expansion
 
@@ -285,6 +285,17 @@ Scope:
 - Difficulty
 - Notes/cues
 - Substitutions
+
+Implemented behavior:
+
+- Expanded the default exercise library to 80 definitions across chest, lats, upper back, delts, quads, hamstrings, glutes, biceps, triceps, abs, calves, and traps.
+- Added exercise definition metadata for equipment, movement pattern, difficulty, notes/cues, and source type while preserving secondary muscle metadata.
+- Added inline custom exercise creation while editing custom template prescriptions.
+- Added picker search/filtering so the larger grouped exercise library stays scannable.
+- Kept Training Analysis and Progress primary-muscle-only for this phase; secondary muscles are stored but not fractionally counted.
+- Preserved explicit substitution behavior. Full substitution candidate metadata remains future work.
+
+## Planned Phases
 
 ### Phase 10 - Export / Backup / Import
 
