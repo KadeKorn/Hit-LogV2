@@ -2,6 +2,7 @@ export { ActiveRoutineRepository } from '@/db/repositories/active-routine-reposi
 export { ExerciseDefinitionsRepository } from '@/db/repositories/exercise-definitions-repository';
 export { ExerciseLogRepository } from '@/db/repositories/exercise-log-repository';
 export { HistoryComparisonRepository } from '@/db/repositories/history-comparison-repository';
+export { ProgressRepository } from '@/db/repositories/progress-repository';
 export { ProgressionPoliciesRepository } from '@/db/repositories/progression-policies-repository';
 export { ProgressionRecommendationRepository } from '@/db/repositories/progression-recommendation-repository';
 export { TemplateRepository } from '@/db/repositories/template-repository';

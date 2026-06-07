@@ -23,7 +23,7 @@ Template Library -> Active Routine -> Workout Session -> History Comparison -> P
 | UI state | Local component state + hooks |
 | Sync | None in V2 MVP |
 | Progression | Deterministic domain service |
-| Charts | Later phase, after progression flow works |
+| Charts | Gated Phase 8 progress views from completed V2 workout data |
 
 Core entities should include `id`, `createdAt`, and `updatedAt` where appropriate.
 
@@ -60,6 +60,7 @@ flowchart TD
     Hooks --> HistoryService[History comparison service]
     Hooks --> ProgressionService[Progression service]
     Hooks --> TemplateAnalysisService[Template analysis service]
+    Hooks --> ProgressAnalysisService[Progress analysis service]
     Hooks --> Repositories[Repository layer]
     ActiveRoutineService --> Repositories
     HistoryService --> Repositories
@@ -358,6 +359,38 @@ The service must stay deterministic and testable. It must not read completed wor
 
 Phase 5 target-profile constants live in `lib/template-analysis.ts`. Current metadata counts a prescription toward its available `muscleGroup`; Phase 9 may improve this with richer primary and secondary muscle metadata. Do not add fractional secondary-muscle counting until the data model supports it cleanly.
 
+## Progress analysis service
+
+Phase 8 progress analysis is deterministic and testable. The repository boundary reads completed V2 workout data from `workout_sessions`, `completed_exercises`, `set_logs`, and `exercise_definitions` metadata. The pure analysis layer lives in `lib/progress-analysis.ts`.
+
+Inputs:
+
+- completed V2 workout sessions
+- completed working sets with reps logged
+- exercise identity, display name, and available muscle-group metadata
+
+Rules:
+
+- Unlock Progress charts only after at least 4 completed V2 workouts, at least 2 calendar weeks with completed V2 workouts, and at least one exercise with 2 or more completed exposures.
+- Show exercise trends only for exercises with at least 2 completed exposures.
+- Exclude warmup sets from charts, progression indicators, working-set volume, and muscle-group weekly set totals.
+- Exclude blank or incomplete sets.
+- Use weighted `weight x reps` volume only when weight exists.
+- Show reps history instead of fake volume when an exercise has reps-only data.
+- Count available exercise muscle-group metadata directly; do not add fractional secondary-muscle counting in Phase 8.
+
+Outputs:
+
+- baseline gate status
+- dashboard metrics
+- exercise strength trend points
+- exercise volume or reps-history trend points
+- weekly muscle-group working sets
+- completed-workout consistency by week
+- cautious top-progress and needs-attention indicators
+
+The progress service must not read legacy Yates tables, bodyweight data, wearable data, cloud data, or remote services.
+
 ## Custom template editing
 
 Phase 6 structural template edits are repository-owned local SQLite mutations.
@@ -398,6 +431,7 @@ db/
     workoutSessions.ts
     history.ts
     progressionRecommendations.ts
+    progress.ts
 
 lib/
   activeRoutine.ts

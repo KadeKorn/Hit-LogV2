@@ -163,13 +163,13 @@
 
 ## Phase 8 - Progress Dashboard & Charts
 
-- [ ] Add exercise strength trend
-- [ ] Add volume trend
-- [ ] Add muscle-group weekly sets
-- [ ] Add consistency chart
-- [ ] Add top progress indicators
-- [ ] Add needs-attention indicators
-- [ ] Add baseline collection state before chart unlock
+- [x] Add exercise strength trend
+- [x] Add volume trend
+- [x] Add muscle-group weekly sets
+- [x] Add consistency chart
+- [x] Add top progress indicators
+- [x] Add needs-attention indicators
+- [x] Add baseline collection state before chart unlock
 
 ## Phase 9 - Exercise Library Expansion
 

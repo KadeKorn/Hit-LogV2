@@ -46,7 +46,7 @@ The data model and UI should remain clean enough to support other users later, b
 - Cleaner mobile UX
 - Local-first persistence with export-friendly structure
 
-### Later, after template/progression flow works
+### Progress visibility
 
 - Exercise strength trend chart
 - Volume trend chart
@@ -103,7 +103,19 @@ The History tab should focus on completed workout sessions and exercise history 
 
 ### Progress tab
 
-The Progress tab should remain lightweight until charts are implemented. Charts come after templates, active routine, workout execution, history comparison, and progression recommendations are working.
+The Progress tab should explain training trends only after enough completed V2 workout data exists. Before that baseline is collected, it should show deterministic unlock counts instead of fake or noisy charts.
+
+Implemented Progress behavior:
+
+- Baseline collection state before chart unlock
+- Dashboard summary for completed workouts, training weeks, working sets, and weighted volume
+- Exercise strength trend for exercises with at least two completed exposures
+- Exercise volume trend for weighted working sets, with reps history shown instead when no weight exists
+- Weekly working-set summary by muscle group
+- Completed workouts by week consistency summary
+- Cautious top-progress and needs-attention indicators
+
+Progress uses completed V2 workout data only: `workout_sessions`, `completed_exercises`, `set_logs`, and `exercise_definitions` metadata where needed. It does not use legacy Yates data, warmup sets, blank/incomplete sets, bodyweight data, wearable data, cloud data, or AI.
 
 ### Phase 5 product boundary
 
@@ -313,7 +325,7 @@ Warmup sets may be logged, but they should not count toward:
 
 Charts should come after templates, active routine, workout execution, history comparison, and progression recommendations are working.
 
-Initial chart focus later:
+Initial chart focus:
 
 - exercise strength trend
 - volume trend
@@ -322,7 +334,17 @@ Initial chart focus later:
 
 Do not include bodyweight charts in the initial V2 chart scope.
 
-Charts remain Phase 8 and should stay gated until enough completed V2 data exists. Before unlock, the Progress tab should communicate baseline collection rather than showing thin or misleading chart output.
+Charts are Phase 8 and stay gated until enough completed V2 data exists. Before unlock, the Progress tab communicates baseline collection rather than showing thin or misleading chart output.
+
+Baseline unlock requirements:
+
+- At least 4 completed V2 workouts
+- At least 2 calendar weeks with completed V2 workouts
+- At least 1 exercise with 2 or more completed exposures before exercise trends appear
+- Warmup sets excluded
+- Blank or incomplete sets excluded
+
+Exercise strength trends use the best working set per completed session. Exercise volume trends use `weight x reps` for valid weighted working sets only; reps-only sessions do not create fake volume. Muscle-group weekly set totals count completed working sets using available exercise muscle-group metadata without secondary-muscle fractional counting.
 
 ## Roadmap
 
@@ -415,9 +437,17 @@ Charts should stay locked behind baseline collection:
 
 - At least 2 calendar weeks of completed V2 workouts
 - At least 4 completed workouts
-- At least 2 repeated exposures per exercise
+- At least 2 repeated exposures per exercise before that exercise trend appears
 - Exclude warmup sets
 - Exclude incomplete sets
+
+Implemented behavior:
+
+- Progress shows a baseline collection state until unlock requirements are met.
+- The dashboard summarizes completed workouts, training weeks, working sets, weighted volume, weekly muscle-group working sets, and consistency.
+- Exercise trends are selectable only for movements with enough repeated completed exposure.
+- Volume is calculated only from weighted working sets; reps-only history is shown when weighted volume is unavailable.
+- Top progress and needs-attention indicators use cautious deterministic language.
 
 ### Phase 9 - Exercise Library Expansion
 

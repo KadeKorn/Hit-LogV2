@@ -28,7 +28,7 @@ The app should stay structured cleanly enough to support other lifters later, bu
 - Better history comparison
 - Cleaner mobile UX
 - Safer local-first data and export structure
-- Training charts later, after the template and progression flow works
+- Gated progress dashboard and training charts after enough completed V2 data exists
 
 ## Initial Prebuilt Templates
 
@@ -92,7 +92,7 @@ Read these before making meaningful changes:
 
 Phase 8 - Progress Dashboard & Charts.
 
-Phase 7 is implemented. Phase 8 remains future chart work and should stay gated until enough completed V2 training data exists.
+Phase 7 is implemented. Phase 8 is implemented and ready for user manual verification.
 
 ## Current Status
 
@@ -102,7 +102,7 @@ HIT Log V2 has the core V2 loop in place:
 Template Library -> Active Routine -> Workout Execution -> History Comparison -> Progression Recommendation -> History Review
 ```
 
-The History tab is the top-level factual record for completed V2 workouts. Library now includes planned training analysis, while Progress interpretation and charts remain deferred.
+The History tab is the top-level factual record for completed V2 workouts. Library includes planned training analysis. Progress now shows deterministic interpretation after enough completed V2 workout data exists, and otherwise shows a baseline collection state.
 
 ## Completed Major Milestones
 
@@ -117,9 +117,10 @@ The History tab is the top-level factual record for completed V2 workouts. Libra
 - Custom template structure editing for days, exercise prescriptions, progression methods, rest guidance, notes, and deterministic analysis guardrails
 - Phase 6.1 cleanup for last-day deletion safety, grouped exercise selection, and progression-method help text
 - Workout experience revamp with current-exercise focus, grouped workout context, autosaved in-progress sessions, a simple rest timer, clearer warmup/working-set distinction, and a completion summary
+- Gated Progress dashboard with completed-workout baseline checks, exercise strength and volume trends, weekly muscle-group working sets, consistency summary, and cautious deterministic indicators
 
 ## Upcoming Roadmap
 
-Next planned phases include gated progress charts, exercise library expansion, export/import improvements, and the Lift Atlas brand pass.
+Next planned phases include exercise library expansion, export/import improvements, and the Lift Atlas brand pass.
 
 See `docs/ROADMAP.md` for the full phase roadmap.

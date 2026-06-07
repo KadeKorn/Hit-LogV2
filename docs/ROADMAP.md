@@ -230,8 +230,6 @@ Implemented behavior:
 - In-progress workout drafts autosave locally and can be resumed from Train.
 - Completion includes a simple summary for exercises, working sets, volume, notes, and substitutions.
 
-## Current Phase
-
 ### Phase 8 - Progress Dashboard & Charts
 
 Goal: provide meaningful progress visibility.
@@ -256,7 +254,21 @@ Baseline collection requirements before chart unlock:
 - Exclude warmup sets
 - Exclude incomplete sets
 
-Before unlock, show a baseline collection state.
+Implemented behavior:
+
+- Progress shows a deterministic baseline collection state until enough V2 workout history exists.
+- The dashboard summarizes completed workouts, training weeks, working sets, weighted volume, and consistency.
+- Exercise trend selection is limited to movements with at least two completed exposures.
+- Strength trends use best working sets by session.
+- Volume trends use `weight x reps` for weighted working sets only, with reps history shown instead when no weighted sets exist.
+- Weekly muscle-group summaries count completed working sets from available muscle-group metadata.
+- Top progress and needs-attention indicators use cautious deterministic language.
+
+Warmups, blank/incomplete sets, legacy Yates data, bodyweight data, wearable data, remote services, and AI are excluded.
+
+## Current Phase
+
+Manual verification of Phase 8 is pending.
 
 ## Planned Phases
 
