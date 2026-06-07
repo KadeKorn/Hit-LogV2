@@ -165,8 +165,6 @@ Implemented behavior:
 - Goal labels are aware of aesthetic hypertrophy, strength foundation, and low-volume HIT routine purposes.
 - Phase 5.1 fixed custom-header safe-area spacing and softened aesthetic guardrail severity for metadata-limited near misses while preserving guardrail notes.
 
-## Current Phase
-
 ### Phase 6 - Custom Template Structure Editing
 
 Goal: allow meaningful editing of custom templates.
@@ -175,6 +173,7 @@ Scope:
 
 - Add/remove template days
 - Add/remove exercises
+- Reorder template days
 - Reorder exercises
 - Edit sets
 - Edit rep ranges
@@ -182,11 +181,28 @@ Scope:
 - Edit rest guidance
 - Edit notes
 - Duplicate templates
-- Duplicate days
 
-Prebuilt templates remain read-only.
+Implemented behavior:
 
-## Planned Phases
+- Prebuilt templates remain read-only.
+- Prebuilt templates can be duplicated into custom templates.
+- Custom template days can be added, renamed, reordered, and deleted while preserving at least one day.
+- Custom exercise prescriptions can be added from existing exercise definitions, removed, reordered, and edited.
+- Template Analysis updates from the edited planned structure and shows deterministic guardrail feedback.
+- Active custom routines fall back to a remaining day if their current day is deleted.
+
+### Phase 6.1 - Custom Template Editing Safety & Usability
+
+Goal: clean up Phase 6 before acceptance.
+
+Scope:
+
+- Block final-day deletion for custom templates at the UI and repository levels
+- Keep edit failures inline so the template stays open and usable
+- Group exercise selection by existing muscle-group metadata
+- Add concise progression-method help text
+
+## Current Phase
 
 ### Phase 7 - Workout Experience Revamp
 
@@ -207,6 +223,8 @@ Scope:
 - One-hand usability improvements
 
 This is a major experience redesign, not simple polish.
+
+## Planned Phases
 
 ### Phase 8 - Progress Dashboard & Charts
 

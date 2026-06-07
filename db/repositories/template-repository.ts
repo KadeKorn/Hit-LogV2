@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type {
   ExercisePrescription,
+  ProgressionMethod,
   TemplateDay,
   WorkoutTemplate,
   WorkoutTemplateWithDays,
@@ -55,6 +56,25 @@ export type UpdateCustomTemplateMetadataInput = {
   name: string;
   splitType: string | null;
 };
+
+export type AddCustomTemplateDayInput = {
+  focus: string | null;
+  name: string;
+};
+
+export type UpdateCustomTemplateDayInput = AddCustomTemplateDayInput;
+
+export type AddCustomExercisePrescriptionInput = {
+  exerciseDefinitionId: string;
+  notes: string | null;
+  progressionMethod: ProgressionMethod;
+  repRangeMax: number;
+  repRangeMin: number;
+  restSeconds: number | null;
+  sets: number;
+};
+
+export type UpdateCustomExercisePrescriptionInput = AddCustomExercisePrescriptionInput;
 
 type ActiveWorkoutTemplateRow = {
   code: string;
@@ -129,6 +149,16 @@ type ExercisePrescriptionRow = {
   updated_at: string;
 };
 
+type ExerciseDefinitionDefaultsRow = {
+  default_load_increment: number | null;
+  default_progression_method: ProgressionMethod | null;
+  default_rep_max: number | null;
+  default_rep_min: number | null;
+  default_rest_seconds: number | null;
+  id: string;
+  primary_muscle_group: string;
+};
+
 function createEntityId(prefix: string): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return `${prefix}-${globalThis.crypto.randomUUID()}`;
@@ -194,6 +224,26 @@ function mapExercisePrescriptionDetailRow(
     exerciseName: row.exercise_name,
     progressionMethod: row.progression_method,
   };
+}
+
+function assertSupportedProgressionMethod(method: ProgressionMethod): void {
+  const supportedMethods: ProgressionMethod[] = [
+    'double_progression',
+    'top_set_progression',
+    'rep_progression',
+    'manual',
+    'none',
+  ];
+
+  if (!supportedMethods.includes(method)) {
+    throw new Error('Unsupported progression method.');
+  }
+}
+
+function assertPositiveInteger(value: number, fieldName: string): void {
+  if (!Number.isInteger(value) || value < 1) {
+    throw new Error(`${fieldName} must be a positive whole number.`);
+  }
 }
 
 export class TemplateRepository {
@@ -549,6 +599,593 @@ export class TemplateRepository {
     }
 
     return updatedTemplate;
+  }
+
+  private async assertEditableCustomTemplate(templateId: string): Promise<WorkoutTemplate> {
+    const existingTemplate = await this.getWorkoutTemplateById(templateId);
+
+    if (!existingTemplate) {
+      throw new Error('Template not found.');
+    }
+
+    if (existingTemplate.sourceType !== 'custom' || !existingTemplate.isEditable) {
+      throw new Error('Only editable custom templates can be changed.');
+    }
+
+    return existingTemplate;
+  }
+
+  private async assertEditableCustomDay(templateDayId: string): Promise<TemplateDay> {
+    const dayRow = await this.database.getFirstAsync<TemplateDayRow>(
+      `SELECT
+         td.id,
+         td.template_id,
+         td.name,
+         td.day_order,
+         td.focus,
+         td.created_at,
+         td.updated_at
+       FROM template_days td
+       INNER JOIN workout_templates wt ON wt.id = td.template_id
+       WHERE td.id = ?
+         AND wt.source_type = 'custom'
+         AND wt.is_editable = 1
+       LIMIT 1;`,
+      templateDayId
+    );
+
+    if (!dayRow) {
+      throw new Error('Only editable custom template days can be changed.');
+    }
+
+    return mapTemplateDayRow(dayRow);
+  }
+
+  private async assertEditableCustomPrescription(
+    prescriptionId: string
+  ): Promise<ExercisePrescription> {
+    const prescriptionRow = await this.database.getFirstAsync<ExercisePrescriptionRow>(
+      `SELECT
+         ep.id,
+         ep.template_day_id,
+         ep.exercise_definition_id,
+         ep.progression_policy_id,
+         ep.exercise_order,
+         ep.sets,
+         ep.rep_range_min,
+         ep.rep_range_max,
+         ep.muscle_group,
+         ep.load_increment,
+         ep.rest_seconds,
+         ep.notes,
+         ep.created_at,
+         ep.updated_at
+       FROM exercise_prescriptions ep
+       INNER JOIN template_days td ON td.id = ep.template_day_id
+       INNER JOIN workout_templates wt ON wt.id = td.template_id
+       WHERE ep.id = ?
+         AND wt.source_type = 'custom'
+         AND wt.is_editable = 1
+       LIMIT 1;`,
+      prescriptionId
+    );
+
+    if (!prescriptionRow) {
+      throw new Error('Only editable custom template prescriptions can be changed.');
+    }
+
+    return mapExercisePrescriptionRow(prescriptionRow);
+  }
+
+  private async getProgressionPolicyIdForMethod(method: ProgressionMethod): Promise<string | null> {
+    assertSupportedProgressionMethod(method);
+
+    if (method === 'none') {
+      return null;
+    }
+
+    const existingPolicy = await this.database.getFirstAsync<{ id: string }>(
+      `SELECT id
+       FROM progression_policies
+       WHERE method = ?
+       ORDER BY id ASC
+       LIMIT 1;`,
+      method
+    );
+
+    if (existingPolicy) {
+      return existingPolicy.id;
+    }
+
+    const now = new Date().toISOString();
+    const policyId = createEntityId(`policy-${method}`);
+
+    await this.database.runAsync(
+      `INSERT INTO progression_policies (
+         id,
+         method,
+         target_rep_min,
+         target_rep_max,
+         load_increment,
+         require_all_sets_at_top,
+         allow_deload_flag,
+         notes,
+         created_at,
+         updated_at
+       )
+       VALUES (?, ?, NULL, NULL, NULL, 0, 0, NULL, ?, ?);`,
+      policyId,
+      method,
+      now,
+      now
+    );
+
+    return policyId;
+  }
+
+  private async getExerciseDefinitionDefaults(
+    exerciseDefinitionId: string
+  ): Promise<ExerciseDefinitionDefaultsRow> {
+    const exerciseDefinition = await this.database.getFirstAsync<ExerciseDefinitionDefaultsRow>(
+      `SELECT
+         id,
+         primary_muscle_group,
+         default_rep_min,
+         default_rep_max,
+         default_progression_method,
+         default_load_increment,
+         default_rest_seconds
+       FROM exercise_definitions
+       WHERE id = ?
+       LIMIT 1;`,
+      exerciseDefinitionId
+    );
+
+    if (!exerciseDefinition) {
+      throw new Error('Exercise definition not found.');
+    }
+
+    return exerciseDefinition;
+  }
+
+  private validatePrescriptionInput(input: AddCustomExercisePrescriptionInput): void {
+    assertPositiveInteger(input.sets, 'Sets');
+    assertPositiveInteger(input.repRangeMin, 'Minimum reps');
+    assertPositiveInteger(input.repRangeMax, 'Maximum reps');
+
+    if (input.repRangeMax < input.repRangeMin) {
+      throw new Error('Maximum reps must be greater than or equal to minimum reps.');
+    }
+
+    if (input.restSeconds !== null && (!Number.isInteger(input.restSeconds) || input.restSeconds < 0)) {
+      throw new Error('Rest guidance must be a whole number of seconds.');
+    }
+
+    assertSupportedProgressionMethod(input.progressionMethod);
+  }
+
+  async addCustomTemplateDay(
+    templateId: string,
+    input: AddCustomTemplateDayInput
+  ): Promise<TemplateDay> {
+    await this.assertEditableCustomTemplate(templateId);
+
+    const name = input.name.trim();
+
+    if (!name) {
+      throw new Error('Day name is required.');
+    }
+
+    const now = new Date().toISOString();
+    const dayId = createEntityId('custom-day');
+
+    await this.database.withTransactionAsync(async () => {
+      const maxDayOrder = await this.database.getFirstAsync<{ max_day_order: number | null }>(
+        `SELECT MAX(day_order) AS max_day_order
+         FROM template_days
+         WHERE template_id = ?;`,
+        templateId
+      );
+
+      await this.database.runAsync(
+        `INSERT INTO template_days (
+           id,
+           template_id,
+           name,
+           day_order,
+           focus,
+           created_at,
+           updated_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?);`,
+        dayId,
+        templateId,
+        name,
+        (maxDayOrder?.max_day_order ?? -1) + 1,
+        input.focus?.trim() || null,
+        now,
+        now
+      );
+
+      await this.database.runAsync(
+        `UPDATE workout_templates
+         SET updated_at = ?
+         WHERE id = ?;`,
+        now,
+        templateId
+      );
+    });
+
+    const addedDay = (await this.listTemplateDays(templateId)).find((day) => day.id === dayId);
+
+    if (!addedDay) {
+      throw new Error('Failed to add template day.');
+    }
+
+    return addedDay;
+  }
+
+  async updateCustomTemplateDay(
+    templateDayId: string,
+    input: UpdateCustomTemplateDayInput
+  ): Promise<TemplateDay> {
+    const existingDay = await this.assertEditableCustomDay(templateDayId);
+    const name = input.name.trim();
+
+    if (!name) {
+      throw new Error('Day name is required.');
+    }
+
+    const now = new Date().toISOString();
+
+    await this.database.runAsync(
+      `UPDATE template_days
+       SET name = ?,
+           focus = ?,
+           updated_at = ?
+       WHERE id = ?;`,
+      name,
+      input.focus?.trim() || null,
+      now,
+      templateDayId
+    );
+
+    await this.database.runAsync(
+      `UPDATE workout_templates
+       SET updated_at = ?
+       WHERE id = ?;`,
+      now,
+      existingDay.templateId
+    );
+
+    const updatedDay = (await this.listTemplateDays(existingDay.templateId)).find(
+      (day) => day.id === templateDayId
+    );
+
+    if (!updatedDay) {
+      throw new Error('Failed to update template day.');
+    }
+
+    return updatedDay;
+  }
+
+  async moveCustomTemplateDay(templateDayId: string, direction: -1 | 1): Promise<void> {
+    const existingDay = await this.assertEditableCustomDay(templateDayId);
+    const days = await this.listTemplateDays(existingDay.templateId);
+    const currentIndex = days.findIndex((day) => day.id === templateDayId);
+    const targetIndex = currentIndex + direction;
+
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= days.length) {
+      return;
+    }
+
+    const reorderedDays = [...days];
+    const [movedDay] = reorderedDays.splice(currentIndex, 1);
+    reorderedDays.splice(targetIndex, 0, movedDay);
+
+    const now = new Date().toISOString();
+
+    await this.database.withTransactionAsync(async () => {
+      for (const [index, day] of reorderedDays.entries()) {
+        await this.database.runAsync(
+          `UPDATE template_days
+           SET day_order = ?,
+               updated_at = ?
+           WHERE id = ?;`,
+          index,
+          now,
+          day.id
+        );
+      }
+
+      await this.database.runAsync(
+        `UPDATE workout_templates
+         SET updated_at = ?
+         WHERE id = ?;`,
+        now,
+        existingDay.templateId
+      );
+    });
+  }
+
+  async deleteCustomTemplateDay(templateDayId: string): Promise<void> {
+    const existingDay = await this.assertEditableCustomDay(templateDayId);
+    const days = await this.listTemplateDays(existingDay.templateId);
+
+    if (days.length <= 1) {
+      throw new Error('A template needs at least one day.');
+    }
+
+    const fallbackDay = days.find((day) => day.id !== templateDayId);
+
+    if (!fallbackDay) {
+      throw new Error('A template needs at least one day.');
+    }
+
+    const now = new Date().toISOString();
+
+    await this.database.withTransactionAsync(async () => {
+      await this.database.runAsync(
+        `UPDATE active_routines
+         SET current_template_day_id = ?,
+             current_day_index = 0,
+             updated_at = ?
+         WHERE template_id = ?
+           AND current_template_day_id = ?;`,
+        fallbackDay.id,
+        now,
+        existingDay.templateId,
+        templateDayId
+      );
+
+      await this.database.runAsync(
+        `DELETE FROM template_days
+         WHERE id = ?;`,
+        templateDayId
+      );
+
+      const remainingDays = await this.listTemplateDays(existingDay.templateId);
+
+      for (const [index, day] of remainingDays.entries()) {
+        await this.database.runAsync(
+          `UPDATE template_days
+           SET day_order = ?,
+               updated_at = ?
+           WHERE id = ?;`,
+          index,
+          now,
+          day.id
+        );
+      }
+
+      await this.database.runAsync(
+        `UPDATE workout_templates
+         SET updated_at = ?
+         WHERE id = ?;`,
+        now,
+        existingDay.templateId
+      );
+    });
+  }
+
+  async addCustomExercisePrescription(
+    templateDayId: string,
+    input: AddCustomExercisePrescriptionInput
+  ): Promise<ExercisePrescriptionDetail> {
+    const existingDay = await this.assertEditableCustomDay(templateDayId);
+    this.validatePrescriptionInput(input);
+
+    const exerciseDefinition = await this.getExerciseDefinitionDefaults(input.exerciseDefinitionId);
+    const progressionPolicyId = await this.getProgressionPolicyIdForMethod(input.progressionMethod);
+    const now = new Date().toISOString();
+    const prescriptionId = createEntityId('custom-prescription');
+
+    await this.database.withTransactionAsync(async () => {
+      const maxExerciseOrder = await this.database.getFirstAsync<{ max_exercise_order: number | null }>(
+        `SELECT MAX(exercise_order) AS max_exercise_order
+         FROM exercise_prescriptions
+         WHERE template_day_id = ?;`,
+        templateDayId
+      );
+
+      await this.database.runAsync(
+        `INSERT INTO exercise_prescriptions (
+           id,
+           template_day_id,
+           exercise_definition_id,
+           progression_policy_id,
+           exercise_order,
+           sets,
+           rep_range_min,
+           rep_range_max,
+           muscle_group,
+           load_increment,
+           rest_seconds,
+           notes,
+           created_at,
+           updated_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        prescriptionId,
+        templateDayId,
+        input.exerciseDefinitionId,
+        progressionPolicyId,
+        (maxExerciseOrder?.max_exercise_order ?? -1) + 1,
+        input.sets,
+        input.repRangeMin,
+        input.repRangeMax,
+        exerciseDefinition.primary_muscle_group,
+        exerciseDefinition.default_load_increment,
+        input.restSeconds,
+        input.notes?.trim() || null,
+        now,
+        now
+      );
+
+      await this.database.runAsync(
+        `UPDATE workout_templates
+         SET updated_at = ?
+         WHERE id = ?;`,
+        now,
+        existingDay.templateId
+      );
+    });
+
+    const addedPrescription = (await this.listExercisePrescriptionDetails(templateDayId)).find(
+      (prescription) => prescription.id === prescriptionId
+    );
+
+    if (!addedPrescription) {
+      throw new Error('Failed to add exercise prescription.');
+    }
+
+    return addedPrescription;
+  }
+
+  async updateCustomExercisePrescription(
+    prescriptionId: string,
+    input: UpdateCustomExercisePrescriptionInput
+  ): Promise<ExercisePrescriptionDetail> {
+    const existingPrescription = await this.assertEditableCustomPrescription(prescriptionId);
+    this.validatePrescriptionInput(input);
+
+    const existingDay = await this.assertEditableCustomDay(existingPrescription.templateDayId);
+    const exerciseDefinition = await this.getExerciseDefinitionDefaults(input.exerciseDefinitionId);
+    const progressionPolicyId = await this.getProgressionPolicyIdForMethod(input.progressionMethod);
+    const now = new Date().toISOString();
+
+    await this.database.withTransactionAsync(async () => {
+      await this.database.runAsync(
+        `UPDATE exercise_prescriptions
+         SET exercise_definition_id = ?,
+             progression_policy_id = ?,
+             sets = ?,
+             rep_range_min = ?,
+             rep_range_max = ?,
+             muscle_group = ?,
+             load_increment = ?,
+             rest_seconds = ?,
+             notes = ?,
+             updated_at = ?
+         WHERE id = ?;`,
+        input.exerciseDefinitionId,
+        progressionPolicyId,
+        input.sets,
+        input.repRangeMin,
+        input.repRangeMax,
+        exerciseDefinition.primary_muscle_group,
+        exerciseDefinition.default_load_increment,
+        input.restSeconds,
+        input.notes?.trim() || null,
+        now,
+        prescriptionId
+      );
+
+      await this.database.runAsync(
+        `UPDATE workout_templates
+         SET updated_at = ?
+         WHERE id = ?;`,
+        now,
+        existingDay.templateId
+      );
+    });
+
+    const updatedPrescription = (
+      await this.listExercisePrescriptionDetails(existingPrescription.templateDayId)
+    ).find((prescription) => prescription.id === prescriptionId);
+
+    if (!updatedPrescription) {
+      throw new Error('Failed to update exercise prescription.');
+    }
+
+    return updatedPrescription;
+  }
+
+  async moveCustomExercisePrescription(prescriptionId: string, direction: -1 | 1): Promise<void> {
+    const existingPrescription = await this.assertEditableCustomPrescription(prescriptionId);
+    const existingDay = await this.assertEditableCustomDay(existingPrescription.templateDayId);
+    const prescriptions = await this.listExercisePrescriptions(existingPrescription.templateDayId);
+    const currentIndex = prescriptions.findIndex((prescription) => prescription.id === prescriptionId);
+    const targetIndex = currentIndex + direction;
+
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= prescriptions.length) {
+      return;
+    }
+
+    const reorderedPrescriptions = [...prescriptions];
+    const [movedPrescription] = reorderedPrescriptions.splice(currentIndex, 1);
+    reorderedPrescriptions.splice(targetIndex, 0, movedPrescription);
+
+    const now = new Date().toISOString();
+
+    await this.database.withTransactionAsync(async () => {
+      for (const [index, prescription] of reorderedPrescriptions.entries()) {
+        await this.database.runAsync(
+          `UPDATE exercise_prescriptions
+           SET exercise_order = ?,
+               updated_at = ?
+           WHERE id = ?;`,
+          index,
+          now,
+          prescription.id
+        );
+      }
+
+      await this.database.runAsync(
+        `UPDATE workout_templates
+         SET updated_at = ?
+         WHERE id = ?;`,
+        now,
+        existingDay.templateId
+      );
+    });
+  }
+
+  async deleteCustomExercisePrescription(prescriptionId: string): Promise<void> {
+    const existingPrescription = await this.assertEditableCustomPrescription(prescriptionId);
+    const existingDay = await this.assertEditableCustomDay(existingPrescription.templateDayId);
+    const now = new Date().toISOString();
+
+    await this.database.withTransactionAsync(async () => {
+      await this.database.runAsync(
+        `UPDATE completed_exercises
+         SET planned_exercise_prescription_id = NULL,
+             updated_at = ?
+         WHERE planned_exercise_prescription_id = ?;`,
+        now,
+        prescriptionId
+      );
+
+      await this.database.runAsync(
+        `DELETE FROM exercise_prescriptions
+         WHERE id = ?;`,
+        prescriptionId
+      );
+
+      const remainingPrescriptions = await this.listExercisePrescriptions(
+        existingPrescription.templateDayId
+      );
+
+      for (const [index, prescription] of remainingPrescriptions.entries()) {
+        await this.database.runAsync(
+          `UPDATE exercise_prescriptions
+           SET exercise_order = ?,
+               updated_at = ?
+           WHERE id = ?;`,
+          index,
+          now,
+          prescription.id
+        );
+      }
+
+      await this.database.runAsync(
+        `UPDATE workout_templates
+         SET updated_at = ?
+         WHERE id = ?;`,
+        now,
+        existingDay.templateId
+      );
+    });
   }
 
   async duplicateTemplateToCustom(templateId: string): Promise<WorkoutTemplate> {

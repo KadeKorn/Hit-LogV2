@@ -90,9 +90,9 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 6 - Custom Template Structure Editing.
+Phase 7 - Workout Experience Revamp.
 
-Phase 5 is implemented. Phase 6 is next and should allow meaningful editing of custom templates while keeping prebuilt templates read-only.
+Phase 6 is implemented. Phase 7 is next and should focus on making real workout execution faster, clearer, and more one-hand friendly.
 
 ## Current Status
 
@@ -114,9 +114,11 @@ The History tab is the top-level factual record for completed V2 workouts. Libra
 - Deterministic progression engine
 - Refined prebuilt templates
 - Training target analysis for planned templates and active routines, with Phase 5.1 UI and guardrail cleanup
+- Custom template structure editing for days, exercise prescriptions, progression methods, rest guidance, notes, and deterministic analysis guardrails
+- Phase 6.1 cleanup for last-day deletion safety, grouped exercise selection, and progression-method help text
 
 ## Upcoming Roadmap
 
-Next planned phases include custom template structure editing, a workout experience revamp, gated progress charts, exercise library expansion, export/import improvements, and the Lift Atlas brand pass.
+Next planned phases include a workout experience revamp, gated progress charts, exercise library expansion, export/import improvements, and the Lift Atlas brand pass.
 
 See `docs/ROADMAP.md` for the full phase roadmap.

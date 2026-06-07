@@ -128,17 +128,24 @@
 
 ## Phase 6 - Custom Template Structure Editing
 
-- [ ] Add/remove template days
-- [ ] Add/remove exercises
-- [ ] Reorder exercises
-- [ ] Edit sets
-- [ ] Edit rep ranges
-- [ ] Edit progression methods
-- [ ] Edit rest guidance
-- [ ] Edit notes
-- [ ] Duplicate templates
-- [ ] Duplicate days
-- [ ] Preserve prebuilt templates as read-only
+- [x] Add/remove template days
+- [x] Reorder template days
+- [x] Add/remove exercises
+- [x] Reorder exercises
+- [x] Edit sets
+- [x] Edit rep ranges
+- [x] Edit progression methods
+- [x] Edit rest guidance
+- [x] Edit notes
+- [x] Duplicate templates
+- [x] Preserve prebuilt templates as read-only
+
+## Phase 6.1 - Custom Template Editing Safety & Usability
+
+- [x] Disable/block deleting the last remaining custom template day
+- [x] Keep mutation errors inline instead of replacing the loaded template
+- [x] Group exercise selection by existing muscle group
+- [x] Add progression method help text
 
 ## Phase 7 - Workout Experience Revamp
 

@@ -84,6 +84,7 @@ Key notes:
 - Custom templates are editable.
 - Prebuilt templates can be duplicated into custom templates.
 - A template contains one or more `TemplateDay` records.
+- Structural edits to custom templates go through the template repository so source/editability checks, ordering, and active-routine safety stay centralized.
 
 Suggested fields:
 
@@ -105,6 +106,7 @@ Key notes:
 - V2 supports one active routine at a time.
 - The active routine references a template but does not mutate the template during workout execution.
 - Advancing the active routine should happen after a completed workout.
+- If a custom template edit deletes the active routine's current day, the active routine should be moved to a remaining day instead of retaining an invalid reference.
 
 Suggested fields:
 
@@ -343,6 +345,20 @@ Outputs:
 The service must stay deterministic and testable. It must not read completed workout sessions, set logs, legacy Yates data, chart state, or remote services.
 
 Phase 5 target-profile constants live in `lib/template-analysis.ts`. Current metadata counts a prescription toward its available `muscleGroup`; Phase 9 may improve this with richer primary and secondary muscle metadata. Do not add fractional secondary-muscle counting until the data model supports it cleanly.
+
+## Custom template editing
+
+Phase 6 structural template edits are repository-owned local SQLite mutations.
+
+Rules:
+
+- Prebuilt templates remain read-only at both UI and repository levels.
+- Custom template day edits can add, rename, reorder, and delete days, but deletion must preserve at least one day.
+- The UI should disable or block final-day deletion, but the repository remains the final guard against zero-day custom templates.
+- Custom exercise prescription edits can add from existing exercise definitions, remove, reorder, and update sets, rep range, progression method, rest guidance, and notes.
+- Supported progression methods remain `double_progression`, `top_set_progression`, `rep_progression`, `manual`, and `none`; load-only progression is not introduced.
+- Deleting an active routine's current day updates the routine to a remaining day before the day is deleted.
+- Removing a prescription clears completed-exercise foreign-key references to that prescription so historical completed exercise snapshots remain readable while the custom template changes.
 
 ## Substitution rules
 

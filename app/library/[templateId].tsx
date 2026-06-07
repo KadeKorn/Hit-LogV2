@@ -16,12 +16,22 @@ export default function TemplateDetailScreen() {
   const templateId = getTemplateIdParam(params.templateId);
   const {
     activeRoutine,
+    addExercisePrescription,
+    addTemplateDay,
+    deleteExercisePrescription,
+    deleteTemplateDay,
     duplicateTemplate,
     error,
+    exerciseDefinitions,
     isDuplicating,
     isLoading,
     isSaving,
     isSettingActive,
+    moveExercisePrescription,
+    moveTemplateDay,
+    mutationError,
+    saveExercisePrescription,
+    saveTemplateDay,
     saveTemplateMetadata,
     setTemplateAsActive,
     template,
@@ -30,23 +40,35 @@ export default function TemplateDetailScreen() {
   return (
     <TemplateDetailScreenContent
       activeRoutine={activeRoutine}
+      exerciseDefinitions={exerciseDefinitions}
       error={error}
       isDuplicating={isDuplicating}
       isLoading={isLoading}
       isSaving={isSaving}
       isSettingActive={isSettingActive}
+      mutationError={mutationError}
       onBack={() => router.back()}
+      onAddExercisePrescription={addExercisePrescription}
+      onAddTemplateDay={addTemplateDay}
+      onDeleteExercisePrescription={deleteExercisePrescription}
+      onDeleteTemplateDay={deleteTemplateDay}
       onDuplicate={() => {
-        void duplicateTemplate().then((duplicatedTemplate) => {
-          router.replace({
-            pathname: '/library/[templateId]',
-            params: { templateId: duplicatedTemplate.id },
-          });
-        });
+        void duplicateTemplate()
+          .then((duplicatedTemplate) => {
+            router.replace({
+              pathname: '/library/[templateId]',
+              params: { templateId: duplicatedTemplate.id },
+            });
+          })
+          .catch(() => undefined);
       }}
       onSetActive={() => {
-        void setTemplateAsActive();
+        void setTemplateAsActive().catch(() => undefined);
       }}
+      onMoveExercisePrescription={moveExercisePrescription}
+      onMoveTemplateDay={moveTemplateDay}
+      onUpdateExercisePrescription={saveExercisePrescription}
+      onUpdateTemplateDay={saveTemplateDay}
       onUpdateMetadata={async (input) => {
         await saveTemplateMetadata(input);
       }}

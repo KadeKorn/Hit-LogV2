@@ -135,6 +135,8 @@ Templates are reusable training plans. V2 should support prebuilt templates and 
 - Prebuilt templates are read-only.
 - Prebuilt templates can be duplicated into editable custom templates.
 - Custom templates are editable.
+- Custom templates can be structurally edited: days can be added, renamed, reordered, and deleted while preserving at least one day.
+- Custom template exercise prescriptions can be added from existing exercise definitions, removed, reordered, and edited for sets, rep range, progression method, rest guidance, and notes.
 - Custom template creation should be fast, low-friction, simple, and elegant.
 - Custom templates should require only the minimum fields needed for progression.
 - The app may auto-fill sensible defaults such as muscle group, progression method, increment, and rest time.
@@ -362,9 +364,25 @@ Intended user value: the user can understand whether their routine structure mat
 
 Goal: allow meaningful editing of custom templates while keeping prebuilt templates read-only.
 
-High-level scope: add/remove days and exercises, reorder exercises, edit sets, rep ranges, progression methods, rest guidance, notes, and duplicate templates/days.
+High-level scope: add/remove/reorder days and exercises, edit sets, rep ranges, progression methods, rest guidance, and notes.
 
 Intended user value: the user can adapt routines without leaving the template system or corrupting prebuilt plans.
+
+Implemented behavior:
+
+- Prebuilt templates remain read-only and can be duplicated into custom templates.
+- Custom template days can be added, renamed, reordered, and deleted with a one-day minimum.
+- Custom exercise prescriptions can be added from existing exercise definitions, removed, reordered, and edited.
+- Supported progression methods remain limited to `double_progression`, `top_set_progression`, `rep_progression`, `manual`, and `none`.
+- Training Analysis recalculates from the edited planned structure and shows deterministic guardrail feedback after saves.
+- If an active custom routine's current day is deleted, the active routine falls back to the first remaining day instead of crashing.
+
+Phase 6.1 cleanup:
+
+- Last-day deletion is blocked in the UI and guarded in the repository so custom templates remain loadable.
+- Template edit failures are shown inline instead of replacing the loaded template with a fatal load error.
+- Exercise selection is grouped by existing primary muscle-group metadata.
+- Progression method editing includes concise deterministic help text for each supported method.
 
 ### Phase 7 - Workout Experience Revamp
 
