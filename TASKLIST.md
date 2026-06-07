@@ -103,21 +103,28 @@
 
 ## Phase 4.2 - History Usability Finish
 
-- [ ] Show latest 5 completed sessions by default
-- [ ] Add View all completed sessions control
-- [ ] Add Show less control
-- [ ] Keep Exercise History reachable below Completed Sessions
-- [ ] Smooth Exercise History selection without visible loading text
+- [x] Show latest 5 completed sessions by default
+- [x] Add View all completed sessions control
+- [x] Add Show less control
+- [x] Keep Exercise History reachable below Completed Sessions
+- [x] Smooth Exercise History selection without visible loading text
 
 ## Phase 5 - Training Targets & Template Analysis
 
-- [ ] Add weekly working sets by muscle group
-- [ ] Add template muscle bias analysis
-- [ ] Add goal fit analysis
-- [ ] Add undertrained muscle indicators
-- [ ] Add overloaded muscle indicators
-- [ ] Add active routine target comparison
-- [ ] Add aesthetic hypertrophy guardrails
+- [x] Add weekly working sets by muscle group
+- [x] Add template muscle bias analysis
+- [x] Add goal fit analysis
+- [x] Add undertrained muscle indicators
+- [x] Add overloaded muscle indicators
+- [x] Add active routine target comparison
+- [x] Add aesthetic hypertrophy guardrails
+
+## Phase 5.1 - Training Analysis UI & Guardrail Cleanup
+
+- [x] Fix Train custom-header safe-area spacing
+- [x] Fix template detail custom-header safe-area spacing
+- [x] Soften aesthetic guardrail label for minor metadata-limited near misses
+- [x] Keep undertrained and overloaded guardrail notes visible
 
 ## Phase 6 - Custom Template Structure Editing
 

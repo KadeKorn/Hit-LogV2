@@ -1,13 +1,16 @@
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import type { WorkoutTemplateDetail } from '@/db/repositories/template-repository';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { ActiveRoutine, TemplateDay, WorkoutSession, WorkoutTemplateWithDays } from '@/types/domain';
+import { analyzeTemplate, type TemplateAnalysisResult } from '@/lib/template-analysis';
+import type { ActiveRoutine, TemplateDay, WorkoutSession } from '@/types/domain';
 
 type HomeScreenContentProps = {
   activeRoutine: ActiveRoutine | null;
-  activeRoutineTemplate: WorkoutTemplateWithDays | null;
+  activeRoutineTemplate: WorkoutTemplateDetail | null;
   activeWorkoutSession: WorkoutSession | null;
   currentTemplateDay: TemplateDay | null;
   error: Error | null;
@@ -129,6 +132,65 @@ function MetaTile({
   );
 }
 
+function ActiveRoutineAnalysisSummary({
+  analysis,
+  palette,
+}: {
+  analysis: TemplateAnalysisResult;
+  palette: HomePalette;
+}) {
+  const guardrailNotes = [
+    analysis.undertrained.length > 0
+      ? `Under target: ${analysis.undertrained.map((item) => item.label).join(', ')}`
+      : null,
+    analysis.overloaded.length > 0
+      ? `Over target: ${analysis.overloaded.map((item) => item.label).join(', ')}`
+      : null,
+  ].filter(Boolean);
+
+  return (
+    <View
+      style={[
+        styles.analysisPanel,
+        { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
+      ]}>
+      <View style={styles.analysisHeader}>
+        <View style={styles.analysisTitleBlock}>
+          <ThemedText style={[styles.sectionLabel, { color: palette.accent }]}>
+            Training Analysis
+          </ThemedText>
+          <ThemedText type="defaultSemiBold" style={styles.analysisFit}>
+            {analysis.goalFitLabel}
+          </ThemedText>
+        </View>
+        <ThemedText style={[styles.analysisScope, { color: palette.muted }]}>
+          {analysis.totalWorkingSets} sets
+        </ThemedText>
+      </View>
+
+      {analysis.muscleBias.length > 0 ? (
+        <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+          Top groups: {analysis.muscleBias.slice(0, 5).map((item) => `${item.label} ${item.sets}`).join(' / ')}
+        </ThemedText>
+      ) : (
+        <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+          Add prescription sets and muscle groups before this routine can be analyzed.
+        </ThemedText>
+      )}
+
+      {guardrailNotes.length > 0 ? (
+        <View style={styles.analysisNotes}>
+          {guardrailNotes.map((note) => (
+            <ThemedText key={note} style={[styles.supportingText, { color: palette.muted }]}>
+              {note}
+            </ThemedText>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function HomeScreenContent({
   activeRoutine,
   activeRoutineTemplate,
@@ -142,6 +204,9 @@ export function HomeScreenContent({
 }: HomeScreenContentProps) {
   const colorScheme = useColorScheme() ?? 'dark';
   const palette = getPalette(colorScheme);
+  const activeRoutineAnalysis = activeRoutineTemplate
+    ? analyzeTemplate(activeRoutineTemplate)
+    : null;
 
   if (isLoading) {
     return (
@@ -167,26 +232,27 @@ export function HomeScreenContent({
 
   return (
     <ThemedView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="automatic">
-        <View style={styles.header}>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>
-            Train
-          </ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            Training
-          </ThemedText>
-        </View>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentInsetAdjustmentBehavior="automatic">
+          <View style={styles.header}>
+            <ThemedText style={[styles.caption, { color: palette.muted }]}>
+              Train
+            </ThemedText>
+            <ThemedText type="title" style={styles.title}>
+              Training
+            </ThemedText>
+          </View>
 
-        {activeRoutine ? (
-          activeRoutineTemplate ? (
-            <View
-              style={[
-                styles.activeRoutineCard,
-                { backgroundColor: palette.surface, borderColor: palette.border },
-              ]}>
+          {activeRoutine ? (
+            activeRoutineTemplate ? (
+              <View
+                style={[
+                  styles.activeRoutineCard,
+                  { backgroundColor: palette.surface, borderColor: palette.border },
+                ]}>
               <View style={styles.activeRoutineHeader}>
                 <View style={styles.templateTitleBlock}>
                   <ThemedText style={[styles.sectionLabel, { color: palette.accent }]}>
@@ -242,6 +308,13 @@ export function HomeScreenContent({
                 />
               </View>
 
+              {activeRoutineAnalysis ? (
+                <ActiveRoutineAnalysisSummary
+                  analysis={activeRoutineAnalysis}
+                  palette={palette}
+                />
+              ) : null}
+
               <View style={styles.actionGroup}>
                 <ActionButton
                   accessibilityLabel={
@@ -266,8 +339,8 @@ export function HomeScreenContent({
                   variant="secondary"
                 />
               </View>
-            </View>
-          ) : (
+              </View>
+            ) : (
             <View
               style={[
                 styles.activeRoutineCard,
@@ -290,8 +363,8 @@ export function HomeScreenContent({
                 variant="primary"
               />
             </View>
-          )
-        ) : (
+            )
+          ) : (
           <View
             style={[
               styles.activeRoutineCard,
@@ -317,9 +390,9 @@ export function HomeScreenContent({
               variant="primary"
             />
           </View>
-        )}
-
-      </ScrollView>
+          )}
+        </ScrollView>
+      </SafeAreaView>
     </ThemedView>
   );
 }
@@ -353,6 +426,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     justifyContent: 'space-between',
+  },
+  analysisFit: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  analysisHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  analysisNotes: {
+    gap: 3,
+  },
+  analysisPanel: {
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+    padding: 14,
+  },
+  analysisScope: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  analysisTitleBlock: {
+    flex: 1,
+    gap: 3,
+    minWidth: 0,
   },
   caption: {
     fontSize: 13,
@@ -425,6 +526,9 @@ const styles = StyleSheet.create({
     lineHeight: 30,
   },
   screen: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   sectionLabel: {

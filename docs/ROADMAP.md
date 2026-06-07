@@ -128,8 +128,6 @@ Scope:
 
 This is a small cleanup phase. It does not add charts, training targets, template editing, branding changes, or new product features.
 
-## Current Phase
-
 ### Phase 4.2 - History Usability Finish
 
 Goal: improve History usability after the tab activation and stability pass.
@@ -144,8 +142,6 @@ Scope:
 
 This remains a History usability finish. It does not add charts, training targets, template analysis, or Phase 5 behavior.
 
-## Planned Phases
-
 ### Phase 5 - Training Targets & Template Analysis
 
 Goal: add deterministic training-system analysis before charts.
@@ -159,6 +155,17 @@ Scope:
 - Overloaded muscle indicators
 - Active routine target comparison
 - Aesthetic hypertrophy guardrails
+
+Implemented behavior:
+
+- Library template detail includes a Training Analysis section.
+- Train includes a compact active-routine analysis summary.
+- Analysis uses planned exercise prescriptions only.
+- Warmups, completed workout history, legacy Yates data, and charts are excluded.
+- Goal labels are aware of aesthetic hypertrophy, strength foundation, and low-volume HIT routine purposes.
+- Phase 5.1 fixed custom-header safe-area spacing and softened aesthetic guardrail severity for metadata-limited near misses while preserving guardrail notes.
+
+## Current Phase
 
 ### Phase 6 - Custom Template Structure Editing
 
@@ -178,6 +185,8 @@ Scope:
 - Duplicate days
 
 Prebuilt templates remain read-only.
+
+## Planned Phases
 
 ### Phase 7 - Workout Experience Revamp
 

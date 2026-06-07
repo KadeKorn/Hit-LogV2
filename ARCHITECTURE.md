@@ -7,7 +7,7 @@ HIT Log V2 should use a thin screen layer, reusable components, a repository lay
 The core V2 product flow is:
 
 ```txt
-Template Library -> Active Routine -> Workout Session -> History Comparison -> Progression Recommendation
+Template Library -> Active Routine -> Workout Session -> History Comparison -> Progression Recommendation -> History Review
 ```
 
 ## Guiding decisions
@@ -40,6 +40,7 @@ Templates, active routines, workout sessions, completed exercises, set logs, and
 - Barbell bench and dumbbell bench have separate progression histories.
 - Progression recommendations are generated from completed working sets and the exercise's progression policy.
 - Warmups are excluded from progression calculations.
+- Template analysis is generated from planned exercise prescriptions, not completed workout history.
 - Local-first data remains export-friendly.
 
 ## Why ActiveRoutine exists
@@ -58,6 +59,7 @@ flowchart TD
     Hooks --> ActiveRoutineService[Active routine service]
     Hooks --> HistoryService[History comparison service]
     Hooks --> ProgressionService[Progression service]
+    Hooks --> TemplateAnalysisService[Template analysis service]
     Hooks --> Repositories[Repository layer]
     ActiveRoutineService --> Repositories
     HistoryService --> Repositories
@@ -315,6 +317,32 @@ For a given exercise, the service should return:
 - notes from prior sessions
 
 Working sets should be used for comparison. Warmups should be excluded.
+
+## Template analysis service
+
+Template analysis should make planned routine structure explainable before Progress charts exist.
+
+Inputs:
+
+- workout template detail
+- template days
+- exercise prescriptions
+- prescription muscle groups
+- prescribed set counts
+
+Outputs:
+
+- prescribed working sets by muscle group
+- total prescribed working sets
+- template or rotation day count label
+- notable muscle bias
+- goal fit label and summary
+- undertrained indicators
+- overloaded indicators
+
+The service must stay deterministic and testable. It must not read completed workout sessions, set logs, legacy Yates data, chart state, or remote services.
+
+Phase 5 target-profile constants live in `lib/template-analysis.ts`. Current metadata counts a prescription toward its available `muscleGroup`; Phase 9 may improve this with richer primary and secondary muscle metadata. Do not add fractional secondary-muscle counting until the data model supports it cleanly.
 
 ## Substitution rules
 

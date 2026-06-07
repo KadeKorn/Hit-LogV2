@@ -105,6 +105,17 @@ The History tab should focus on completed workout sessions and exercise history 
 
 The Progress tab should remain lightweight until charts are implemented. Charts come after templates, active routine, workout execution, history comparison, and progression recommendations are working.
 
+### Phase 5 product boundary
+
+Use this distinction when placing features:
+
+- History is what happened.
+- Progress is what it means over time.
+- Library is what the plan is.
+- Train is what to do now.
+
+Phase 5 adds deterministic structure analysis for planned templates and active routines. It does not add Progress dashboard charts.
+
 ### Settings tab
 
 Settings should contain app preferences, local data controls, and export/import surfaces when those exist.
@@ -131,6 +142,39 @@ Templates are reusable training plans. V2 should support prebuilt templates and 
 - Workout substitutions are allowed.
 - Substitutions should not silently mutate the original template.
 - After a workout, the user may optionally save changes back to a custom template.
+
+### Training targets and template analysis
+
+The app should analyze planned template prescriptions before chart work. Analysis uses template days and exercise prescriptions, not completed workout history.
+
+For a template or active routine, the app should calculate:
+
+- prescribed working sets by muscle group
+- total prescribed working sets
+- template or rotation day count
+- notable muscle-group bias
+- goal fit summary
+- undertrained indicators
+- overloaded indicators
+
+Warmups are excluded because this is planned-template analysis. Completed workout history is not used. Legacy Yates data is not used.
+
+Goal fit should be goal-aware:
+
+- Aesthetic Hypertrophy 3x/week is judged against broad aesthetic hypertrophy guardrails for side delts, lats, chest, upper back, quads, glutes, hamstrings, biceps, triceps, and abs.
+- Strength Foundation 3x/week is judged as a strength-first routine emphasizing squat, press, hinge, and row/pull exposure with supportive accessory volume.
+- Dorian Yates-Inspired HIT Routine is judged as a 4-day low-volume, high-effort bodybuilding rotation, not as a normal weekly hypertrophy volume template.
+
+Initial labels:
+
+- Strong fit
+- Good fit
+- Needs review
+- Low signal / insufficient metadata
+
+Current metadata counts each prescription toward its available `muscleGroup`. Phase 9 may improve analysis with primary and secondary muscle metadata; Phase 5 does not invent fractional secondary-muscle counting.
+
+Goal-fit labels should avoid over-penalizing minor near-misses caused by the current one-muscle-per-prescription metadata. `Needs review` is reserved for major structural issues such as multiple required muscles with 0 sets, severe undertraining across the template, clearly overloaded groups, or very low total analysis signal. Guardrail notes should remain visible even when the overall label is `Good fit`.
 
 ### Planned exercise fields
 
@@ -275,6 +319,8 @@ Initial chart focus later:
 - consistency
 
 Do not include bodyweight charts in the initial V2 chart scope.
+
+Charts remain Phase 8 and should stay gated until enough completed V2 data exists. Before unlock, the Progress tab should communicate baseline collection rather than showing thin or misleading chart output.
 
 ## Roadmap
 

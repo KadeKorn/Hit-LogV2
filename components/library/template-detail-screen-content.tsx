@@ -7,6 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -17,6 +18,7 @@ import type {
   WorkoutTemplateDetail,
 } from '@/db/repositories/template-repository';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { analyzeTemplate, type TemplateAnalysisResult } from '@/lib/template-analysis';
 import type { ActiveRoutine } from '@/types/domain';
 
 type TemplateDetailScreenContentProps = {
@@ -184,6 +186,136 @@ function TemplateDayCard({
   );
 }
 
+function SetBreakdownRow({
+  item,
+  palette,
+}: {
+  item: TemplateAnalysisResult['muscleSetBreakdown'][number];
+  palette: DetailPalette;
+}) {
+  return (
+    <View style={styles.breakdownRow}>
+      <ThemedText type="defaultSemiBold" style={styles.breakdownLabel}>
+        {item.label}
+      </ThemedText>
+      <ThemedText style={[styles.breakdownValue, { color: palette.muted }]}>
+        {item.sets} sets
+      </ThemedText>
+    </View>
+  );
+}
+
+function TrainingAnalysisSection({
+  analysis,
+  palette,
+}: {
+  analysis: TemplateAnalysisResult;
+  palette: DetailPalette;
+}) {
+  const hasBreakdown = analysis.muscleSetBreakdown.length > 0;
+
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Training Analysis
+        </ThemedText>
+        <ThemedText style={[styles.caption, { color: palette.muted }]}>
+          {analysis.analysisScopeLabel}
+        </ThemedText>
+      </View>
+
+      <View
+        style={[
+          styles.analysisCard,
+          { backgroundColor: palette.surface, borderColor: palette.border },
+        ]}>
+        <View style={styles.analysisHeader}>
+          <View style={styles.analysisTitleBlock}>
+            <ThemedText style={[styles.analysisLabel, { color: palette.muted }]}>
+              Goal Fit
+            </ThemedText>
+            <ThemedText type="defaultSemiBold" style={styles.analysisFit}>
+              {analysis.goalFitLabel}
+            </ThemedText>
+          </View>
+          <View style={[styles.analysisPill, { borderColor: palette.accent }]}>
+            <ThemedText style={[styles.analysisPillText, { color: palette.accent }]}>
+              {analysis.totalWorkingSets} sets
+            </ThemedText>
+          </View>
+        </View>
+
+        <ThemedText style={[styles.analysisSummary, { color: palette.muted }]}>
+          {analysis.goalFitSummary}
+        </ThemedText>
+
+        {hasBreakdown ? (
+          <>
+            <View style={styles.analysisSubsection}>
+              <ThemedText style={[styles.analysisLabel, { color: palette.muted }]}>
+                Notable Bias
+              </ThemedText>
+              <ThemedText style={styles.analysisInlineText}>
+                {analysis.muscleBias
+                  .map((item) => `${item.label} ${item.sets}`)
+                  .join(' / ')}
+              </ThemedText>
+            </View>
+
+            <View style={styles.analysisSubsection}>
+              <ThemedText style={[styles.analysisLabel, { color: palette.muted }]}>
+                Muscle-Group Working Sets
+              </ThemedText>
+              <View style={styles.breakdownList}>
+                {analysis.muscleSetBreakdown.map((item) => (
+                  <SetBreakdownRow key={item.muscleGroup} item={item} palette={palette} />
+                ))}
+              </View>
+            </View>
+
+            {analysis.undertrained.length > 0 || analysis.overloaded.length > 0 ? (
+              <View style={styles.analysisSubsection}>
+                <ThemedText style={[styles.analysisLabel, { color: palette.muted }]}>
+                  Guardrail Notes
+                </ThemedText>
+                {analysis.undertrained.length > 0 ? (
+                  <ThemedText style={[styles.analysisSummary, { color: palette.muted }]}>
+                    Under target: {analysis.undertrained.map((item) => item.label).join(', ')}
+                  </ThemedText>
+                ) : null}
+                {analysis.overloaded.length > 0 ? (
+                  <ThemedText style={[styles.analysisSummary, { color: palette.muted }]}>
+                    Over target: {analysis.overloaded.map((item) => item.label).join(', ')}
+                  </ThemedText>
+                ) : null}
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
+            Add prescription sets and muscle groups before this template can be analyzed.
+          </ThemedText>
+        )}
+
+        <View style={styles.analysisSubsection}>
+          <ThemedText style={[styles.analysisLabel, { color: palette.muted }]}>
+            Target Profile
+          </ThemedText>
+          <ThemedText style={[styles.analysisSummary, { color: palette.muted }]}>
+            {analysis.targetProfileName}
+          </ThemedText>
+          {analysis.notes.map((note) => (
+            <ThemedText key={note} style={[styles.analysisSummary, { color: palette.muted }]}>
+              {note}
+            </ThemedText>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export function TemplateDetailScreenContent({
   activeRoutine,
   error,
@@ -246,21 +378,24 @@ export function TemplateDetailScreenContent({
     );
   }
 
+  const analysis = analyzeTemplate(template);
+
   return (
     <ThemedView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}>
-        <Pressable
-          accessibilityLabel="Go back to Library"
-          accessibilityRole="button"
-          onPress={onBack}
-          style={styles.backButton}>
-          <ThemedText style={[styles.backButtonText, { color: palette.accent }]}>
-            Back to Library
-          </ThemedText>
-        </Pressable>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
+          showsVerticalScrollIndicator={false}>
+          <Pressable
+            accessibilityLabel="Go back to Library"
+            accessibilityRole="button"
+            onPress={onBack}
+            style={styles.backButton}>
+            <ThemedText style={[styles.backButtonText, { color: palette.accent }]}>
+              Back to Library
+            </ThemedText>
+          </Pressable>
 
         <View style={styles.header}>
           <ThemedText style={[styles.caption, { color: palette.muted }]}>
@@ -450,6 +585,8 @@ export function TemplateDetailScreenContent({
           ) : null}
         </View>
 
+        <TrainingAnalysisSection analysis={analysis} palette={palette} />
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText type="subtitle" style={styles.sectionTitle}>
@@ -478,7 +615,8 @@ export function TemplateDetailScreenContent({
             </View>
           )}
         </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </ThemedView>
   );
 }
@@ -487,6 +625,56 @@ const styles = StyleSheet.create({
   actionGroup: {
     gap: 10,
   },
+  analysisCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 14,
+    padding: 15,
+  },
+  analysisFit: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  analysisHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  analysisInlineText: {
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  analysisLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    textTransform: 'uppercase',
+  },
+  analysisPill: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  analysisPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    textTransform: 'uppercase',
+  },
+  analysisSubsection: {
+    gap: 6,
+  },
+  analysisSummary: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  analysisTitleBlock: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
   backButton: {
     alignSelf: 'flex-start',
     paddingVertical: 4,
@@ -494,6 +682,25 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 15,
     fontWeight: '700',
+    lineHeight: 20,
+  },
+  breakdownLabel: {
+    flex: 1,
+    fontSize: 15,
+    lineHeight: 20,
+    minWidth: 0,
+  },
+  breakdownList: {
+    gap: 8,
+  },
+  breakdownRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  breakdownValue: {
+    fontSize: 14,
     lineHeight: 20,
   },
   button: {
@@ -639,6 +846,9 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   screen: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   section: {

@@ -7,11 +7,12 @@ import {
   TemplateRepository,
   WorkoutSessionRepository,
 } from '@/db/repositories';
-import type { ActiveRoutine, TemplateDay, WorkoutSession, WorkoutTemplateWithDays } from '@/types/domain';
+import type { WorkoutTemplateDetail } from '@/db/repositories/template-repository';
+import type { ActiveRoutine, TemplateDay, WorkoutSession } from '@/types/domain';
 
 type HomeScreenDataState = {
   activeRoutine: ActiveRoutine | null;
-  activeRoutineTemplate: WorkoutTemplateWithDays | null;
+  activeRoutineTemplate: WorkoutTemplateDetail | null;
   activeWorkoutSession: WorkoutSession | null;
   currentTemplateDay: TemplateDay | null;
   error: Error | null;
@@ -22,7 +23,7 @@ type HomeScreenDataState = {
 
 function resolveCurrentTemplateDay(
   activeRoutine: ActiveRoutine | null,
-  template: WorkoutTemplateWithDays | null
+  template: WorkoutTemplateDetail | null
 ): TemplateDay | null {
   if (!activeRoutine || !template) {
     return null;
@@ -39,7 +40,7 @@ export function useHomeScreenData(): HomeScreenDataState {
   const isFocused = useIsFocused();
   const [activeRoutine, setActiveRoutine] = useState<ActiveRoutine | null>(null);
   const [activeRoutineTemplate, setActiveRoutineTemplate] =
-    useState<WorkoutTemplateWithDays | null>(null);
+    useState<WorkoutTemplateDetail | null>(null);
   const [activeWorkoutSession, setActiveWorkoutSession] = useState<WorkoutSession | null>(null);
   const [currentTemplateDay, setCurrentTemplateDay] = useState<TemplateDay | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -66,7 +67,7 @@ export function useHomeScreenData(): HomeScreenDataState {
         const currentActiveRoutine = await activeRoutineRepository.getActiveRoutine();
 
         const currentActiveTemplate = currentActiveRoutine
-          ? await templateRepository.getTemplateWithDays(currentActiveRoutine.templateId)
+          ? await templateRepository.getWorkoutTemplateDetail(currentActiveRoutine.templateId)
           : null;
         const currentWorkoutSession = currentActiveRoutine
           ? await workoutSessionRepository.getActiveWorkoutSession(currentActiveRoutine.id)
