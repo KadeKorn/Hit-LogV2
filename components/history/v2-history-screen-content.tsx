@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -17,6 +18,7 @@ type V2HistoryScreenContentProps = {
   exerciseHistoryLookup: ExerciseHistoryLookupItem[];
   exerciseHistoryPerformances: ExerciseHistoryPerformance[];
   isLoading: boolean;
+  loadedExerciseHistoryKey: string | null;
   onOpenSession: (sessionId: string) => void;
   onSelectExercise: (exerciseHistoryKey: string) => void;
   selectedExerciseHistoryKey: string | null;
@@ -93,6 +95,7 @@ export function V2HistoryScreenContent({
   exerciseHistoryLookup,
   exerciseHistoryPerformances,
   isLoading,
+  loadedExerciseHistoryKey,
   onOpenSession,
   onSelectExercise,
   selectedExerciseHistoryKey,
@@ -100,6 +103,17 @@ export function V2HistoryScreenContent({
   const colorScheme = useColorScheme() ?? 'dark';
   const palette = getPalette(colorScheme);
   const theme = Colors[colorScheme];
+  const [isShowingAllCompletedSessions, setIsShowingAllCompletedSessions] = useState(false);
+  const displayedCompletedSessions = useMemo(
+    () =>
+      isShowingAllCompletedSessions
+        ? completedSessions
+        : completedSessions.slice(0, 5),
+    [completedSessions, isShowingAllCompletedSessions]
+  );
+  const canToggleCompletedSessions = completedSessions.length > 5;
+  const hasLoadedSelectedExercise =
+    selectedExerciseHistoryKey != null && loadedExerciseHistoryKey === selectedExerciseHistoryKey;
 
   if (isLoading) {
     return (
@@ -148,7 +162,7 @@ export function V2HistoryScreenContent({
             </View>
           ) : (
             <View style={styles.list}>
-              {completedSessions.map((session) => (
+              {displayedCompletedSessions.map((session) => (
                 <Pressable
                   accessibilityLabel={`Open workout completed ${formatDate(session.completedAt)}`}
                   accessibilityRole="button"
@@ -185,6 +199,21 @@ export function V2HistoryScreenContent({
                   </View>
                 </Pressable>
               ))}
+              {canToggleCompletedSessions ? (
+                <Pressable
+                  accessibilityLabel={
+                    isShowingAllCompletedSessions
+                      ? 'Show fewer completed sessions'
+                      : 'View all completed sessions'
+                  }
+                  accessibilityRole="button"
+                  onPress={() => setIsShowingAllCompletedSessions((currentValue) => !currentValue)}
+                  style={[styles.secondaryControl, { borderColor: palette.border }]}>
+                  <ThemedText style={[styles.secondaryControlText, { color: palette.accent }]}>
+                    {isShowingAllCompletedSessions ? 'Show less' : 'View all completed sessions'}
+                  </ThemedText>
+                </Pressable>
+              ) : null}
             </View>
           )}
         </View>
@@ -233,43 +262,51 @@ export function V2HistoryScreenContent({
                 })}
               </ScrollView>
 
-              <View style={styles.list}>
-                {exerciseHistoryPerformances.map((performance) => (
-                  <View
-                    key={`${performance.sessionId}-${performance.completedAt}`}
-                    style={[
-                      styles.card,
-                      { backgroundColor: palette.surface, borderColor: palette.border },
-                    ]}>
-                    <ThemedText style={[styles.dateText, { color: palette.accent }]}>
-                      {formatDate(performance.completedAt)}
-                    </ThemedText>
-                    <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                      {[performance.templateName, performance.templateDayName]
-                        .filter(Boolean)
-                        .join(' - ') || 'V2 workout'}
-                    </ThemedText>
-                    <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                      Best set: {performance.bestSet ? formatSet(performance.bestSet) : 'No working set'}
-                    </ThemedText>
-                    <ThemedText style={[styles.setLine, { color: theme.text }]}>
-                      {formatSets(performance.workingSets)}
-                    </ThemedText>
-                    {performance.exerciseNotes ? (
-                      <View
-                        style={[
-                          styles.noteBlock,
-                          { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-                        ]}>
-                        <ThemedText style={[styles.noteLabel, { color: palette.muted }]}>
-                          Notes
-                        </ThemedText>
-                        <ThemedText style={styles.noteText}>{performance.exerciseNotes}</ThemedText>
-                      </View>
-                    ) : null}
-                  </View>
-                ))}
-              </View>
+              {hasLoadedSelectedExercise && exerciseHistoryPerformances.length === 0 ? (
+                <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                  <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+                    Exercise history will appear after you complete working sets.
+                  </ThemedText>
+                </View>
+              ) : (
+                <View style={styles.list}>
+                  {exerciseHistoryPerformances.map((performance) => (
+                    <View
+                      key={`${performance.sessionId}-${performance.completedAt}`}
+                      style={[
+                        styles.card,
+                        { backgroundColor: palette.surface, borderColor: palette.border },
+                      ]}>
+                      <ThemedText style={[styles.dateText, { color: palette.accent }]}>
+                        {formatDate(performance.completedAt)}
+                      </ThemedText>
+                      <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
+                        {[performance.templateName, performance.templateDayName]
+                          .filter(Boolean)
+                          .join(' - ') || 'V2 workout'}
+                      </ThemedText>
+                      <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+                        Best set: {performance.bestSet ? formatSet(performance.bestSet) : 'No working set'}
+                      </ThemedText>
+                      <ThemedText style={[styles.setLine, { color: theme.text }]}>
+                        {formatSets(performance.workingSets)}
+                      </ThemedText>
+                      {performance.exerciseNotes ? (
+                        <View
+                          style={[
+                            styles.noteBlock,
+                            { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
+                          ]}>
+                          <ThemedText style={[styles.noteLabel, { color: palette.muted }]}>
+                            Notes
+                          </ThemedText>
+                          <ThemedText style={styles.noteText}>{performance.exerciseNotes}</ThemedText>
+                        </View>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -392,6 +429,20 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
+  },
+  secondaryControl: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 16,
+  },
+  secondaryControlText: {
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 20,
+    textTransform: 'uppercase',
   },
   section: {
     gap: 10,

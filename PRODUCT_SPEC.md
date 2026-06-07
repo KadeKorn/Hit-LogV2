@@ -276,6 +276,98 @@ Initial chart focus later:
 
 Do not include bodyweight charts in the initial V2 chart scope.
 
+## Roadmap
+
+The full durable roadmap lives in `docs/ROADMAP.md`. Future phases should preserve the local-first, template-library-first, deterministic-progressive-overload product thesis.
+
+### Phase 4 - History Tab Activation
+
+Goal: make History the factual V2 training record.
+
+High-level scope: completed sessions list, completed session detail, warmup/working set separation, exercise history lookup, and V2-only history reads.
+
+Intended user value: the user can review what actually happened without confusing History with Progress interpretation.
+
+### Phase 4.1 - History Stability & Roadmap Cleanup
+
+Goal: stabilize the activated History tab and align roadmap documentation before Phase 5.
+
+High-level scope: preserve History scroll/state where practical, avoid full-screen resets during exercise-history selection, and remove stale or duplicate roadmap entries.
+
+Intended user value: the user gets a calmer History review experience and clearer project direction without new feature scope.
+
+### Phase 4.2 - History Usability Finish
+
+Goal: make the activated History tab easier to use as completed sessions grow.
+
+High-level scope: cap the default completed-session list, provide in-place expand/collapse, and smooth exercise-history selection without visible loading flashes.
+
+Intended user value: the user can reach Exercise History quickly and switch between exercises without visual noise.
+
+### Phase 5 - Training Targets & Template Analysis
+
+Goal: add deterministic training-system analysis before charts.
+
+High-level scope: weekly working sets by muscle group, template muscle bias, goal fit analysis, undertrained/overloaded indicators, active routine target comparison, and aesthetic hypertrophy guardrails.
+
+Intended user value: the user can understand whether their routine structure matches their hypertrophy goals before relying on chart visuals.
+
+### Phase 6 - Custom Template Structure Editing
+
+Goal: allow meaningful editing of custom templates while keeping prebuilt templates read-only.
+
+High-level scope: add/remove days and exercises, reorder exercises, edit sets, rep ranges, progression methods, rest guidance, notes, and duplicate templates/days.
+
+Intended user value: the user can adapt routines without leaving the template system or corrupting prebuilt plans.
+
+### Phase 7 - Workout Experience Revamp
+
+Goal: substantially redesign the workout experience.
+
+High-level scope: better workout start flow, current exercise focus mode, faster set entry, previous performance visibility, rest timer, better warmup/notes/completion/substitution UX, in-progress recovery, and one-hand usability.
+
+Intended user value: workout logging becomes faster and easier during real training.
+
+### Phase 8 - Progress Dashboard & Charts
+
+Goal: provide meaningful progress visibility after enough baseline data exists.
+
+High-level scope: progress dashboard, exercise strength and volume trends, weekly muscle-group trends, consistency tracking, top progress indicators, and needs-attention indicators.
+
+Intended user value: the user can see what training outcomes are emerging from completed V2 workouts.
+
+Charts should stay locked behind baseline collection:
+
+- At least 2 calendar weeks of completed V2 workouts
+- At least 4 completed workouts
+- At least 2 repeated exposures per exercise
+- Exclude warmup sets
+- Exclude incomplete sets
+
+### Phase 9 - Exercise Library Expansion
+
+Goal: strengthen exercise metadata and substitution support.
+
+High-level scope: primary muscle, secondary muscles, equipment, movement pattern, difficulty, notes/cues, and substitutions.
+
+Intended user value: the user gets better template structure, clearer substitutions, and more accurate analysis inputs.
+
+### Phase 10 - Export / Backup / Import
+
+Goal: improve local-first data durability.
+
+High-level scope: improved JSON export, CSV export, backup import, template export, session export, and progress summary export.
+
+Intended user value: the user can preserve, restore, and inspect training data without cloud sync.
+
+### Phase 11 - Lift Atlas Brand Pass
+
+Goal: transition HIT Log V2 into Lift Atlas.
+
+High-level scope: app rename, branding, product copy, onboarding, visual identity, and a training-map product feel.
+
+Intended user value: the product gains a clearer long-term identity once the training system is solid.
+
 ## Local-first data
 
 V2 should remain local-first and export-friendly. Core records should use stable IDs and timestamps where appropriate. The app should preserve enough structure to export templates, sessions, completed exercises, set logs, notes, and progression context without reverse-engineering display text.

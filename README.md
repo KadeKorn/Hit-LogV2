@@ -86,7 +86,36 @@ Read these before making meaningful changes:
 - `UI_RULES.md`
 - `CODING_STANDARDS.md`
 - `CONTRIBUTING.md`
+- `docs/ROADMAP.md`
 
 ## Current Phase
 
-Phase 3 - Template Refinement is complete. HIT Log V2 now ships with refined prebuilt templates, practical exercise selections, prescription-level progression defaults, rest guidance, and template notes for the approved aesthetic, strength, and HIT routines. Charts and integrations remain deferred to later phases.
+Phase 4.2 - History Usability Finish.
+
+Phase 4 activated History as the factual training record. Phase 4.2 is a small usability finish pass before Phase 5 begins.
+
+## Current Status
+
+HIT Log V2 has the core V2 loop in place:
+
+```txt
+Template Library -> Active Routine -> Workout Execution -> History Comparison -> Progression Recommendation
+```
+
+The History tab is now the top-level factual record for completed V2 workouts. Progress interpretation and charts remain deferred.
+
+## Completed Major Milestones
+
+- V2 docs, architecture, and navigation shell
+- Template data model and Library UI
+- Active routine selection and next workout flow
+- V2 workout execution with warmups, substitutions, notes, effort/RIR, and routine advancement
+- History comparison for last time, best ever, last five sessions, and prior notes
+- Deterministic progression engine
+- Refined prebuilt templates
+
+## Upcoming Roadmap
+
+Next planned phases include training target analysis, custom template structure editing, a workout experience revamp, gated progress charts, exercise library expansion, export/import improvements, and the Lift Atlas brand pass.
+
+See `docs/ROADMAP.md` for the full phase roadmap.

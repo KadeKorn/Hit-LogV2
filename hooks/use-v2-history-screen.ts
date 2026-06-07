@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 
 import { bootstrapDatabase } from '@/db/bootstrap';
@@ -15,6 +15,7 @@ type UseV2HistoryScreenResult = {
   exerciseHistoryLookup: ExerciseHistoryLookupItem[];
   exerciseHistoryPerformances: ExerciseHistoryPerformance[];
   isLoading: boolean;
+  loadedExerciseHistoryKey: string | null;
   selectedExerciseHistoryKey: string | null;
   setSelectedExerciseHistoryKey: (exerciseHistoryKey: string) => void;
 };
@@ -28,9 +29,17 @@ export function useV2HistoryScreen(): UseV2HistoryScreenResult {
     ExerciseHistoryPerformance[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadedExerciseHistoryKey, setLoadedExerciseHistoryKey] = useState<string | null>(null);
   const [selectedExerciseHistoryKey, setSelectedExerciseHistoryKeyState] = useState<string | null>(
     null
   );
+  const hasLoadedHistoryShellRef = useRef(false);
+
+  const setSelectedExerciseHistoryKey = useCallback((exerciseHistoryKey: string) => {
+    setSelectedExerciseHistoryKeyState((currentKey) =>
+      currentKey === exerciseHistoryKey ? currentKey : exerciseHistoryKey
+    );
+  }, []);
 
   useEffect(() => {
     if (!isFocused) {
@@ -41,7 +50,7 @@ export function useV2HistoryScreen(): UseV2HistoryScreenResult {
 
     async function loadHistory(): Promise<void> {
       try {
-        setIsLoading(true);
+        setIsLoading(!hasLoadedHistoryShellRef.current);
         setError(null);
 
         const database = await bootstrapDatabase();
@@ -50,23 +59,23 @@ export function useV2HistoryScreen(): UseV2HistoryScreenResult {
           repository.getCompletedSessions(),
           repository.getExerciseHistoryLookup(),
         ]);
-        const nextSelectedKey =
-          selectedExerciseHistoryKey &&
-          lookup.some((item) => item.exerciseHistoryKey === selectedExerciseHistoryKey)
-            ? selectedExerciseHistoryKey
-            : lookup[0]?.exerciseHistoryKey ?? null;
-        const performances = nextSelectedKey
-          ? await repository.getExerciseHistoryPerformances(nextSelectedKey)
-          : [];
+        const fallbackSelectedKey = lookup[0]?.exerciseHistoryKey ?? null;
 
         if (!isMounted) {
           return;
         }
 
+        hasLoadedHistoryShellRef.current = true;
         setCompletedSessions(sessions);
         setExerciseHistoryLookup(lookup);
-        setSelectedExerciseHistoryKeyState(nextSelectedKey);
-        setExerciseHistoryPerformances(performances);
+        setSelectedExerciseHistoryKeyState((currentKey) =>
+          currentKey && lookup.some((item) => item.exerciseHistoryKey === currentKey)
+            ? currentKey
+            : fallbackSelectedKey
+        );
+        setExerciseHistoryPerformances((currentPerformances) =>
+          fallbackSelectedKey ? currentPerformances : []
+        );
       } catch (loadError) {
         if (!isMounted) {
           return;
@@ -75,6 +84,7 @@ export function useV2HistoryScreen(): UseV2HistoryScreenResult {
         setCompletedSessions([]);
         setExerciseHistoryLookup([]);
         setExerciseHistoryPerformances([]);
+        setLoadedExerciseHistoryKey(null);
         setError(loadError instanceof Error ? loadError : new Error('Unable to load history.'));
       } finally {
         if (isMounted) {
@@ -88,6 +98,46 @@ export function useV2HistoryScreen(): UseV2HistoryScreenResult {
     return () => {
       isMounted = false;
     };
+  }, [isFocused]);
+
+  useEffect(() => {
+    if (!isFocused || !selectedExerciseHistoryKey) {
+      return;
+    }
+
+    let isMounted = true;
+    const exerciseHistoryKey = selectedExerciseHistoryKey;
+
+    async function loadExerciseHistory(): Promise<void> {
+      try {
+        setError(null);
+
+        const database = await bootstrapDatabase();
+        const repository = new V2HistoryRepository(database);
+        const performances = await repository.getExerciseHistoryPerformances(exerciseHistoryKey);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setExerciseHistoryPerformances(performances);
+        setLoadedExerciseHistoryKey(exerciseHistoryKey);
+      } catch (loadError) {
+        if (!isMounted) {
+          return;
+        }
+
+        setExerciseHistoryPerformances([]);
+        setLoadedExerciseHistoryKey(exerciseHistoryKey);
+        setError(loadError instanceof Error ? loadError : new Error('Unable to load history.'));
+      }
+    }
+
+    void loadExerciseHistory();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isFocused, selectedExerciseHistoryKey]);
 
   return {
@@ -96,7 +146,8 @@ export function useV2HistoryScreen(): UseV2HistoryScreenResult {
     exerciseHistoryLookup,
     exerciseHistoryPerformances,
     isLoading,
+    loadedExerciseHistoryKey,
     selectedExerciseHistoryKey,
-    setSelectedExerciseHistoryKey: setSelectedExerciseHistoryKeyState,
+    setSelectedExerciseHistoryKey,
   };
 }

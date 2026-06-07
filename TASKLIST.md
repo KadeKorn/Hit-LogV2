@@ -74,6 +74,12 @@
 - [x] Add no progression
 - [x] Add recommendation reason text
 
+## Phase 2H.1 - Progression/History Empty-State Cleanup
+
+- [x] Clean progression empty states
+- [x] Clean history empty states
+- [x] Avoid fake recommendations or fake PRs when history is missing
+
 ## Phase 3 - Template Refinement
 
 - [x] Validate prebuilt template volume
@@ -88,9 +94,93 @@
 - [x] Add V2 exercise history lookup
 - [x] Add History tab empty states
 
-## Later - Charts
+## Phase 4.1 - History Stability & Roadmap Cleanup
+
+- [x] Stabilize History scroll/state after completed session detail navigation
+- [x] Stabilize Exercise History selection without full-screen reset
+- [x] Clean duplicate/stale roadmap task entries
+- [x] Confirm roadmap docs agree on phase order
+
+## Phase 4.2 - History Usability Finish
+
+- [ ] Show latest 5 completed sessions by default
+- [ ] Add View all completed sessions control
+- [ ] Add Show less control
+- [ ] Keep Exercise History reachable below Completed Sessions
+- [ ] Smooth Exercise History selection without visible loading text
+
+## Phase 5 - Training Targets & Template Analysis
+
+- [ ] Add weekly working sets by muscle group
+- [ ] Add template muscle bias analysis
+- [ ] Add goal fit analysis
+- [ ] Add undertrained muscle indicators
+- [ ] Add overloaded muscle indicators
+- [ ] Add active routine target comparison
+- [ ] Add aesthetic hypertrophy guardrails
+
+## Phase 6 - Custom Template Structure Editing
+
+- [ ] Add/remove template days
+- [ ] Add/remove exercises
+- [ ] Reorder exercises
+- [ ] Edit sets
+- [ ] Edit rep ranges
+- [ ] Edit progression methods
+- [ ] Edit rest guidance
+- [ ] Edit notes
+- [ ] Duplicate templates
+- [ ] Duplicate days
+- [ ] Preserve prebuilt templates as read-only
+
+## Phase 7 - Workout Experience Revamp
+
+- [ ] Improve workout start flow
+- [ ] Add current exercise focus mode
+- [ ] Speed up set entry
+- [ ] Improve previous performance visibility
+- [ ] Add rest timer
+- [ ] Improve warmup UX
+- [ ] Improve notes UX
+- [ ] Improve workout completion flow
+- [ ] Add in-progress workout recovery
+- [ ] Improve substitution flow
+- [ ] Improve one-hand usability
+
+## Phase 8 - Progress Dashboard & Charts
 
 - [ ] Add exercise strength trend
 - [ ] Add volume trend
 - [ ] Add muscle-group weekly sets
 - [ ] Add consistency chart
+- [ ] Add top progress indicators
+- [ ] Add needs-attention indicators
+- [ ] Add baseline collection state before chart unlock
+
+## Phase 9 - Exercise Library Expansion
+
+- [ ] Add primary muscle metadata
+- [ ] Add secondary muscle metadata
+- [ ] Add equipment metadata
+- [ ] Add movement pattern metadata
+- [ ] Add difficulty metadata
+- [ ] Add notes/cues
+- [ ] Add substitution metadata
+
+## Phase 10 - Export / Backup / Import
+
+- [ ] Improve JSON export
+- [ ] Add CSV export
+- [ ] Add import from backup
+- [ ] Export templates
+- [ ] Export sessions
+- [ ] Export progress summaries
+
+## Phase 11 - Lift Atlas Brand Pass
+
+- [ ] Rename app
+- [ ] Update branding
+- [ ] Update product copy
+- [ ] Update onboarding
+- [ ] Update visual identity
+- [ ] Shift product feel toward a training map
