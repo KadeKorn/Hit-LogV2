@@ -115,9 +115,9 @@ Templates are reusable training plans. V2 should support prebuilt templates and 
 
 ### Initial prebuilt templates
 
-- Full Body Hypertrophy 3x/week
-- Push / Pull / Legs
-- HIT-Inspired Low-Volume Routine
+- Aesthetic Hypertrophy 3x/week
+- Strength Foundation 3x/week
+- Dorian Yates-Inspired HIT Routine
 
 ### Template behavior
 

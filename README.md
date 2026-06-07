@@ -32,9 +32,9 @@ The app should stay structured cleanly enough to support other lifters later, bu
 
 ## Initial Prebuilt Templates
 
-- Full Body Hypertrophy 3x/week
-- Push / Pull / Legs
-- HIT-Inspired Low-Volume Routine
+- Aesthetic Hypertrophy 3x/week
+- Strength Foundation 3x/week
+- Dorian Yates-Inspired HIT Routine
 
 Prebuilt templates are read-only. They can be duplicated into editable custom templates. Custom templates should be fast to create, simple to edit, and require only the minimum fields needed for progression.
 
@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2H - Progression Engine is complete. The V2 workout screen now loads completed-session history for each planned exercise, excludes warmup sets, preserves history comparison, and shows deterministic progression recommendations with reason text and prior-performance context. Charts and integrations remain deferred to later phases.
+Phase 3 - Template Refinement is complete. HIT Log V2 now ships with refined prebuilt templates, practical exercise selections, prescription-level progression defaults, rest guidance, and template notes for the approved aesthetic, strength, and HIT routines. Charts and integrations remain deferred to later phases.

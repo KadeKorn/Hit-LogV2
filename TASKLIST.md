@@ -76,10 +76,10 @@
 
 ## Phase 3 - Template Refinement
 
-- [ ] Validate prebuilt template volume
-- [ ] Validate rep ranges
-- [ ] Validate exercise selections
-- [ ] Validate progression defaults
+- [x] Validate prebuilt template volume
+- [x] Validate rep ranges
+- [x] Validate exercise selections
+- [x] Validate progression defaults
 
 ## Phase 4 - Charts
 
