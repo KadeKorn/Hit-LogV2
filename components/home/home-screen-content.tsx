@@ -75,6 +75,10 @@ function formatSessionSummary(count: number | undefined): string {
   return `${count} sessions`;
 }
 
+function formatExerciseCount(count: number): string {
+  return count === 1 ? '1 exercise' : `${count} exercises`;
+}
+
 function ActionButton({
   accessibilityLabel,
   label,
@@ -207,6 +211,16 @@ export function HomeScreenContent({
   const activeRoutineAnalysis = activeRoutineTemplate
     ? analyzeTemplate(activeRoutineTemplate)
     : null;
+  const currentTemplateDayDetail =
+    activeRoutineTemplate && currentTemplateDay
+      ? activeRoutineTemplate.days.find((day) => day.id === currentTemplateDay.id) ?? null
+      : null;
+  const currentExerciseCount = currentTemplateDayDetail?.prescriptions.length ?? 0;
+  const currentPlannedWorkingSets =
+    currentTemplateDayDetail?.prescriptions.reduce(
+      (total, prescription) => total + prescription.sets,
+      0
+    ) ?? 0;
 
   if (isLoading) {
     return (
@@ -288,6 +302,9 @@ export function HomeScreenContent({
                     {formatToken(currentTemplateDay.focus)}
                   </ThemedText>
                 ) : null}
+                <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+                  {formatExerciseCount(currentExerciseCount)} / {currentPlannedWorkingSets} planned working sets
+                </ThemedText>
               </View>
 
               <View style={styles.metaGrid}>
@@ -324,7 +341,7 @@ export function HomeScreenContent({
                     isStartingWorkout
                       ? 'Opening Workout'
                       : activeWorkoutSession
-                        ? 'Resume Workout'
+                        ? 'Resume Saved Workout'
                         : 'Start Workout'
                   }
                   onPress={onStartWorkout}

@@ -101,6 +101,8 @@ export type CompleteWorkoutSessionInput = {
   }[];
 };
 
+export type SaveWorkoutSessionDraftInput = CompleteWorkoutSessionInput;
+
 function createEntityId(prefix: string): string {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return `${prefix}-${globalThis.crypto.randomUUID()}`;
@@ -614,5 +616,115 @@ export class WorkoutSessionRepository {
     }
 
     return completedSession;
+  }
+
+  async saveWorkoutSessionDraft(
+    sessionId: string,
+    input: SaveWorkoutSessionDraftInput
+  ): Promise<WorkoutSessionDetail> {
+    const now = new Date().toISOString();
+
+    await this.database.withTransactionAsync(async () => {
+      const session = await this.database.getFirstAsync<WorkoutSessionRow>(
+        `SELECT
+           id,
+           active_routine_id,
+           template_id,
+           template_day_id,
+           status,
+           started_at,
+           completed_at,
+           notes,
+           created_at,
+           updated_at
+         FROM workout_sessions
+         WHERE id = ?
+         LIMIT 1;`,
+        sessionId
+      );
+
+      if (!session) {
+        throw new Error('Workout session not found.');
+      }
+
+      if (session.status !== 'active') {
+        return;
+      }
+
+      for (const exercise of input.exercises) {
+        await this.database.runAsync(
+          `UPDATE completed_exercises
+           SET notes = ?,
+               exercise_name = ?,
+               exercise_definition_id = CASE WHEN ? = 1 THEN NULL ELSE exercise_definition_id END,
+               is_substitution = ?,
+               substituted_for_exercise_definition_id =
+                 CASE WHEN ? = 1 THEN exercise_definition_id ELSE NULL END,
+               effort_rating = ?,
+               estimated_rir = ?,
+               updated_at = ?
+           WHERE id = ?
+             AND workout_session_id = ?;`,
+          exercise.notes,
+          exercise.performedExerciseName,
+          toSqliteBoolean(exercise.isSubstitution),
+          toSqliteBoolean(exercise.isSubstitution),
+          toSqliteBoolean(exercise.isSubstitution),
+          exercise.effortRating,
+          exercise.estimatedRir,
+          now,
+          exercise.id,
+          sessionId
+        );
+
+        await this.database.runAsync(
+          `DELETE FROM set_logs
+           WHERE completed_exercise_id = ?;`,
+          exercise.id
+        );
+
+        for (const setLog of exercise.setLogs) {
+          await this.database.runAsync(
+            `INSERT INTO set_logs (
+               id,
+               completed_exercise_id,
+               set_number,
+               weight,
+               reps,
+               is_warmup,
+               notes,
+               created_at,
+               updated_at
+             )
+             VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?);`,
+            createEntityId('set-log'),
+            exercise.id,
+            setLog.setNumber,
+            setLog.weight,
+            setLog.reps,
+            toSqliteBoolean(setLog.isWarmup),
+            now,
+            now
+          );
+        }
+      }
+
+      await this.database.runAsync(
+        `UPDATE workout_sessions
+         SET updated_at = ?
+         WHERE id = ?
+           AND status = 'active';`,
+        now,
+        sessionId
+      );
+    });
+
+    const savedSession = await this.getWorkoutSessionById(sessionId);
+
+    if (!savedSession) {
+      throw new Error('Failed to save workout draft.');
+    }
+
+    return savedSession;
   }
 }

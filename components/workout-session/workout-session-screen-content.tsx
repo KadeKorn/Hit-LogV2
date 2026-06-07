@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -46,8 +46,11 @@ type WorkoutSessionScreenContentProps = {
   isProgressionLoading: boolean;
   onBack: () => void;
   onComplete: (input: CompleteWorkoutSessionInput) => void;
+  onSaveDraft: (input: CompleteWorkoutSessionInput) => void;
   progressionError: Error | null;
   progressionRecommendations: Record<string, ProgressionRecommendation>;
+  saveError: Error | null;
+  savedAt: string | null;
   session: WorkoutSessionDetail | null;
 };
 
@@ -151,6 +154,29 @@ function formatWeight(value: number): string {
   return `${value} lb`;
 }
 
+function formatSavedAt(value: string | null): string {
+  if (!value) {
+    return 'Not saved yet';
+  }
+
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 'Saved';
+  }
+
+  return `Saved ${new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsedDate)}`;
+}
+
+function formatTimer(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
+}
+
 function formatRecommendationAction(recommendation: ProgressionRecommendation): string {
   switch (recommendation.recommendationType) {
     case 'increase_load':
@@ -183,12 +209,12 @@ function formatRecommendationAction(recommendation: ProgressionRecommendation): 
   }
 }
 
-function createSetDraft(index: number): SetDraft {
+function createSetDraft(index: number, previousSet?: SetDraft): SetDraft {
   return {
     id: `draft-set-${Date.now()}-${index}`,
     isWarmup: false,
-    repsText: '',
-    weightText: '',
+    repsText: previousSet?.repsText ?? '',
+    weightText: previousSet?.weightText ?? '',
   };
 }
 
@@ -235,6 +261,46 @@ function parseNumberText(value: string): number | null {
   return Number.isFinite(parsedValue) ? parsedValue : null;
 }
 
+function getWorkingSetCount(drafts: Record<string, ExerciseDraft>): number {
+  return Object.values(drafts).reduce(
+    (total, draft) => total + draft.setDrafts.filter((setDraft) => !setDraft.isWarmup).length,
+    0
+  );
+}
+
+function getLoggedWorkingSetCount(drafts: Record<string, ExerciseDraft>): number {
+  return Object.values(drafts).reduce(
+    (total, draft) =>
+      total +
+      draft.setDrafts.filter(
+        (setDraft) => !setDraft.isWarmup && (setDraft.weightText.trim() || setDraft.repsText.trim())
+      ).length,
+    0
+  );
+}
+
+function getTotalLoggedVolume(drafts: Record<string, ExerciseDraft>): number {
+  return Object.values(drafts).reduce(
+    (total, draft) =>
+      total +
+      draft.setDrafts.reduce((exerciseTotal, setDraft) => {
+        if (setDraft.isWarmup) {
+          return exerciseTotal;
+        }
+
+        const weight = parseNumberText(setDraft.weightText);
+        const reps = parseNumberText(setDraft.repsText);
+
+        if (weight == null || reps == null) {
+          return exerciseTotal;
+        }
+
+        return exerciseTotal + weight * reps;
+      }, 0),
+    0
+  );
+}
+
 function ExerciseCard({
   draft,
   exercise,
@@ -242,10 +308,13 @@ function ExerciseCard({
   historyError,
   isHistoryLoading,
   onAddSet,
+  onSelectNextExercise,
+  onSelectPreviousExercise,
   onSetDraftChange,
   onSetEffort,
   onSetNotes,
   onSetSubstituteName,
+  onStartRestTimer,
   onToggleWarmup,
   onToggleSubstitution,
   palette,
@@ -261,6 +330,8 @@ function ExerciseCard({
   isHistoryLoading: boolean;
   isProgressionLoading: boolean;
   onAddSet: (exerciseId: string) => void;
+  onSelectNextExercise: () => void;
+  onSelectPreviousExercise: () => void;
   onSetDraftChange: (
     exerciseId: string,
     setIndex: number,
@@ -270,6 +341,7 @@ function ExerciseCard({
   onSetEffort: (exerciseId: string, effortRating: EffortRating, estimatedRir: 0 | 1 | 2 | 3) => void;
   onSetNotes: (exerciseId: string, notes: string) => void;
   onSetSubstituteName: (exerciseId: string, substituteName: string) => void;
+  onStartRestTimer: (seconds: number) => void;
   onToggleWarmup: (exerciseId: string, setIndex: number) => void;
   onToggleSubstitution: (exerciseId: string) => void;
   palette: WorkoutPalette;
@@ -280,6 +352,9 @@ function ExerciseCard({
   return (
     <View style={[styles.exerciseCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
       <View style={styles.exerciseHeader}>
+        <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
+          Current Exercise
+        </ThemedText>
         <ThemedText type="defaultSemiBold" style={styles.exerciseName}>
           {exercise.exerciseName}
         </ThemedText>
@@ -290,6 +365,11 @@ function ExerciseCard({
           {formatToken(exercise.progressionMethod)}
           {exercise.restSeconds ? ` - ${exercise.restSeconds}s rest` : ''}
         </ThemedText>
+        {exercise.notes ? (
+          <ThemedText style={[styles.exerciseMeta, { color: palette.muted }]}>
+            Cues: {exercise.notes}
+          </ThemedText>
+        ) : null}
       </View>
 
       <View
@@ -406,6 +486,14 @@ function ExerciseCard({
       </View>
 
       <View style={styles.setList}>
+        <View style={styles.setListHeader}>
+          <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
+            Sets
+          </ThemedText>
+          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+            Warmups are excluded from PRs, history volume, and progression.
+          </ThemedText>
+        </View>
         {draft.setDrafts.map((setDraft, setIndex) => (
           <View
             key={setDraft.id}
@@ -469,6 +557,17 @@ function ExerciseCard({
                 value={setDraft.repsText}
               />
             </View>
+            <View style={styles.setUtilityRow}>
+              <Pressable
+                accessibilityLabel={`Start rest timer after ${exercise.exerciseName} set ${setIndex + 1}`}
+                accessibilityRole="button"
+                onPress={() => onStartRestTimer(exercise.restSeconds ?? 90)}
+                style={[styles.timerInlineButton, { borderColor: palette.border }]}>
+                <ThemedText style={[styles.timerInlineButtonText, { color: palette.accent }]}>
+                  Start Rest
+                </ThemedText>
+              </Pressable>
+            </View>
           </View>
         ))}
       </View>
@@ -478,7 +577,9 @@ function ExerciseCard({
         accessibilityRole="button"
         onPress={() => onAddSet(exercise.id)}
         style={[styles.secondaryButton, { borderColor: palette.border }]}>
-        <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>Add Set</ThemedText>
+        <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>
+          Add Working Set
+        </ThemedText>
       </Pressable>
 
       <Pressable
@@ -560,6 +661,27 @@ function ExerciseCard({
           );
         })}
       </View>
+
+      <View style={styles.exerciseNavRow}>
+        <Pressable
+          accessibilityLabel="Previous exercise"
+          accessibilityRole="button"
+          onPress={onSelectPreviousExercise}
+          style={[styles.secondaryButton, { borderColor: palette.border, flex: 1 }]}>
+          <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>
+            Previous
+          </ThemedText>
+        </Pressable>
+        <Pressable
+          accessibilityLabel="Next exercise"
+          accessibilityRole="button"
+          onPress={onSelectNextExercise}
+          style={[styles.secondaryButton, { borderColor: palette.border, flex: 1 }]}>
+          <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>
+            Next
+          </ThemedText>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -574,18 +696,57 @@ export function WorkoutSessionScreenContent({
   isProgressionLoading,
   onBack,
   onComplete,
+  onSaveDraft,
   progressionError,
   progressionRecommendations,
+  saveError,
+  savedAt,
   session,
 }: WorkoutSessionScreenContentProps) {
   const colorScheme = useColorScheme() ?? 'dark';
   const palette = getPalette(colorScheme);
   const theme = Colors[colorScheme];
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
+  const [restTimerSeconds, setRestTimerSeconds] = useState(0);
+  const [isRestTimerRunning, setIsRestTimerRunning] = useState(false);
+  const hasHydratedDrafts = useRef(false);
+  const onSaveDraftRef = useRef(onSaveDraft);
 
   useEffect(() => {
+    onSaveDraftRef.current = onSaveDraft;
+  }, [onSaveDraft]);
+
+  useEffect(() => {
+    hasHydratedDrafts.current = false;
     setDrafts(createDrafts(session));
+    setCurrentExerciseIndex(0);
   }, [session]);
+
+  useEffect(() => {
+    if (Object.keys(drafts).length > 0) {
+      hasHydratedDrafts.current = true;
+    }
+  }, [drafts]);
+
+  useEffect(() => {
+    if (!isRestTimerRunning || restTimerSeconds <= 0) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      setRestTimerSeconds((currentSeconds) => {
+        if (currentSeconds <= 1) {
+          setIsRestTimerRunning(false);
+          return 0;
+        }
+
+        return currentSeconds - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [isRestTimerRunning, restTimerSeconds]);
 
   const completeInput = useMemo<CompleteWorkoutSessionInput>(() => {
     return {
@@ -614,6 +775,25 @@ export function WorkoutSessionScreenContent({
         }) ?? [],
     };
   }, [drafts, session]);
+
+  useEffect(() => {
+    if (!session || session.status !== 'active' || !hasHydratedDrafts.current) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      onSaveDraftRef.current(completeInput);
+    }, 700);
+
+    return () => clearTimeout(timeoutId);
+  }, [completeInput, session]);
+
+  const currentExercise = session?.exercises[currentExerciseIndex] ?? session?.exercises[0] ?? null;
+  const loggedWorkingSets = getLoggedWorkingSetCount(drafts);
+  const totalWorkingSets = getWorkingSetCount(drafts);
+  const totalVolume = getTotalLoggedVolume(drafts);
+  const hasNotes = Object.values(drafts).some((draft) => draft.notes.trim().length > 0);
+  const hasSubstitutions = Object.values(drafts).some((draft) => draft.isSubstitution);
 
   function updateDraft(
     exerciseId: string,
@@ -690,90 +870,241 @@ export function WorkoutSessionScreenContent({
           </ThemedText>
         </View>
 
+        <View
+          style={[
+            styles.sessionOverview,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}>
+          <View style={styles.sessionOverviewHeader}>
+            <View style={styles.sessionOverviewTitleBlock}>
+              <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
+                In Progress
+              </ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.sessionOverviewTitle}>
+                {currentExercise
+                  ? `${currentExerciseIndex + 1} of ${session.exercises.length}: ${currentExercise.exerciseName}`
+                  : 'No exercises planned'}
+              </ThemedText>
+            </View>
+            <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+              {saveError ? 'Autosave needs attention' : formatSavedAt(savedAt)}
+            </ThemedText>
+          </View>
+          {saveError ? (
+            <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+              {saveError.message}
+            </ThemedText>
+          ) : null}
+          <View style={styles.summaryGrid}>
+            <View style={[styles.summaryTile, { borderColor: palette.border }]}>
+              <ThemedText style={[styles.historyTitle, { color: palette.muted }]}>
+                Exercises
+              </ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.summaryValue}>
+                {session.exercises.length}
+              </ThemedText>
+            </View>
+            <View style={[styles.summaryTile, { borderColor: palette.border }]}>
+              <ThemedText style={[styles.historyTitle, { color: palette.muted }]}>
+                Working Sets
+              </ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.summaryValue}>
+                {loggedWorkingSets}/{totalWorkingSets}
+              </ThemedText>
+            </View>
+            <View style={[styles.summaryTile, { borderColor: palette.border }]}>
+              <ThemedText style={[styles.historyTitle, { color: palette.muted }]}>
+                Volume
+              </ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.summaryValue}>
+                {totalVolume > 0 ? `${totalVolume} lb` : 'Pending'}
+              </ThemedText>
+            </View>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.restTimerPanel,
+            { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
+          ]}>
+          <View style={styles.restTimerHeader}>
+            <View>
+              <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
+                Rest Timer
+              </ThemedText>
+              <ThemedText type="defaultSemiBold" style={styles.restTimerValue}>
+                {formatTimer(restTimerSeconds)}
+              </ThemedText>
+            </View>
+            <View style={styles.restTimerActions}>
+              <Pressable
+                accessibilityLabel="Start rest timer"
+                accessibilityRole="button"
+                onPress={() => {
+                  setRestTimerSeconds(currentExercise?.restSeconds ?? 90);
+                  setIsRestTimerRunning(true);
+                }}
+                style={[styles.timerButton, { borderColor: palette.border }]}>
+                <ThemedText style={[styles.timerButtonText, { color: palette.accent }]}>
+                  Start
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Stop rest timer"
+                accessibilityRole="button"
+                onPress={() => setIsRestTimerRunning(false)}
+                style={[styles.timerButton, { borderColor: palette.border }]}>
+                <ThemedText style={[styles.timerButtonText, { color: palette.accent }]}>
+                  Stop
+                </ThemedText>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Reset rest timer"
+                accessibilityRole="button"
+                onPress={() => {
+                  setIsRestTimerRunning(false);
+                  setRestTimerSeconds(0);
+                }}
+                style={[styles.timerButton, { borderColor: palette.border }]}>
+                <ThemedText style={[styles.timerButtonText, { color: palette.accent }]}>
+                  Reset
+                </ThemedText>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+
         {session.exercises.length > 0 ? (
-          <View style={styles.exerciseList}>
-            {session.exercises.map((exercise) => {
-              const draft = drafts[exercise.id];
+          <View style={styles.exerciseFocusStack}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.exerciseRail}
+              contentContainerStyle={styles.exerciseRailContent}>
+              {session.exercises.map((exercise, index) => {
+                const draft = drafts[exercise.id];
+                const isCurrent = index === currentExerciseIndex;
+                const hasLoggedSet = draft?.setDrafts.some(
+                  (setDraft) => setDraft.weightText.trim() || setDraft.repsText.trim()
+                );
 
-              if (!draft) {
-                return null;
-              }
+                return (
+                  <Pressable
+                    accessibilityLabel={`Open ${exercise.exerciseName}`}
+                    accessibilityRole="button"
+                    key={exercise.id}
+                    onPress={() => setCurrentExerciseIndex(index)}
+                    style={[
+                      styles.exerciseRailChip,
+                      {
+                        backgroundColor: isCurrent ? palette.accent : 'transparent',
+                        borderColor: isCurrent ? palette.accent : palette.border,
+                      },
+                    ]}>
+                    <ThemedText
+                      style={[
+                        styles.exerciseRailText,
+                        { color: isCurrent ? palette.primaryButtonText : palette.accent },
+                      ]}>
+                      {index + 1}. {exercise.exerciseName}
+                      {hasLoggedSet ? ' done' : ''}
+                    </ThemedText>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
 
-              return (
-                <ExerciseCard
-                  draft={draft}
-                  exercise={exercise}
-                  historyComparison={
-                    exercise.exerciseDefinitionId
-                      ? historyComparisons[exercise.exerciseDefinitionId] ?? null
-                      : null
-                  }
-                  historyError={historyError}
-                  isHistoryLoading={isHistoryLoading}
-                  isProgressionLoading={isProgressionLoading}
-                  key={exercise.id}
-                  onAddSet={(exerciseId) => {
-                    updateDraft(exerciseId, (currentDraft) => ({
+            {currentExercise && drafts[currentExercise.id] ? (
+              <ExerciseCard
+                draft={drafts[currentExercise.id]}
+                exercise={currentExercise}
+                historyComparison={
+                  currentExercise.exerciseDefinitionId
+                    ? historyComparisons[currentExercise.exerciseDefinitionId] ?? null
+                    : null
+                }
+                historyError={historyError}
+                isHistoryLoading={isHistoryLoading}
+                isProgressionLoading={isProgressionLoading}
+                key={currentExercise.id}
+                onAddSet={(exerciseId) => {
+                  updateDraft(exerciseId, (currentDraft) => {
+                    const lastSet = currentDraft.setDrafts[currentDraft.setDrafts.length - 1];
+
+                    return {
                       ...currentDraft,
                       setDrafts: [
                         ...currentDraft.setDrafts,
-                        createSetDraft(currentDraft.setDrafts.length + 1),
+                        createSetDraft(currentDraft.setDrafts.length + 1, lastSet),
                       ],
-                    }));
-                  }}
-                  onSetDraftChange={(exerciseId, setIndex, field, value) => {
-                    updateDraft(exerciseId, (currentDraft) => ({
-                      ...currentDraft,
-                      setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
-                        currentIndex === setIndex ? { ...setDraft, [field]: value } : setDraft
-                      ),
-                    }));
-                  }}
-                  onSetEffort={(exerciseId, effortRating, estimatedRir) => {
-                    updateDraft(exerciseId, (currentDraft) => ({
-                      ...currentDraft,
-                      effortRating,
-                      estimatedRir,
-                    }));
-                  }}
-                  onSetNotes={(exerciseId, notes) => {
-                    updateDraft(exerciseId, (currentDraft) => ({
-                      ...currentDraft,
-                      notes,
-                    }));
-                  }}
-                  onSetSubstituteName={(exerciseId, substituteName) => {
-                    updateDraft(exerciseId, (currentDraft) => ({
-                      ...currentDraft,
-                      substituteName,
-                    }));
-                  }}
-                  onToggleWarmup={(exerciseId, setIndex) => {
-                    updateDraft(exerciseId, (currentDraft) => ({
-                      ...currentDraft,
-                      setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
-                        currentIndex === setIndex
-                          ? { ...setDraft, isWarmup: !setDraft.isWarmup }
-                          : setDraft
-                      ),
-                    }));
-                  }}
-                  onToggleSubstitution={(exerciseId) => {
-                    updateDraft(exerciseId, (currentDraft) => ({
-                      ...currentDraft,
-                      isSubstitution: !currentDraft.isSubstitution,
-                      substituteName: currentDraft.isSubstitution
-                        ? ''
-                        : currentDraft.substituteName || exercise.exerciseName,
-                    }));
-                  }}
-                  palette={palette}
-                  progressionError={progressionError}
-                  progressionRecommendation={progressionRecommendations[exercise.id] ?? null}
-                  textColor={theme.text}
-                />
-              );
-            })}
+                    };
+                  });
+                }}
+                onSelectNextExercise={() =>
+                  setCurrentExerciseIndex((currentIndex) =>
+                    Math.min(currentIndex + 1, session.exercises.length - 1)
+                  )
+                }
+                onSelectPreviousExercise={() =>
+                  setCurrentExerciseIndex((currentIndex) => Math.max(currentIndex - 1, 0))
+                }
+                onSetDraftChange={(exerciseId, setIndex, field, value) => {
+                  updateDraft(exerciseId, (currentDraft) => ({
+                    ...currentDraft,
+                    setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
+                      currentIndex === setIndex ? { ...setDraft, [field]: value } : setDraft
+                    ),
+                  }));
+                }}
+                onSetEffort={(exerciseId, effortRating, estimatedRir) => {
+                  updateDraft(exerciseId, (currentDraft) => ({
+                    ...currentDraft,
+                    effortRating,
+                    estimatedRir,
+                  }));
+                }}
+                onSetNotes={(exerciseId, notes) => {
+                  updateDraft(exerciseId, (currentDraft) => ({
+                    ...currentDraft,
+                    notes,
+                  }));
+                }}
+                onSetSubstituteName={(exerciseId, substituteName) => {
+                  updateDraft(exerciseId, (currentDraft) => ({
+                    ...currentDraft,
+                    substituteName,
+                  }));
+                }}
+                onStartRestTimer={(seconds) => {
+                  setRestTimerSeconds(seconds);
+                  setIsRestTimerRunning(true);
+                }}
+                onToggleWarmup={(exerciseId, setIndex) => {
+                  updateDraft(exerciseId, (currentDraft) => ({
+                    ...currentDraft,
+                    setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
+                      currentIndex === setIndex
+                        ? { ...setDraft, isWarmup: !setDraft.isWarmup }
+                        : setDraft
+                    ),
+                  }));
+                }}
+                onToggleSubstitution={(exerciseId) => {
+                  updateDraft(exerciseId, (currentDraft) => ({
+                    ...currentDraft,
+                    isSubstitution: !currentDraft.isSubstitution,
+                    substituteName: currentDraft.isSubstitution
+                      ? ''
+                      : currentDraft.substituteName || currentExercise.exerciseName,
+                  }));
+                }}
+                palette={palette}
+                progressionError={progressionError}
+                progressionRecommendation={progressionRecommendations[currentExercise.id] ?? null}
+                textColor={theme.text}
+              />
+            ) : null}
           </View>
         ) : (
           <View
@@ -783,6 +1114,27 @@ export function WorkoutSessionScreenContent({
             </ThemedText>
           </View>
         )}
+
+        <View
+          style={[
+            styles.completionSummary,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+          ]}>
+          <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
+            Completion Summary
+          </ThemedText>
+          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+            {session.templateName ?? 'Routine'} / {session.templateDayName ?? 'Workout'}
+          </ThemedText>
+          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+            {session.exercises.length} exercises, {loggedWorkingSets} logged working sets
+            {totalVolume > 0 ? `, ${totalVolume} lb volume` : ''}
+          </ThemedText>
+          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+            Notes {hasNotes ? 'saved' : 'pending'} / Substitutions{' '}
+            {hasSubstitutions ? 'included' : 'none'}
+          </ThemedText>
+        </View>
 
         <Pressable
           accessibilityLabel="Complete workout"
@@ -843,6 +1195,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textTransform: 'uppercase',
   },
+  completionSummary: {
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 7,
+    padding: 15,
+  },
   content: {
     gap: 18,
     paddingBottom: 32,
@@ -875,6 +1233,9 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 15,
   },
+  exerciseFocusStack: {
+    gap: 12,
+  },
   exerciseHeader: {
     gap: 4,
   },
@@ -890,6 +1251,31 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 19,
     lineHeight: 25,
+  },
+  exerciseNavRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  exerciseRail: {
+    flexGrow: 0,
+  },
+  exerciseRailChip: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 38,
+    paddingHorizontal: 12,
+  },
+  exerciseRailContent: {
+    gap: 8,
+    paddingRight: 2,
+  },
+  exerciseRailText: {
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+    textTransform: 'uppercase',
   },
   header: {
     gap: 5,
@@ -971,6 +1357,28 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 12,
   },
+  restTimerActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  restTimerHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  restTimerPanel: {
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
+    padding: 14,
+  },
+  restTimerValue: {
+    fontSize: 24,
+    lineHeight: 30,
+  },
   screen: {
     flex: 1,
   },
@@ -990,6 +1398,9 @@ const styles = StyleSheet.create({
   },
   setList: {
     gap: 8,
+  },
+  setListHeader: {
+    gap: 4,
   },
   setCard: {
     borderRadius: 14,
@@ -1012,6 +1423,51 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 20,
   },
+  setUtilityRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  sessionOverview: {
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+    padding: 15,
+  },
+  sessionOverviewHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  sessionOverviewTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  sessionOverviewTitleBlock: {
+    flex: 1,
+    gap: 4,
+    minWidth: 0,
+  },
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  summaryTile: {
+    borderRadius: 14,
+    borderWidth: 1,
+    flexBasis: '30%',
+    flexGrow: 1,
+    gap: 4,
+    minHeight: 68,
+    minWidth: 120,
+    padding: 10,
+  },
+  summaryValue: {
+    fontSize: 17,
+    lineHeight: 22,
+  },
   supportingText: {
     fontSize: 14,
     lineHeight: 20,
@@ -1019,6 +1475,34 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 34,
     lineHeight: 38,
+  },
+  timerButton: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 36,
+    paddingHorizontal: 10,
+  },
+  timerButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+    textTransform: 'uppercase',
+  },
+  timerInlineButton: {
+    alignItems: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 34,
+    paddingHorizontal: 10,
+  },
+  timerInlineButtonText: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+    textTransform: 'uppercase',
   },
   warmupChip: {
     alignItems: 'center',

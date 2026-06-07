@@ -8,6 +8,7 @@ import {
 import { ProgressionRecommendationRepository } from '@/db/repositories/progression-recommendation-repository';
 import {
   type CompleteWorkoutSessionInput,
+  type SaveWorkoutSessionDraftInput,
   type WorkoutSessionDetail,
   WorkoutSessionRepository,
 } from '@/db/repositories/workout-session-repository';
@@ -25,6 +26,9 @@ type WorkoutSessionScreenState = {
   progressionError: Error | null;
   progressionRecommendations: Record<string, ProgressionRecommendation>;
   reload: () => Promise<void>;
+  saveWorkoutDraft: (input: SaveWorkoutSessionDraftInput) => Promise<WorkoutSessionDetail>;
+  saveError: Error | null;
+  savedAt: string | null;
   session: WorkoutSessionDetail | null;
 };
 
@@ -40,6 +44,8 @@ export function useWorkoutSessionScreen(sessionId: string): WorkoutSessionScreen
   const [progressionRecommendations, setProgressionRecommendations] = useState<
     Record<string, ProgressionRecommendation>
   >({});
+  const [saveError, setSaveError] = useState<Error | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
   const [session, setSession] = useState<WorkoutSessionDetail | null>(null);
 
   const reload = useCallback(async () => {
@@ -133,6 +139,7 @@ export function useWorkoutSessionScreen(sessionId: string): WorkoutSessionScreen
         const repository = new WorkoutSessionRepository(database);
         const completedSession = await repository.completeWorkoutSession(sessionId, input);
         setSession(completedSession);
+        setSavedAt(new Date().toISOString());
         return completedSession;
       } catch (completeError) {
         const nextError =
@@ -144,6 +151,27 @@ export function useWorkoutSessionScreen(sessionId: string): WorkoutSessionScreen
         throw nextError;
       } finally {
         setIsCompleting(false);
+      }
+    },
+    [sessionId]
+  );
+
+  const saveWorkoutDraft = useCallback(
+    async (input: SaveWorkoutSessionDraftInput) => {
+      try {
+        setSaveError(null);
+
+        const database = await bootstrapDatabase();
+        const repository = new WorkoutSessionRepository(database);
+        const savedSession = await repository.saveWorkoutSessionDraft(sessionId, input);
+        setSavedAt(new Date().toISOString());
+        return savedSession;
+      } catch (draftError) {
+        const nextError =
+          draftError instanceof Error ? draftError : new Error('Unable to save workout draft.');
+
+        setSaveError(nextError);
+        throw nextError;
       }
     },
     [sessionId]
@@ -161,6 +189,9 @@ export function useWorkoutSessionScreen(sessionId: string): WorkoutSessionScreen
     progressionError,
     progressionRecommendations,
     reload,
+    saveError,
+    saveWorkoutDraft,
+    savedAt,
     session,
   };
 }

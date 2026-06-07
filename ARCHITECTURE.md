@@ -206,6 +206,7 @@ Key notes:
 
 - A session is actual performed training.
 - It may start from an active routine and template day.
+- Active workout sessions can be autosaved locally before completion so interrupted workouts resume with logged set data.
 - Completed sessions become durable history records.
 
 Suggested fields:
@@ -319,6 +320,17 @@ For a given exercise, the service should return:
 - notes from prior sessions
 
 Working sets should be used for comparison. Warmups should be excluded.
+
+## Workout draft recovery
+
+Phase 7 keeps in-progress workout recovery local-first by autosaving active `WorkoutSession` drafts through the workout session repository. Draft saves update completed-exercise notes, effort, substitutions, and set logs while the session remains `active`.
+
+Rules:
+
+- Draft saves must not complete the workout or advance the active routine.
+- Draft saves should preserve warmup flags so warmups remain excluded from progression and history calculations.
+- Train should route back to the active local workout session when one exists.
+- Completion remains the explicit transition that marks the session completed and advances the active routine.
 
 ## Template analysis service
 

@@ -202,8 +202,6 @@ Scope:
 - Group exercise selection by existing muscle-group metadata
 - Add concise progression-method help text
 
-## Current Phase
-
 ### Phase 7 - Workout Experience Revamp
 
 Goal: substantially redesign the workout experience.
@@ -222,9 +220,17 @@ Scope:
 - Better substitution flow
 - One-hand usability improvements
 
-This is a major experience redesign, not simple polish.
+Implemented behavior:
 
-## Planned Phases
+- Train shows clearer next-workout context with exercise count and planned working sets.
+- Active workouts focus on the current exercise with compact navigation to the rest of the session.
+- Previous performance, prior notes, and deterministic progression recommendations are placed inside the exercise flow.
+- Warmup and working sets are visually distinct, with warmup exclusion rules visible during logging.
+- A simple local rest timer can start from prescription rest guidance, stop, and reset without blocking logging.
+- In-progress workout drafts autosave locally and can be resumed from Train.
+- Completion includes a simple summary for exercises, working sets, volume, notes, and substitutions.
+
+## Current Phase
 
 ### Phase 8 - Progress Dashboard & Charts
 
@@ -251,6 +257,8 @@ Baseline collection requirements before chart unlock:
 - Exclude incomplete sets
 
 Before unlock, show a baseline collection state.
+
+## Planned Phases
 
 ### Phase 9 - Exercise Library Expansion
 

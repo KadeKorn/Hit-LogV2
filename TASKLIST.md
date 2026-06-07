@@ -149,17 +149,17 @@
 
 ## Phase 7 - Workout Experience Revamp
 
-- [ ] Improve workout start flow
-- [ ] Add current exercise focus mode
-- [ ] Speed up set entry
-- [ ] Improve previous performance visibility
-- [ ] Add rest timer
-- [ ] Improve warmup UX
-- [ ] Improve notes UX
-- [ ] Improve workout completion flow
-- [ ] Add in-progress workout recovery
-- [ ] Improve substitution flow
-- [ ] Improve one-hand usability
+- [x] Improve workout start flow
+- [x] Add current exercise focus mode
+- [x] Speed up set entry
+- [x] Improve previous performance visibility
+- [x] Add rest timer
+- [x] Improve warmup UX
+- [x] Improve notes UX
+- [x] Improve workout completion flow
+- [x] Add in-progress workout recovery
+- [x] Improve substitution flow
+- [x] Improve one-hand usability
 
 ## Phase 8 - Progress Dashboard & Charts
 

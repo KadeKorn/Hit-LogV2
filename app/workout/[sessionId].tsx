@@ -25,6 +25,9 @@ export default function WorkoutSessionScreen() {
     isProgressionLoading,
     progressionError,
     progressionRecommendations,
+    saveError,
+    saveWorkoutDraft,
+    savedAt,
     session,
   } =
     useWorkoutSessionScreen(sessionId);
@@ -40,12 +43,15 @@ export default function WorkoutSessionScreen() {
       isProgressionLoading={isProgressionLoading}
       onBack={() => router.replace('/')}
       onComplete={(input) => {
-        void completeWorkout(input).then(() => {
-          router.replace('/');
-        });
+        void completeWorkout(input).catch(() => undefined);
+      }}
+      onSaveDraft={(input) => {
+        void saveWorkoutDraft(input).catch(() => undefined);
       }}
       progressionError={progressionError}
       progressionRecommendations={progressionRecommendations}
+      saveError={saveError}
+      savedAt={savedAt}
       session={session}
     />
   );

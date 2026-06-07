@@ -392,6 +392,17 @@ High-level scope: better workout start flow, current exercise focus mode, faster
 
 Intended user value: workout logging becomes faster and easier during real training.
 
+Implemented behavior:
+
+- Train shows clearer next-workout context including current day, exercise count, and planned working sets.
+- The active workout screen centers the current exercise and keeps the rest of the workout accessible through compact exercise navigation.
+- Exercise context shows target sets/reps, muscle group, progression method, rest guidance, history comparison, prior notes, and deterministic progression recommendations.
+- Set logging distinguishes warmup and working sets, and explains that warmups are excluded from progression, history volume, and PR logic.
+- Adding a working set carries forward the prior set's entered weight/reps for faster repeated logging.
+- A simple local rest timer can start from prescription rest guidance, stop, or reset without blocking logging.
+- Active workout drafts autosave locally while the session is in progress, so resume/recovery includes logged set data instead of only the session shell.
+- Completion includes a simple workout summary with exercises, working sets, volume, notes, and substitution indicators.
+
 ### Phase 8 - Progress Dashboard & Charts
 
 Goal: provide meaningful progress visibility after enough baseline data exists.
