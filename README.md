@@ -89,4 +89,4 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 2G - History Comparison is complete. The V2 workout screen now loads completed-session history for each planned exercise, excludes warmup sets, shows last-time performance, simple best-set PR context, last five recent sessions, and concise prior exercise notes. Progression recommendations, charts, and integrations remain deferred to later phases.
+Phase 2H - Progression Engine is complete. The V2 workout screen now loads completed-session history for each planned exercise, excludes warmup sets, preserves history comparison, and shows deterministic progression recommendations with reason text and prior-performance context. Charts and integrations remain deferred to later phases.

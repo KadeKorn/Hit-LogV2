@@ -62,10 +62,15 @@ function compareNullableNumberDesc(left: number | null, right: number | null): n
 }
 
 function formatSet(set: ExerciseHistorySet): string {
-  const weight = set.weight == null ? '-' : String(set.weight);
-  const reps = set.reps == null ? '-' : String(set.reps);
+  if (set.reps == null) {
+    return 'No reps logged';
+  }
 
-  return `${weight} x ${reps}`;
+  if (set.weight == null) {
+    return `${set.reps} reps`;
+  }
+
+  return `${set.weight} x ${set.reps}`;
 }
 
 function formatSetSummary(sets: ExerciseHistorySet[]): string {
@@ -87,9 +92,12 @@ function formatSetSummary(sets: ExerciseHistorySet[]): string {
 
   if (groupedByWeight.size === 1) {
     const [[weight, reps]] = [...groupedByWeight.entries()];
-    const weightLabel = weight == null ? '-' : String(weight);
 
-    return `${weightLabel} x ${reps.join(', ')}`;
+    if (weight == null) {
+      return `${reps.join(', ')} reps`;
+    }
+
+    return `${weight} x ${reps.join(', ')}`;
   }
 
   return sets.map(formatSet).join(', ');
@@ -123,6 +131,7 @@ export class HistoryComparisonRepository {
          AND ws.status = 'completed'
          AND ws.completed_at IS NOT NULL
          AND sl.is_warmup = 0
+         AND sl.reps IS NOT NULL
          AND (? IS NULL OR ws.id <> ?)
        ORDER BY ws.completed_at DESC, ws.id DESC, ce.order_index ASC, ce.id ASC, sl.set_number ASC;`,
       exerciseDefinitionId,

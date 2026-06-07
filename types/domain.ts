@@ -11,6 +11,25 @@ export type ProgressionMethod =
   | 'manual'
   | 'none';
 
+export type ProgressionRecommendationType =
+  | 'increase_load'
+  | 'repeat_load'
+  | 'increase_reps'
+  | 'manual'
+  | 'none'
+  | 'insufficient_history';
+
+export type ProgressionRecommendation = {
+  exerciseDefinitionId: string | null;
+  exercisePrescriptionId: string | null;
+  method: ProgressionMethod;
+  recommendationType: ProgressionRecommendationType;
+  recommendedRepTarget: string | null;
+  recommendedWeight: number | null;
+  previousPerformanceSummary: string | null;
+  reason: string;
+};
+
 export type WorkoutTemplate = {
   code: string;
   createdAt: string;

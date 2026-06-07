@@ -67,12 +67,12 @@
 
 ## Phase 2H - Progression Engine
 
-- [ ] Add double progression
-- [ ] Add top-set progression
-- [ ] Add rep progression
-- [ ] Add manual progression
-- [ ] Add no progression
-- [ ] Add recommendation reason text
+- [x] Add double progression
+- [x] Add top-set progression
+- [x] Add rep progression
+- [x] Add manual progression
+- [x] Add no progression
+- [x] Add recommendation reason text
 
 ## Phase 3 - Template Refinement
 

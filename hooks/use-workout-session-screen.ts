@@ -5,11 +5,13 @@ import {
   HistoryComparisonRepository,
   type ExerciseHistoryComparison,
 } from '@/db/repositories/history-comparison-repository';
+import { ProgressionRecommendationRepository } from '@/db/repositories/progression-recommendation-repository';
 import {
   type CompleteWorkoutSessionInput,
   type WorkoutSessionDetail,
   WorkoutSessionRepository,
 } from '@/db/repositories/workout-session-repository';
+import type { ProgressionRecommendation } from '@/types/domain';
 
 type WorkoutSessionScreenState = {
   completeWorkout: (input: CompleteWorkoutSessionInput) => Promise<WorkoutSessionDetail>;
@@ -19,6 +21,9 @@ type WorkoutSessionScreenState = {
   isCompleting: boolean;
   isHistoryLoading: boolean;
   isLoading: boolean;
+  isProgressionLoading: boolean;
+  progressionError: Error | null;
+  progressionRecommendations: Record<string, ProgressionRecommendation>;
   reload: () => Promise<void>;
   session: WorkoutSessionDetail | null;
 };
@@ -30,6 +35,11 @@ export function useWorkoutSessionScreen(sessionId: string): WorkoutSessionScreen
   const [isCompleting, setIsCompleting] = useState(false);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProgressionLoading, setIsProgressionLoading] = useState(false);
+  const [progressionError, setProgressionError] = useState<Error | null>(null);
+  const [progressionRecommendations, setProgressionRecommendations] = useState<
+    Record<string, ProgressionRecommendation>
+  >({});
   const [session, setSession] = useState<WorkoutSessionDetail | null>(null);
 
   const reload = useCallback(async () => {
@@ -45,7 +55,29 @@ export function useWorkoutSessionScreen(sessionId: string): WorkoutSessionScreen
 
       if (!nextSession) {
         setHistoryComparisons({});
+        setProgressionRecommendations({});
         return;
+      }
+
+      try {
+        setIsProgressionLoading(true);
+        setProgressionError(null);
+
+        const progressionRepository = new ProgressionRecommendationRepository(database);
+        setProgressionRecommendations(
+          await progressionRepository.getProgressionRecommendationsForWorkoutSession({
+            currentWorkoutSessionId: sessionId,
+          })
+        );
+      } catch (loadProgressionError) {
+        setProgressionRecommendations({});
+        setProgressionError(
+          loadProgressionError instanceof Error
+            ? loadProgressionError
+            : new Error('Unable to load progression recommendations.')
+        );
+      } finally {
+        setIsProgressionLoading(false);
       }
 
       const exerciseDefinitionIds = nextSession.exercises
@@ -125,6 +157,9 @@ export function useWorkoutSessionScreen(sessionId: string): WorkoutSessionScreen
     isCompleting,
     isHistoryLoading,
     isLoading,
+    isProgressionLoading,
+    progressionError,
+    progressionRecommendations,
     reload,
     session,
   };

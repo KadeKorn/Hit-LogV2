@@ -18,7 +18,7 @@ import type {
   WorkoutSessionExerciseDetail,
 } from '@/db/repositories/workout-session-repository';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import type { EffortRating } from '@/types/domain';
+import type { EffortRating, ProgressionRecommendation } from '@/types/domain';
 
 type SetDraft = {
   id: string;
@@ -43,8 +43,11 @@ type WorkoutSessionScreenContentProps = {
   isCompleting: boolean;
   isHistoryLoading: boolean;
   isLoading: boolean;
+  isProgressionLoading: boolean;
   onBack: () => void;
   onComplete: (input: CompleteWorkoutSessionInput) => void;
+  progressionError: Error | null;
+  progressionRecommendations: Record<string, ProgressionRecommendation>;
   session: WorkoutSessionDetail | null;
 };
 
@@ -125,10 +128,15 @@ function formatHistoryDate(value: string): string {
 }
 
 function formatHistorySet(weight: number | null, reps: number | null): string {
-  const weightLabel = weight == null ? '-' : String(weight);
-  const repsLabel = reps == null ? '-' : String(reps);
+  if (reps == null) {
+    return 'No reps logged';
+  }
 
-  return `${weightLabel} x ${repsLabel}`;
+  if (weight == null) {
+    return `${reps} reps`;
+  }
+
+  return `${weight} x ${reps}`;
 }
 
 function formatHistorySets(sets: { reps: number | null; weight: number | null }[]): string {
@@ -137,6 +145,42 @@ function formatHistorySets(sets: { reps: number | null; weight: number | null }[
   }
 
   return sets.map((set) => formatHistorySet(set.weight, set.reps)).join(', ');
+}
+
+function formatWeight(value: number): string {
+  return `${value} lb`;
+}
+
+function formatRecommendationAction(recommendation: ProgressionRecommendation): string {
+  switch (recommendation.recommendationType) {
+    case 'increase_load':
+      return recommendation.recommendedWeight == null
+        ? 'Increase load.'
+        : `Increase to ${formatWeight(recommendation.recommendedWeight)}.`;
+    case 'repeat_load': {
+      const loadText =
+        recommendation.recommendedWeight == null
+          ? 'Use history comparison'
+          : `Repeat ${formatWeight(recommendation.recommendedWeight)}`;
+      const repTarget = recommendation.recommendedRepTarget
+        ? ` and ${recommendation.recommendedRepTarget}`
+        : '';
+
+      return `${loadText}${repTarget}.`;
+    }
+    case 'increase_reps':
+      return recommendation.recommendedRepTarget
+        ? `Add reps: ${recommendation.recommendedRepTarget}.`
+        : 'Add reps before increasing load.';
+    case 'manual':
+      return 'Use history comparison to choose today\'s target.';
+    case 'none':
+      return 'No progression target.';
+    case 'insufficient_history':
+      return recommendation.recommendedRepTarget
+        ? `Choose a conservative load for ${recommendation.recommendedRepTarget}.`
+        : 'Complete this exercise once to unlock recommendations.';
+  }
 }
 
 function createSetDraft(index: number): SetDraft {
@@ -205,6 +249,9 @@ function ExerciseCard({
   onToggleWarmup,
   onToggleSubstitution,
   palette,
+  progressionError,
+  progressionRecommendation,
+  isProgressionLoading,
   textColor,
 }: {
   draft: ExerciseDraft;
@@ -212,6 +259,7 @@ function ExerciseCard({
   historyComparison: ExerciseHistoryComparison | null;
   historyError: Error | null;
   isHistoryLoading: boolean;
+  isProgressionLoading: boolean;
   onAddSet: (exerciseId: string) => void;
   onSetDraftChange: (
     exerciseId: string,
@@ -225,6 +273,8 @@ function ExerciseCard({
   onToggleWarmup: (exerciseId: string, setIndex: number) => void;
   onToggleSubstitution: (exerciseId: string) => void;
   palette: WorkoutPalette;
+  progressionError: Error | null;
+  progressionRecommendation: ProgressionRecommendation | null;
   textColor: string;
 }) {
   return (
@@ -306,7 +356,51 @@ function ExerciseCard({
           </View>
         ) : (
           <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
-            No prior history yet.
+            No prior working-set history yet.
+          </ThemedText>
+        )}
+      </View>
+
+      <View
+        style={[
+          styles.progressionPanel,
+          { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
+        ]}>
+        <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>Progression</ThemedText>
+        {isProgressionLoading ? (
+          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+            Loading recommendation
+          </ThemedText>
+        ) : progressionError ? (
+          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+            Recommendation unavailable
+          </ThemedText>
+        ) : progressionRecommendation ? (
+          <View style={styles.progressionContent}>
+            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
+              Recommendation:{' '}
+              <ThemedText style={styles.historyValue}>
+                {formatRecommendationAction(progressionRecommendation)}
+              </ThemedText>
+            </ThemedText>
+            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
+              Reason:{' '}
+              <ThemedText style={styles.historyValue}>
+                {progressionRecommendation.reason}
+              </ThemedText>
+            </ThemedText>
+            {progressionRecommendation.previousPerformanceSummary ? (
+              <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
+                Used:{' '}
+                <ThemedText style={styles.historyValue}>
+                  {progressionRecommendation.previousPerformanceSummary}
+                </ThemedText>
+              </ThemedText>
+            ) : null}
+          </View>
+        ) : (
+          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+            Complete this exercise once to unlock recommendations.
           </ThemedText>
         )}
       </View>
@@ -477,8 +571,11 @@ export function WorkoutSessionScreenContent({
   isCompleting,
   isHistoryLoading,
   isLoading,
+  isProgressionLoading,
   onBack,
   onComplete,
+  progressionError,
+  progressionRecommendations,
   session,
 }: WorkoutSessionScreenContentProps) {
   const colorScheme = useColorScheme() ?? 'dark';
@@ -613,6 +710,7 @@ export function WorkoutSessionScreenContent({
                   }
                   historyError={historyError}
                   isHistoryLoading={isHistoryLoading}
+                  isProgressionLoading={isProgressionLoading}
                   key={exercise.id}
                   onAddSet={(exerciseId) => {
                     updateDraft(exerciseId, (currentDraft) => ({
@@ -670,6 +768,8 @@ export function WorkoutSessionScreenContent({
                     }));
                   }}
                   palette={palette}
+                  progressionError={progressionError}
+                  progressionRecommendation={progressionRecommendations[exercise.id] ?? null}
                   textColor={theme.text}
                 />
               );
@@ -861,6 +961,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     textAlignVertical: 'top',
+  },
+  progressionContent: {
+    gap: 7,
+  },
+  progressionPanel: {
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 8,
+    padding: 12,
   },
   screen: {
     flex: 1,

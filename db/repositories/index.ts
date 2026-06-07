@@ -3,6 +3,7 @@ export { ExerciseDefinitionsRepository } from '@/db/repositories/exercise-defini
 export { ExerciseLogRepository } from '@/db/repositories/exercise-log-repository';
 export { HistoryComparisonRepository } from '@/db/repositories/history-comparison-repository';
 export { ProgressionPoliciesRepository } from '@/db/repositories/progression-policies-repository';
+export { ProgressionRecommendationRepository } from '@/db/repositories/progression-recommendation-repository';
 export { TemplateRepository } from '@/db/repositories/template-repository';
 export { WorkoutLogRepository } from '@/db/repositories/workout-log-repository';
 export { WorkoutLoggerRepository } from '@/db/repositories/workout-logger-repository';
