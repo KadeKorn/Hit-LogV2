@@ -132,6 +132,15 @@ Phase 5 adds deterministic structure analysis for planned templates and active r
 
 Settings should contain app preferences, local data controls, and export/import surfaces when those exist.
 
+Implemented Phase 10 behavior:
+
+- Settings exposes JSON backup export for local-first data portability.
+- JSON backup includes export metadata, schema version, a summary count block, templates, template days, exercise definitions, exercise prescriptions, progression policies, active routines, workout sessions, completed exercise snapshots, and set logs.
+- JSON backup preserves custom templates, custom exercise definitions, completed exercise snapshots, substitutions, notes, effort/RIR, warmup flags, and enough IDs/relationships to reconstruct the local V2 training system.
+- Legacy workout-log export data remains present where the existing export already included it, but V2 backup counts are separated from legacy counts in the summary.
+- Settings exposes a completed-workout CSV export for user-readable review of completed sessions, completed exercises, and set logs.
+- Import/restore is intentionally disabled in Phase 10. A destructive restore flow must not be added until it can validate export shape, show a summary, require confirmation, and replace local app data transactionally without partial writes.
+
 ## Template model
 
 Templates are reusable training plans. V2 should support prebuilt templates and custom templates.
@@ -476,6 +485,17 @@ High-level scope: improved JSON export, CSV export, backup import, template expo
 
 Intended user value: the user can preserve, restore, and inspect training data without cloud sync.
 
+Implemented behavior:
+
+- JSON backup export is the durable Phase 10 backup format.
+- Each backup includes `metadata`, `summary`, and `data` sections.
+- `metadata` includes app name, export timestamp, export version, schema version, and local SQLite source.
+- `summary` includes export creation time, export version, schema version, template count, custom template count, exercise definition count, custom exercise count, completed workout count, set log count, active-routine presence, and separated legacy export counts.
+- V2 data includes workout templates, template days, exercise definitions, exercise prescriptions, progression policies, active routines, workout sessions, completed exercises, and set logs.
+- Completed exercise snapshots are preserved so historical performed movements remain readable even if templates change later.
+- Completed-workout CSV export includes session date, template name, template day name, exercise name, set number, set type, weight, reps, RIR, effort, working-set volume, notes, and substitution status.
+- Import/restore is deferred for safety. The Settings UI says restore is disabled for field testing instead of silently overwriting local data.
+
 ### Phase 11 - Lift Atlas Brand Pass
 
 Goal: transition HIT Log V2 into Lift Atlas.
@@ -487,6 +507,13 @@ Intended user value: the product gains a clearer long-term identity once the tra
 ## Local-first data
 
 V2 should remain local-first and export-friendly. Core records should use stable IDs and timestamps where appropriate. The app should preserve enough structure to export templates, sessions, completed exercises, set logs, notes, and progression context without reverse-engineering display text.
+
+Phase 10 backup expectations:
+
+- Export before a multi-week field test, weekly during the field test, before major custom template edits, and after the field test.
+- Treat JSON backup as the durable backup artifact.
+- Treat CSV export as a readable review artifact, not a restore source.
+- Restore remains out of active behavior until a transaction-safe import can be implemented and manually verified.
 
 ## Acceptance criteria
 

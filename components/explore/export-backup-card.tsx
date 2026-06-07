@@ -50,7 +50,18 @@ export function ExportBackupCard({
   const colorScheme = useColorScheme() ?? 'dark';
   const theme = Colors[colorScheme];
   const palette = getPalette(colorScheme);
-  const { error, exportJsonBackup, isExporting, result, status } = useWorkoutJsonExport();
+  const {
+    csvError,
+    csvResult,
+    csvStatus,
+    exportJsonBackup,
+    exportWorkoutCsv,
+    isExportingCsv,
+    isExportingJson,
+    jsonError,
+    jsonResult,
+    jsonStatus,
+  } = useWorkoutJsonExport();
 
   return (
     <ThemedView style={styles.screen}>
@@ -79,10 +90,10 @@ export function ExportBackupCard({
             </View>
             <View style={styles.cardTitleBlock}>
               <ThemedText type="subtitle" style={styles.cardTitle}>
-                JSON Export
+                Export JSON backup
               </ThemedText>
               <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                Workout history, templates, and drafts.
+                Templates, custom exercises, active routine state, and completed V2 history.
               </ThemedText>
             </View>
           </View>
@@ -90,16 +101,16 @@ export function ExportBackupCard({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Export workout data as JSON"
-            disabled={isExporting}
+            disabled={isExportingJson}
             onPress={exportJsonBackup}
             style={({ pressed }) => [
               styles.exportButton,
               {
                 backgroundColor: palette.accent,
-                opacity: isExporting ? 0.7 : pressed ? 0.84 : 1,
+                opacity: isExportingJson ? 0.7 : pressed ? 0.84 : 1,
               },
             ]}>
-            {isExporting ? (
+            {isExportingJson ? (
               <ActivityIndicator color={colorScheme === 'light' ? '#FFFFFF' : '#11151A'} />
             ) : (
               <IconSymbol
@@ -114,11 +125,11 @@ export function ExportBackupCard({
                 styles.exportButtonText,
                 { color: colorScheme === 'light' ? '#FFFFFF' : '#11151A' },
               ]}>
-              {isExporting ? 'Exporting' : 'Export JSON Backup'}
+              {isExportingJson ? 'Exporting' : 'Export JSON Backup'}
             </ThemedText>
           </Pressable>
 
-          {status === 'success' && result ? (
+          {jsonStatus === 'success' && jsonResult ? (
             <View
               style={[
                 styles.statusPanel,
@@ -131,29 +142,41 @@ export function ExportBackupCard({
                 Export ready
               </ThemedText>
               <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                {result.fileName}
+                {jsonResult.fileName}
               </ThemedText>
               <View style={styles.countGrid}>
                 <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Templates: {result.counts.workoutTemplates}
+                  Export version: {jsonResult.counts.exportVersion}
                 </ThemedText>
                 <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Template exercises: {result.counts.workoutTemplateExercises}
+                  Schema version: {jsonResult.counts.schemaVersion}
                 </ThemedText>
                 <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Workout logs: {result.counts.workoutLogs}
+                  Templates: {jsonResult.counts.templateCount}
                 </ThemedText>
                 <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Exercise logs: {result.counts.exerciseLogs}
+                  Custom templates: {jsonResult.counts.customTemplateCount}
                 </ThemedText>
                 <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Exercise sets: {result.counts.exerciseSets}
+                  Exercise definitions: {jsonResult.counts.exerciseDefinitionCount}
+                </ThemedText>
+                <ThemedText style={[styles.countText, { color: theme.text }]}>
+                  Custom exercises: {jsonResult.counts.customExerciseCount}
+                </ThemedText>
+                <ThemedText style={[styles.countText, { color: theme.text }]}>
+                  Completed workouts: {jsonResult.counts.completedWorkoutCount}
+                </ThemedText>
+                <ThemedText style={[styles.countText, { color: theme.text }]}>
+                  Set logs: {jsonResult.counts.setLogCount}
+                </ThemedText>
+                <ThemedText style={[styles.countText, { color: theme.text }]}>
+                  Active routine present: {jsonResult.counts.activeRoutinePresent ? 'yes' : 'no'}
                 </ThemedText>
               </View>
             </View>
           ) : null}
 
-          {status === 'error' && error ? (
+          {jsonStatus === 'error' && jsonError ? (
             <View
               style={[
                 styles.statusPanel,
@@ -168,10 +191,136 @@ export function ExportBackupCard({
                 Export failed
               </ThemedText>
               <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                {error.message}
+                {jsonError.message}
               </ThemedText>
             </View>
           ) : null}
+        </View>
+
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            },
+          ]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrap}>
+              <IconSymbol name="square.and.arrow.up" size={24} color={palette.accent} />
+            </View>
+            <View style={styles.cardTitleBlock}>
+              <ThemedText type="subtitle" style={styles.cardTitle}>
+                Export workout CSV
+              </ThemedText>
+              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+                Readable completed workout rows for review outside the app.
+              </ThemedText>
+            </View>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Export completed workout history as CSV"
+            disabled={isExportingCsv}
+            onPress={exportWorkoutCsv}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              {
+                borderColor: palette.border,
+                backgroundColor: palette.surfaceMuted,
+                opacity: isExportingCsv ? 0.7 : pressed ? 0.84 : 1,
+              },
+            ]}>
+            {isExportingCsv ? (
+              <ActivityIndicator color={theme.text} />
+            ) : (
+              <IconSymbol name="square.and.arrow.up" size={20} color={theme.text} />
+            )}
+            <ThemedText type="defaultSemiBold" style={[styles.secondaryButtonText, { color: theme.text }]}>
+              {isExportingCsv ? 'Exporting' : 'Export CSV'}
+            </ThemedText>
+          </Pressable>
+
+          {csvStatus === 'success' && csvResult ? (
+            <View
+              style={[
+                styles.statusPanel,
+                {
+                  backgroundColor: palette.surfaceMuted,
+                  borderColor: palette.border,
+                },
+              ]}>
+              <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
+                CSV ready
+              </ThemedText>
+              <ThemedText style={[styles.statusText, { color: palette.muted }]}>
+                {csvResult.fileName}
+              </ThemedText>
+              <ThemedText style={[styles.countText, { color: theme.text }]}>
+                Rows: {csvResult.rowCount}
+              </ThemedText>
+            </View>
+          ) : null}
+
+          {csvStatus === 'error' && csvError ? (
+            <View
+              style={[
+                styles.statusPanel,
+                {
+                  backgroundColor: palette.surfaceMuted,
+                  borderColor: palette.border,
+                },
+              ]}>
+              <ThemedText
+                type="defaultSemiBold"
+                style={[styles.statusTitle, { color: palette.danger }]}>
+                CSV export failed
+              </ThemedText>
+              <ThemedText style={[styles.statusText, { color: palette.muted }]}>
+                {csvError.message}
+              </ThemedText>
+            </View>
+          ) : null}
+        </View>
+
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: palette.surface,
+              borderColor: palette.border,
+            },
+          ]}>
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrap}>
+              <IconSymbol name="clock.arrow.circlepath" size={24} color={palette.danger} />
+            </View>
+            <View style={styles.cardTitleBlock}>
+              <ThemedText type="subtitle" style={styles.cardTitle}>
+                Import JSON backup
+              </ThemedText>
+              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
+                Restore is deferred until a transaction-safe full replacement flow is added.
+              </ThemedText>
+            </View>
+          </View>
+
+          <View
+            style={[
+              styles.statusPanel,
+              {
+                backgroundColor: palette.surfaceMuted,
+                borderColor: palette.border,
+              },
+            ]}>
+            <ThemedText type="defaultSemiBold" style={[styles.statusTitle, { color: palette.danger }]}>
+              Import disabled for field-test safety
+            </ThemedText>
+            <ThemedText style={[styles.statusText, { color: palette.muted }]}>
+              JSON backups can be exported and inspected now. Destructive restore is intentionally unavailable in this phase.
+            </ThemedText>
+          </View>
         </View>
       </ScrollView>
     </ThemedView>
@@ -187,7 +336,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 8,
     padding: 16,
     gap: 16,
   },
@@ -219,7 +368,7 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     minHeight: 50,
-    borderRadius: 14,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -242,9 +391,23 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
+  secondaryButton: {
+    minHeight: 50,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 14,
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+    lineHeight: 20,
+  },
   statusPanel: {
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 12,
     gap: 8,
   },

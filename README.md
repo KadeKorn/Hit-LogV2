@@ -90,9 +90,9 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 9 - Exercise Library Expansion.
+Phase 10 - Export / Backup / Import.
 
-Phase 8 is complete. Phase 9 is implemented and ready for user manual verification.
+Phase 9 is complete. Phase 10 is implemented and ready for user manual verification.
 
 ## Current Status
 
@@ -119,9 +119,17 @@ The History tab is the top-level factual record for completed V2 workouts. Libra
 - Workout experience revamp with current-exercise focus, grouped workout context, autosaved in-progress sessions, a simple rest timer, clearer warmup/working-set distinction, and a completion summary
 - Gated Progress dashboard with completed-workout baseline checks, exercise strength and volume trends, weekly muscle-group working sets, consistency summary, and cautious deterministic indicators
 - Expanded exercise library with richer deterministic metadata and inline custom exercise creation during custom template editing
+- Local-first JSON backup export with V2 schema/export summary metadata and separated legacy counts
+- Completed-workout CSV export for user-readable session, exercise, and set-log review
+
+## Backup Workflow
+
+For multi-week field testing, export a JSON backup before the field test starts, export again weekly, export before major custom template edits, and export once more after the field test. CSV export is useful for reviewing completed workout history outside the app, but JSON backup is the durable local-first backup format.
+
+Import/restore is intentionally deferred in Phase 10 until a transaction-safe full replacement flow is added. Avoid destructive manual database edits during field testing.
 
 ## Upcoming Roadmap
 
-Next planned phases include export/import improvements and the Lift Atlas brand pass.
+The next planned phase is the Lift Atlas brand pass.
 
 See `docs/ROADMAP.md` for the full phase roadmap.

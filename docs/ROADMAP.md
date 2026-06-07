@@ -268,9 +268,9 @@ Warmups, blank/incomplete sets, legacy Yates data, bodyweight data, wearable dat
 
 ## Current Phase
 
-Phase 9 is implemented and ready for manual verification.
+Phase 10 is implemented and ready for user manual verification.
 
-## Recently Completed Phase
+## Recently Completed Phases
 
 ### Phase 9 - Exercise Library Expansion
 
@@ -295,20 +295,32 @@ Implemented behavior:
 - Kept Training Analysis and Progress primary-muscle-only for this phase; secondary muscles are stored but not fractionally counted.
 - Preserved explicit substitution behavior. Full substitution candidate metadata remains future work.
 
-## Planned Phases
-
 ### Phase 10 - Export / Backup / Import
 
-Goal: improve local-first data durability.
+Goal: improve local-first data durability before multi-week field testing.
 
 Scope:
 
-- Improved JSON export
-- CSV export
-- Import from backup
-- Export templates
-- Export sessions
-- Export progress summaries
+- Improved JSON backup export
+- Export summary metadata
+- Completed-workout CSV export
+- Import/restore safety
+- Settings backup tools
+- Field-test backup workflow documentation
+
+Implemented behavior:
+
+- JSON backup now includes `metadata`, `summary`, and `data` sections.
+- Export metadata includes export version 2, schema version 4, export timestamp, app name, and local SQLite source.
+- The backup data includes workout templates, template days, exercise definitions, exercise prescriptions, progression policies, active routines, workout sessions, completed exercises, and set logs.
+- Completed exercise snapshots, custom templates, custom exercises, substitutions, notes, effort/RIR, warmup flags, IDs, and relationships are preserved in the JSON data.
+- Existing legacy workout-log export data remains included where it already existed, but the summary separates legacy counts from V2 counts.
+- Settings includes a JSON backup export action with visible summary counts after export.
+- Settings includes a completed-workout CSV export for readable session, exercise, and set-log review.
+- Import/restore is intentionally disabled for field-test safety until a transaction-safe full replacement flow can validate, summarize, confirm, and restore without partial destructive writes.
+- Field-test docs recommend exporting JSON before testing, weekly during testing, before major template edits, and after testing.
+
+## Planned Phases
 
 ### Phase 11 - Lift Atlas Brand Pass
 

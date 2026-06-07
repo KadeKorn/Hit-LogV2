@@ -183,16 +183,21 @@
 - [x] Add custom exercise creation during custom template editing
 - [x] Add exercise picker search/filter
 - [x] Document substitution metadata limitations
-- [ ] Add full substitution metadata
+- [x] Defer full substitution recommendation metadata
 
 ## Phase 10 - Export / Backup / Import
 
-- [ ] Improve JSON export
-- [ ] Add CSV export
-- [ ] Add import from backup
-- [ ] Export templates
-- [ ] Export sessions
-- [ ] Export progress summaries
+- [x] Improve JSON export
+- [x] Add export summary
+- [x] Add CSV export
+- [x] Export templates
+- [x] Export custom templates and custom exercises
+- [x] Export active routine state
+- [x] Export completed sessions, completed exercises, and set logs
+- [x] Preserve completed exercise snapshots
+- [x] Document import/restore as deferred for safety
+- [x] Add Settings backup/export surfaces
+- [x] Document field-test backup workflow
 
 ## Phase 11 - Lift Atlas Brand Pass
 

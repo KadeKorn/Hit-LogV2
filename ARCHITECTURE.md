@@ -440,6 +440,20 @@ SQLite remains the local persistence layer. Data should be normalized enough tha
 
 Prefer stable IDs, ISO timestamps, explicit foreign keys, and deterministic enum values.
 
+## Export and restore boundaries
+
+Phase 10 formalizes JSON backup export version 2 against SQLite schema version 4. The export payload contains:
+
+- `metadata`: app name, export timestamp, export version, schema version, and local SQLite source
+- `summary`: user-facing counts for templates, custom templates, exercise definitions, custom exercises, completed workouts, set logs, active-routine presence, and separated legacy counts
+- `data`: normalized table exports for templates, template days, exercise definitions, exercise prescriptions, progression policies, active routines, workout sessions, completed exercises, and set logs
+
+Completed exercise snapshots remain part of the backup so historical performed exercises, substitutions, notes, effort/RIR, and warmup flags stay readable even if templates or exercise definitions change later. Existing legacy workout-log export tables remain included only because they were already part of the export surface; they are separated in the summary and should not be used for V2 Progress, progression, or template analysis.
+
+CSV export is a read-only user-review format derived from completed V2 workout sessions, completed exercises, and set logs. CSV is not a restore format.
+
+Import/restore is intentionally deferred until it can be implemented as a conservative full local replacement flow: validate export version and required arrays, show the import summary, require explicit destructive confirmation, write inside a transaction, and avoid leaving partially restored data behind on failure.
+
 ## Suggested repository modules
 
 ```txt

@@ -1,50 +1,85 @@
 import { useCallback, useState } from 'react';
 
 import {
+  exportWorkoutHistoryToCsvFile,
   exportWorkoutDataToJsonFile,
+  type WorkoutCsvExportResult,
   type WorkoutJsonExportResult,
 } from '@/lib/export/workout-json-export';
 
 type WorkoutJsonExportStatus = 'idle' | 'exporting' | 'success' | 'error';
 
 type WorkoutJsonExportState = {
-  error: Error | null;
+  csvError: Error | null;
+  csvResult: WorkoutCsvExportResult | null;
+  csvStatus: WorkoutJsonExportStatus;
   exportJsonBackup: () => Promise<void>;
-  isExporting: boolean;
-  result: WorkoutJsonExportResult | null;
-  status: WorkoutJsonExportStatus;
+  exportWorkoutCsv: () => Promise<void>;
+  isExportingCsv: boolean;
+  isExportingJson: boolean;
+  jsonError: Error | null;
+  jsonResult: WorkoutJsonExportResult | null;
+  jsonStatus: WorkoutJsonExportStatus;
 };
 
 export function useWorkoutJsonExport(): WorkoutJsonExportState {
-  const [status, setStatus] = useState<WorkoutJsonExportStatus>('idle');
-  const [error, setError] = useState<Error | null>(null);
-  const [result, setResult] = useState<WorkoutJsonExportResult | null>(null);
+  const [jsonStatus, setJsonStatus] = useState<WorkoutJsonExportStatus>('idle');
+  const [jsonError, setJsonError] = useState<Error | null>(null);
+  const [jsonResult, setJsonResult] = useState<WorkoutJsonExportResult | null>(null);
+  const [csvStatus, setCsvStatus] = useState<WorkoutJsonExportStatus>('idle');
+  const [csvError, setCsvError] = useState<Error | null>(null);
+  const [csvResult, setCsvResult] = useState<WorkoutCsvExportResult | null>(null);
 
   const exportJsonBackup = useCallback(async () => {
     try {
-      setStatus('exporting');
-      setError(null);
-      setResult(null);
+      setJsonStatus('exporting');
+      setJsonError(null);
+      setJsonResult(null);
 
       const exportResult = await exportWorkoutDataToJsonFile();
 
-      setResult(exportResult);
-      setStatus('success');
+      setJsonResult(exportResult);
+      setJsonStatus('success');
     } catch (exportError) {
-      setError(
+      setJsonError(
         exportError instanceof Error
           ? exportError
           : new Error('Unable to export workout data.')
       );
-      setStatus('error');
+      setJsonStatus('error');
+    }
+  }, []);
+
+  const exportWorkoutCsv = useCallback(async () => {
+    try {
+      setCsvStatus('exporting');
+      setCsvError(null);
+      setCsvResult(null);
+
+      const exportResult = await exportWorkoutHistoryToCsvFile();
+
+      setCsvResult(exportResult);
+      setCsvStatus('success');
+    } catch (exportError) {
+      setCsvError(
+        exportError instanceof Error
+          ? exportError
+          : new Error('Unable to export workout history CSV.')
+      );
+      setCsvStatus('error');
     }
   }, []);
 
   return {
-    status,
-    error,
-    result,
-    isExporting: status === 'exporting',
+    csvStatus,
+    csvError,
+    csvResult,
+    isExportingCsv: csvStatus === 'exporting',
+    isExportingJson: jsonStatus === 'exporting',
     exportJsonBackup,
+    exportWorkoutCsv,
+    jsonStatus,
+    jsonError,
+    jsonResult,
   };
 }
