@@ -180,12 +180,26 @@ async function repairStartupForeignKeyReferences(database: SQLiteDatabase): Prom
   );
 }
 
+async function logStartupActiveRoutineSeedPhase(): Promise<void> {
+  await runDatabaseStartupStep('seed active routine active_routines batch', async () => {
+    console.log('[db-startup] seed active routine skipped; no active routine seed in V2 startup');
+  });
+}
+
+async function logStartupDraftRestorationPhase(): Promise<void> {
+  await runDatabaseStartupStep('draft restoration workout_sessions batch', async () => {
+    console.log('[db-startup] draft restoration skipped; active workout drafts load on Train screen');
+  });
+}
+
 export async function bootstrapDatabase(): Promise<SQLiteDatabase> {
   if (!bootstrapPromise) {
     bootstrapPromise = (async () => {
       const database = await getDatabaseClient();
       await runMigrations(database);
       await runSeeds(database);
+      await logStartupActiveRoutineSeedPhase();
+      await logStartupDraftRestorationPhase();
       await repairStartupForeignKeyReferences(database);
       const violations = await runForeignKeyCheck(database, 'post-bootstrap foreign key check');
 

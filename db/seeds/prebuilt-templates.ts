@@ -394,6 +394,7 @@ export const mvpExerciseDefinitionSeeds: readonly SeedExerciseDefinitionRecord[]
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.seatedCalfRaise, 'Seated Calf Raise', 'calves', 'machine', 8, 12, 'rep_progression', 5, 90, null, { movementPattern: 'calf_raise' }),
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.legPressCalfRaise, 'Leg Press Calf Raise', 'calves', 'machine', 10, 15, 'rep_progression', 10, 90, null, { movementPattern: 'calf_raise' }),
 
+  exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.machineShrug, 'Machine Shrug', 'traps', 'machine', 8, 12, 'top_set_progression', 10, 90, null, { movementPattern: 'shrug' }),
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.dumbbellShrug, 'Dumbbell Shrug', 'traps', 'dumbbell', 8, 12, 'top_set_progression', 10, 90, null, { movementPattern: 'shrug' }),
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.barbellShrug, 'Barbell Shrug', 'traps', 'barbell', 8, 12, 'top_set_progression', 10, 90, null, { movementPattern: 'shrug' }),
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.farmerCarry, 'Farmer Carry', 'traps', 'dumbbell', 30, 60, 'rep_progression', null, 120, ['forearms'], { movementPattern: 'carry', notes: 'Log reps as seconds or distance target.' }),

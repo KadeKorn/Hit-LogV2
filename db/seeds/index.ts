@@ -324,33 +324,53 @@ async function upsertExercisePrescription(
 export async function runSeeds(database: SQLiteDatabase): Promise<void> {
   await runDatabaseStartupStep('seeds transaction', () =>
     database.withTransactionAsync(async () => {
-      for (const template of planCTemplateSeeds) {
-        await upsertSeedTemplate(database, template);
-      }
+      await runDatabaseStartupStep('seed templates legacy workout_templates batch', async () => {
+        for (const template of planCTemplateSeeds) {
+          await upsertSeedTemplate(database, template);
+        }
+      });
 
-      for (const exercise of planCTemplateExerciseSeeds) {
-        await upsertSeedTemplateExercise(database, exercise);
-      }
+      await runDatabaseStartupStep(
+        'seed template exercises legacy workout_template_exercises batch',
+        async () => {
+          for (const exercise of planCTemplateExerciseSeeds) {
+            await upsertSeedTemplateExercise(database, exercise);
+          }
+        }
+      );
 
-      for (const template of prebuiltTemplateSeeds) {
-        await upsertPrebuiltTemplate(database, template);
-      }
+      await runDatabaseStartupStep('seed templates workout_templates batch', async () => {
+        for (const template of prebuiltTemplateSeeds) {
+          await upsertPrebuiltTemplate(database, template);
+        }
+      });
 
-      for (const templateDay of prebuiltTemplateDaySeeds) {
-        await upsertTemplateDay(database, templateDay);
-      }
+      await runDatabaseStartupStep('seed template days template_days batch', async () => {
+        for (const templateDay of prebuiltTemplateDaySeeds) {
+          await upsertTemplateDay(database, templateDay);
+        }
+      });
 
-      for (const exerciseDefinition of mvpExerciseDefinitionSeeds) {
-        await upsertExerciseDefinition(database, exerciseDefinition);
-      }
+      await runDatabaseStartupStep('seed exercises exercise_definitions batch', async () => {
+        for (const exerciseDefinition of mvpExerciseDefinitionSeeds) {
+          await upsertExerciseDefinition(database, exerciseDefinition);
+        }
+      });
 
-      for (const progressionPolicy of mvpProgressionPolicySeeds) {
-        await upsertProgressionPolicy(database, progressionPolicy);
-      }
+      await runDatabaseStartupStep('seed progression policies progression_policies batch', async () => {
+        for (const progressionPolicy of mvpProgressionPolicySeeds) {
+          await upsertProgressionPolicy(database, progressionPolicy);
+        }
+      });
 
-      for (const prescription of mvpExercisePrescriptionSeeds) {
-        await upsertExercisePrescription(database, prescription);
-      }
+      await runDatabaseStartupStep(
+        'seed exercise prescriptions exercise_prescriptions batch',
+        async () => {
+          for (const prescription of mvpExercisePrescriptionSeeds) {
+            await upsertExercisePrescription(database, prescription);
+          }
+        }
+      );
     })
   );
 }
