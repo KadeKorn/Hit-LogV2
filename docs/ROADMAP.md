@@ -319,6 +319,7 @@ Implemented behavior:
 - Settings includes a completed-workout CSV export for readable session, exercise, and set-log review.
 - Import/restore is intentionally disabled for field-test safety until a transaction-safe full replacement flow can validate, summarize, confirm, and restore without partial destructive writes.
 - Field-test docs recommend exporting JSON before testing, weekly during testing, before major template edits, and after testing.
+- Startup now logs migration and seed steps, applies idempotent seed upserts, runs `PRAGMA foreign_key_check`, and shows an explicit field-test recovery screen instead of throwing an unhandled database initialization error.
 
 ## Planned Phases
 

@@ -198,6 +198,7 @@
 - [x] Document import/restore as deferred for safety
 - [x] Add Settings backup/export surfaces
 - [x] Document field-test backup workflow
+- [x] Add startup foreign-key diagnostics, validation, and field-test recovery screen
 
 ## Phase 11 - Lift Atlas Brand Pass
 

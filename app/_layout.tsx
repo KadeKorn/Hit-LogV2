@@ -1,10 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/theme';
+import { bootstrapDatabase, resetDatabaseForFieldTestRecovery } from '@/db/bootstrap';
 import { getDatabaseClient } from '@/db/client';
 import { ExerciseLogRepository } from '@/db/repositories/exercise-log-repository';
 import { TemplateRepository } from '@/db/repositories/template-repository';
@@ -18,6 +20,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const { error, isReady } = useDatabaseBootstrap();
+  const [isRecovering, setIsRecovering] = useState(false);
   const colorScheme = useColorScheme();
   const navigationTheme =
     colorScheme === 'dark'
@@ -65,8 +68,58 @@ export default function RootLayout() {
     })();
   }, [isReady, error]);
 
+  async function handleResetLocalDatabase(): Promise<void> {
+    Alert.alert(
+      'Reset local data?',
+      'This field-test recovery action deletes the local SQLite database and recreates it. Export a backup first if the app can still launch elsewhere.',
+      [
+        { style: 'cancel', text: 'Cancel' },
+        {
+          style: 'destructive',
+          text: 'Reset local data',
+          onPress: () => {
+            setIsRecovering(true);
+            resetDatabaseForFieldTestRecovery()
+              .then(() => bootstrapDatabase())
+              .then(() => {
+                Alert.alert('Database reset complete', 'Close and relaunch the app.');
+              })
+              .catch((resetError) => {
+                console.error('[db-startup] field-test reset failed', resetError);
+                Alert.alert('Reset failed', 'Close and relaunch the app, then try again.');
+              })
+              .finally(() => {
+                setIsRecovering(false);
+              });
+          },
+        },
+      ]
+    );
+  }
+
   if (error) {
-    throw error;
+    return (
+      <View style={styles.startupErrorScreen}>
+        <Text style={styles.startupErrorTitle}>Database initialization failed.</Text>
+        <Text style={styles.startupErrorBody}>
+          Export a backup if possible, then reset local data. Startup logs include the failing
+          migration, seed, or foreign-key check step.
+        </Text>
+        <Text style={styles.startupErrorDetail}>{error.message}</Text>
+        <Pressable
+          accessibilityRole="button"
+          disabled={isRecovering}
+          onPress={handleResetLocalDatabase}
+          style={({ pressed }) => [
+            styles.recoveryButton,
+            (pressed || isRecovering) && styles.recoveryButtonPressed,
+          ]}>
+          <Text style={styles.recoveryButtonText}>
+            {isRecovering ? 'Resetting...' : 'Field-test reset local database'}
+          </Text>
+        </Pressable>
+      </View>
+    );
   }
 
   if (!isReady) {
@@ -86,3 +139,51 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  recoveryButton: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.tint,
+    borderRadius: 8,
+    minHeight: 48,
+    justifyContent: 'center',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  recoveryButtonPressed: {
+    opacity: 0.72,
+  },
+  recoveryButtonText: {
+    color: '#07111A',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  startupErrorBody: {
+    color: '#B7C0CA',
+    fontSize: 15,
+    lineHeight: 22,
+    maxWidth: 340,
+    textAlign: 'center',
+  },
+  startupErrorDetail: {
+    color: '#FFB4A8',
+    fontSize: 13,
+    lineHeight: 18,
+    maxWidth: 340,
+    textAlign: 'center',
+  },
+  startupErrorScreen: {
+    alignItems: 'center',
+    backgroundColor: Colors.dark.background,
+    flex: 1,
+    gap: 16,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  startupErrorTitle: {
+    color: Colors.dark.text,
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+});

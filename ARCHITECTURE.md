@@ -440,6 +440,14 @@ SQLite remains the local persistence layer. Data should be normalized enough tha
 
 Prefer stable IDs, ISO timestamps, explicit foreign keys, and deterministic enum values.
 
+## Database startup and recovery
+
+Startup opens SQLite, enables foreign keys, runs migrations, applies deterministic seed upserts, repairs nullable historical references when parent rows are legitimately gone, and then runs `PRAGMA foreign_key_check`. Any migration, seed, repair, or validation failure is logged with the failing logical step and SQL statement preview.
+
+Seed data is idempotent: parent rows are inserted before child rows, stable prebuilt IDs are upserted, and seed updates do not delete custom templates, custom exercises, completed workouts, completed exercise snapshots, set logs, or active routine state when it remains valid.
+
+If initialization fails, the root layout renders a field-test database recovery screen instead of throwing an unhandled startup exception. The recovery reset is explicit and destructive; it recreates the local SQLite database only after confirmation and must not run automatically.
+
 ## Export and restore boundaries
 
 Phase 10 formalizes JSON backup export version 2 against SQLite schema version 4. The export payload contains:

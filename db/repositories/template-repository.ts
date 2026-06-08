@@ -939,6 +939,19 @@ export class TemplateRepository {
       );
 
       await this.database.runAsync(
+        `UPDATE completed_exercises
+         SET planned_exercise_prescription_id = NULL,
+             updated_at = ?
+         WHERE planned_exercise_prescription_id IN (
+           SELECT id
+           FROM exercise_prescriptions
+           WHERE template_day_id = ?
+         );`,
+        now,
+        templateDayId
+      );
+
+      await this.database.runAsync(
         `DELETE FROM template_days
          WHERE id = ?;`,
         templateDayId

@@ -18,16 +18,28 @@ import {
   type SeedTemplateExerciseRecord,
   type SeedTemplateRecord,
 } from '@/db/seeds/plan-c';
+import { runDatabaseStartupStep } from '@/db/startup-diagnostics';
 
 function toSqliteBoolean(value: boolean): number {
   return value ? 1 : 0;
+}
+
+async function runSeedStatement(
+  database: SQLiteDatabase,
+  label: string,
+  statement: string,
+  ...params: (number | string | null)[]
+): Promise<void> {
+  await runDatabaseStartupStep(label, () => database.runAsync(statement, ...params), statement);
 }
 
 async function upsertSeedTemplate(
   database: SQLiteDatabase,
   template: SeedTemplateRecord
 ): Promise<void> {
-  await database.runAsync(
+  await runSeedStatement(
+    database,
+    `seed workout_templates legacy ${template.id}`,
     `INSERT INTO workout_templates (id, code, name, order_index, is_active)
      VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
@@ -47,7 +59,9 @@ async function upsertSeedTemplateExercise(
   database: SQLiteDatabase,
   exercise: SeedTemplateExerciseRecord
 ): Promise<void> {
-  await database.runAsync(
+  await runSeedStatement(
+    database,
+    `seed workout_template_exercises ${exercise.id}`,
     `INSERT INTO workout_template_exercises (id, template_id, name, order_index, is_active)
      VALUES (?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
@@ -67,7 +81,9 @@ async function upsertPrebuiltTemplate(
   database: SQLiteDatabase,
   template: SeedPrebuiltTemplateRecord
 ): Promise<void> {
-  await database.runAsync(
+  await runSeedStatement(
+    database,
+    `seed workout_templates prebuilt ${template.id}`,
     `INSERT INTO workout_templates (
        id,
        code,
@@ -115,7 +131,9 @@ async function upsertTemplateDay(
   database: SQLiteDatabase,
   templateDay: SeedTemplateDayRecord
 ): Promise<void> {
-  await database.runAsync(
+  await runSeedStatement(
+    database,
+    `seed template_days ${templateDay.id}`,
     `INSERT INTO template_days (
        id,
        template_id,
@@ -146,7 +164,9 @@ async function upsertExerciseDefinition(
   database: SQLiteDatabase,
   exerciseDefinition: SeedExerciseDefinitionRecord
 ): Promise<void> {
-  await database.runAsync(
+  await runSeedStatement(
+    database,
+    `seed exercise_definitions ${exerciseDefinition.id}`,
     `INSERT INTO exercise_definitions (
        id,
        name,
@@ -209,7 +229,9 @@ async function upsertProgressionPolicy(
   database: SQLiteDatabase,
   progressionPolicy: SeedProgressionPolicyRecord
 ): Promise<void> {
-  await database.runAsync(
+  await runSeedStatement(
+    database,
+    `seed progression_policies ${progressionPolicy.id}`,
     `INSERT INTO progression_policies (
        id,
        method,
@@ -249,7 +271,9 @@ async function upsertExercisePrescription(
   database: SQLiteDatabase,
   prescription: SeedExercisePrescriptionRecord
 ): Promise<void> {
-  await database.runAsync(
+  await runSeedStatement(
+    database,
+    `seed exercise_prescriptions ${prescription.id}`,
     `INSERT INTO exercise_prescriptions (
        id,
        template_day_id,
@@ -298,33 +322,35 @@ async function upsertExercisePrescription(
 }
 
 export async function runSeeds(database: SQLiteDatabase): Promise<void> {
-  await database.withTransactionAsync(async () => {
-    for (const template of planCTemplateSeeds) {
-      await upsertSeedTemplate(database, template);
-    }
+  await runDatabaseStartupStep('seeds transaction', () =>
+    database.withTransactionAsync(async () => {
+      for (const template of planCTemplateSeeds) {
+        await upsertSeedTemplate(database, template);
+      }
 
-    for (const exercise of planCTemplateExerciseSeeds) {
-      await upsertSeedTemplateExercise(database, exercise);
-    }
+      for (const exercise of planCTemplateExerciseSeeds) {
+        await upsertSeedTemplateExercise(database, exercise);
+      }
 
-    for (const template of prebuiltTemplateSeeds) {
-      await upsertPrebuiltTemplate(database, template);
-    }
+      for (const template of prebuiltTemplateSeeds) {
+        await upsertPrebuiltTemplate(database, template);
+      }
 
-    for (const templateDay of prebuiltTemplateDaySeeds) {
-      await upsertTemplateDay(database, templateDay);
-    }
+      for (const templateDay of prebuiltTemplateDaySeeds) {
+        await upsertTemplateDay(database, templateDay);
+      }
 
-    for (const exerciseDefinition of mvpExerciseDefinitionSeeds) {
-      await upsertExerciseDefinition(database, exerciseDefinition);
-    }
+      for (const exerciseDefinition of mvpExerciseDefinitionSeeds) {
+        await upsertExerciseDefinition(database, exerciseDefinition);
+      }
 
-    for (const progressionPolicy of mvpProgressionPolicySeeds) {
-      await upsertProgressionPolicy(database, progressionPolicy);
-    }
+      for (const progressionPolicy of mvpProgressionPolicySeeds) {
+        await upsertProgressionPolicy(database, progressionPolicy);
+      }
 
-    for (const prescription of mvpExercisePrescriptionSeeds) {
-      await upsertExercisePrescription(database, prescription);
-    }
-  });
+      for (const prescription of mvpExercisePrescriptionSeeds) {
+        await upsertExercisePrescription(database, prescription);
+      }
+    })
+  );
 }

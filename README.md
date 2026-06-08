@@ -128,6 +128,8 @@ For multi-week field testing, export a JSON backup before the field test starts,
 
 Import/restore is intentionally deferred in Phase 10 until a transaction-safe full replacement flow is added. Avoid destructive manual database edits during field testing.
 
+Database startup runs migrations and deterministic seed upserts idempotently, then validates local relationships with `PRAGMA foreign_key_check`. If startup fails during field testing, the app shows a database recovery screen instead of throwing an unhandled launch exception; the reset action is explicit and destructive, and should only be used after preserving a backup when possible.
+
 ## Upcoming Roadmap
 
 The next planned phase is the Lift Atlas brand pass.
