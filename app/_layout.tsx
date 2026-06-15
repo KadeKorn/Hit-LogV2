@@ -1,10 +1,16 @@
+import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { Sora_600SemiBold, Sora_700Bold, Sora_800ExtraBold } from '@expo-google-fonts/sora';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { AtlasColors } from '@/constants/atlas-theme';
 import { Colors } from '@/constants/theme';
 import { bootstrapDatabase, resetDatabaseForFieldTestRecovery } from '@/db/bootstrap';
 import { getDatabaseClient } from '@/db/client';
@@ -14,6 +20,8 @@ import { WorkoutLogRepository } from '@/db/repositories/workout-log-repository';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDatabaseBootstrap } from '@/hooks/use-database-bootstrap';
 
+SplashScreen.preventAutoHideAsync();
+
 export const unstable_settings = {
   anchor: '(tabs)',
 };
@@ -22,21 +30,30 @@ export default function RootLayout() {
   const { error, isReady } = useDatabaseBootstrap();
   const [isRecovering, setIsRecovering] = useState(false);
   const colorScheme = useColorScheme();
-  const navigationTheme =
-    colorScheme === 'dark'
-      ? {
-          ...DarkTheme,
-          colors: {
-            ...DarkTheme.colors,
-            background: Colors.dark.background,
-            border: '#262C33',
-            card: '#11151A',
-            notification: Colors.dark.tint,
-            primary: Colors.dark.tint,
-            text: Colors.dark.text,
-          },
-        }
-      : DefaultTheme;
+  const [fontsLoaded] = useFonts({
+    Sora_600SemiBold,
+    Sora_700Bold,
+    Sora_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    BebasNeue_400Regular,
+  });
+
+  const palette = AtlasColors[colorScheme === 'light' ? 'light' : 'dark'];
+  const base = colorScheme === 'light' ? DefaultTheme : DarkTheme;
+  const navigationTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: palette.bg,
+      border: palette.cardBorder,
+      card: palette.bgFrame,
+      notification: palette.gold,
+      primary: palette.gold,
+      text: palette.text,
+    },
+  };
 
   useEffect(() => {
     if (!isReady || error) return;
@@ -67,6 +84,12 @@ export default function RootLayout() {
       }
     })();
   }, [isReady, error]);
+
+  useEffect(() => {
+    if (isReady && fontsLoaded) {
+      void SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [isReady, fontsLoaded]);
 
   async function handleResetLocalDatabase(): Promise<void> {
     Alert.alert(
@@ -122,7 +145,7 @@ export default function RootLayout() {
     );
   }
 
-  if (!isReady) {
+  if (!isReady || !fontsLoaded) {
     return null;
   }
 
