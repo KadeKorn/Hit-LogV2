@@ -8,7 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const c = AtlasColors[colorScheme === 'light' ? 'light' : 'dark'];
+  const c = AtlasColors[colorScheme];
 
   return (
     <Tabs
@@ -48,14 +48,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="history" size={26} color={color} />,
+          title: 'Trail',
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="map-marker-path" size={26} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
-          title: 'Trail',
+          title: 'Progress',
           tabBarIcon: ({ color, focused }) => (
             <MaterialCommunityIcons name={focused ? 'chart-line' : 'chart-line-variant'} size={26} color={color} />
           ),
@@ -64,9 +66,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Profile',
+          title: 'Settings',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialCommunityIcons name={focused ? 'account' : 'account-outline'} size={26} color={color} />
+            <MaterialCommunityIcons name={focused ? 'cog' : 'cog-outline'} size={26} color={color} />
           ),
         }}
       />

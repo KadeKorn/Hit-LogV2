@@ -257,7 +257,7 @@ export function HomeScreenContent({
                 <AtlasText variant="micro" tone="faint" style={{ marginLeft: 2, marginBottom: 10 }}>
                   Focus
                 </AtlasText>
-                <View style={{ flexDirection: 'row', gap: spacing.gapSm }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
                   <StatTile
                     bordered
                     align="left"

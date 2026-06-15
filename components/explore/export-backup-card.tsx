@@ -1,55 +1,65 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { type ReactNode } from 'react';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AtlasButton, AtlasCard, AtlasText, TopoBackground } from '@/components/atlas';
+import { useAtlasTheme } from '@/hooks/use-atlas-theme';
 import { useWorkoutJsonExport } from '@/hooks/use-workout-json-export';
 
-type ExplorePalette = {
-  accent: string;
-  border: string;
-  danger: string;
-  muted: string;
-  surface: string;
-  surfaceMuted: string;
-};
-
-function getPalette(colorScheme: 'light' | 'dark'): ExplorePalette {
-  if (colorScheme === 'light') {
-    return {
-      surface: '#F3F5F7',
-      surfaceMuted: '#E8EDF1',
-      border: '#D5DDE5',
-      muted: '#5E6A75',
-      accent: '#0A7EA4',
-      danger: '#B42318',
-    };
-  }
-
-  return {
-    surface: '#171B20',
-    surfaceMuted: '#11151A',
-    border: '#2A3138',
-    muted: '#93A0AB',
-    accent: '#D7F75B',
-    danger: '#FF9A8A',
-  };
-}
-
 type ExportBackupCardProps = {
+  children?: ReactNode;
   eyebrow?: string;
   title?: string;
 };
 
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+function IconBadge({ name, tone = 'gold' }: { name: IoniconName; tone?: 'gold' | 'warning' }) {
+  const { c } = useAtlasTheme();
+  const color = tone === 'warning' ? c.warning : c.gold;
+
+  return (
+    <View
+      style={{
+        width: 42,
+        height: 42,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: tone === 'warning' ? c.field : c.goldTint,
+        borderWidth: 1,
+        borderColor: tone === 'warning' ? c.cardBorder : c.goldBorder,
+      }}>
+      <Ionicons name={name} size={22} color={color} />
+    </View>
+  );
+}
+
+function StatusPanel({ children }: { children: ReactNode }) {
+  const { c, radius } = useAtlasTheme();
+
+  return (
+    <View
+      style={{
+        backgroundColor: c.field,
+        borderColor: c.cardBorder,
+        borderWidth: 1,
+        borderRadius: radius.sm,
+        padding: 13,
+        gap: 8,
+      }}>
+      {children}
+    </View>
+  );
+}
+
 export function ExportBackupCard({
+  children,
   eyebrow = 'Explore',
   title = 'Backup',
 }: ExportBackupCardProps) {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const theme = Colors[colorScheme];
-  const palette = getPalette(colorScheme);
+  const { c, spacing } = useAtlasTheme();
   const {
     csvError,
     csvResult,
@@ -64,367 +74,193 @@ export function ExportBackupCard({
   } = useWorkoutJsonExport();
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="automatic">
-        <View style={styles.header}>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>{eyebrow}</ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            {title}
-          </ThemedText>
-        </View>
-
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.border,
-            },
-          ]}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconWrap}>
-              <IconSymbol name="square.and.arrow.up" size={24} color={palette.accent} />
-            </View>
-            <View style={styles.cardTitleBlock}>
-              <ThemedText type="subtitle" style={styles.cardTitle}>
-                Export JSON backup
-              </ThemedText>
-              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                Templates, custom exercises, active routine state, and completed V2 history.
-              </ThemedText>
-            </View>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <TopoBackground />
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenX,
+            paddingTop: 8,
+            paddingBottom: 36,
+            gap: 16,
+          }}>
+          <View style={{ gap: 4, marginBottom: 4 }}>
+            <AtlasText variant="micro" tone="gold">
+              {eyebrow}
+            </AtlasText>
+            <AtlasText variant="h1" tone="strong">
+              {title}
+            </AtlasText>
           </View>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Export workout data as JSON"
-            disabled={isExportingJson}
-            onPress={exportJsonBackup}
-            style={({ pressed }) => [
-              styles.exportButton,
-              {
-                backgroundColor: palette.accent,
-                opacity: isExportingJson ? 0.7 : pressed ? 0.84 : 1,
-              },
-            ]}>
-            {isExportingJson ? (
-              <ActivityIndicator color={colorScheme === 'light' ? '#FFFFFF' : '#11151A'} />
-            ) : (
-              <IconSymbol
-                name="square.and.arrow.up"
-                size={20}
-                color={colorScheme === 'light' ? '#FFFFFF' : '#11151A'}
-              />
-            )}
-            <ThemedText
-              type="defaultSemiBold"
-              style={[
-                styles.exportButtonText,
-                { color: colorScheme === 'light' ? '#FFFFFF' : '#11151A' },
-              ]}>
-              {isExportingJson ? 'Exporting' : 'Export JSON Backup'}
-            </ThemedText>
-          </Pressable>
+          {children}
 
-          {jsonStatus === 'success' && jsonResult ? (
-            <View
-              style={[
-                styles.statusPanel,
-                {
-                  backgroundColor: palette.surfaceMuted,
-                  borderColor: palette.border,
-                },
-              ]}>
-              <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-                Export ready
-              </ThemedText>
-              <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                {jsonResult.fileName}
-              </ThemedText>
-              <View style={styles.countGrid}>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Export version: {jsonResult.counts.exportVersion}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Schema version: {jsonResult.counts.schemaVersion}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Templates: {jsonResult.counts.templateCount}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Custom templates: {jsonResult.counts.customTemplateCount}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Exercise definitions: {jsonResult.counts.exerciseDefinitionCount}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Custom exercises: {jsonResult.counts.customExerciseCount}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Completed workouts: {jsonResult.counts.completedWorkoutCount}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Set logs: {jsonResult.counts.setLogCount}
-                </ThemedText>
-                <ThemedText style={[styles.countText, { color: theme.text }]}>
-                  Active routine present: {jsonResult.counts.activeRoutinePresent ? 'yes' : 'no'}
-                </ThemedText>
+          <AtlasText variant="micro" tone="gold" style={{ marginTop: 6 }}>
+            Data Tools
+          </AtlasText>
+
+          {/* JSON export */}
+          <AtlasCard style={{ gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <IconBadge name="share-outline" />
+              <View style={{ flex: 1 }}>
+                <AtlasText variant="cardTitle" tone="strong">
+                  Export JSON backup
+                </AtlasText>
+                <AtlasText variant="label" tone="muted" style={{ marginTop: 2 }}>
+                  Templates, custom exercises, active routine state, and completed V2 history.
+                </AtlasText>
               </View>
             </View>
-          ) : null}
 
-          {jsonStatus === 'error' && jsonError ? (
-            <View
-              style={[
-                styles.statusPanel,
-                {
-                  backgroundColor: palette.surfaceMuted,
-                  borderColor: palette.border,
-                },
-              ]}>
-              <ThemedText
-                type="defaultSemiBold"
-                style={[styles.statusTitle, { color: palette.danger }]}>
-                Export failed
-              </ThemedText>
-              <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                {jsonError.message}
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
+            <AtlasButton
+              label={isExportingJson ? 'Exporting…' : 'Export JSON Backup'}
+              onPress={exportJsonBackup}
+              disabled={isExportingJson}
+              accessibilityLabel="Export workout data as JSON"
+              leftIcon={
+                isExportingJson ? (
+                  <ActivityIndicator color={c.onGold} />
+                ) : (
+                  <Ionicons name="share-outline" size={20} color={c.onGold} />
+                )
+              }
+            />
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.border,
-            },
-          ]}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconWrap}>
-              <IconSymbol name="square.and.arrow.up" size={24} color={palette.accent} />
-            </View>
-            <View style={styles.cardTitleBlock}>
-              <ThemedText type="subtitle" style={styles.cardTitle}>
-                Export workout CSV
-              </ThemedText>
-              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                Readable completed workout rows for review outside the app.
-              </ThemedText>
-            </View>
-          </View>
+            {jsonStatus === 'success' && jsonResult ? (
+              <StatusPanel>
+                <AtlasText variant="cardTitle" tone="strong">
+                  Export ready
+                </AtlasText>
+                <AtlasText variant="label" tone="muted">
+                  {jsonResult.fileName}
+                </AtlasText>
+                <View style={{ gap: 4 }}>
+                  <AtlasText variant="body" tone="default">
+                    Export version: {jsonResult.counts.exportVersion}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Schema version: {jsonResult.counts.schemaVersion}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Templates: {jsonResult.counts.templateCount}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Custom templates: {jsonResult.counts.customTemplateCount}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Exercise definitions: {jsonResult.counts.exerciseDefinitionCount}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Custom exercises: {jsonResult.counts.customExerciseCount}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Completed workouts: {jsonResult.counts.completedWorkoutCount}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Set logs: {jsonResult.counts.setLogCount}
+                  </AtlasText>
+                  <AtlasText variant="body" tone="default">
+                    Active routine present: {jsonResult.counts.activeRoutinePresent ? 'yes' : 'no'}
+                  </AtlasText>
+                </View>
+              </StatusPanel>
+            ) : null}
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Export completed workout history as CSV"
-            disabled={isExportingCsv}
-            onPress={exportWorkoutCsv}
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              {
-                borderColor: palette.border,
-                backgroundColor: palette.surfaceMuted,
-                opacity: isExportingCsv ? 0.7 : pressed ? 0.84 : 1,
-              },
-            ]}>
-            {isExportingCsv ? (
-              <ActivityIndicator color={theme.text} />
-            ) : (
-              <IconSymbol name="square.and.arrow.up" size={20} color={theme.text} />
-            )}
-            <ThemedText type="defaultSemiBold" style={[styles.secondaryButtonText, { color: theme.text }]}>
-              {isExportingCsv ? 'Exporting' : 'Export CSV'}
-            </ThemedText>
-          </Pressable>
+            {jsonStatus === 'error' && jsonError ? (
+              <StatusPanel>
+                <AtlasText variant="cardTitle" tone="warning">
+                  Export failed
+                </AtlasText>
+                <AtlasText variant="body" tone="muted">
+                  {jsonError.message}
+                </AtlasText>
+              </StatusPanel>
+            ) : null}
+          </AtlasCard>
 
-          {csvStatus === 'success' && csvResult ? (
-            <View
-              style={[
-                styles.statusPanel,
-                {
-                  backgroundColor: palette.surfaceMuted,
-                  borderColor: palette.border,
-                },
-              ]}>
-              <ThemedText type="defaultSemiBold" style={styles.statusTitle}>
-                CSV ready
-              </ThemedText>
-              <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                {csvResult.fileName}
-              </ThemedText>
-              <ThemedText style={[styles.countText, { color: theme.text }]}>
-                Rows: {csvResult.rowCount}
-              </ThemedText>
+          {/* CSV export */}
+          <AtlasCard style={{ gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <IconBadge name="document-text-outline" />
+              <View style={{ flex: 1 }}>
+                <AtlasText variant="cardTitle" tone="strong">
+                  Export workout CSV
+                </AtlasText>
+                <AtlasText variant="label" tone="muted" style={{ marginTop: 2 }}>
+                  Readable completed workout rows for review outside the app.
+                </AtlasText>
+              </View>
             </View>
-          ) : null}
 
-          {csvStatus === 'error' && csvError ? (
-            <View
-              style={[
-                styles.statusPanel,
-                {
-                  backgroundColor: palette.surfaceMuted,
-                  borderColor: palette.border,
-                },
-              ]}>
-              <ThemedText
-                type="defaultSemiBold"
-                style={[styles.statusTitle, { color: palette.danger }]}>
-                CSV export failed
-              </ThemedText>
-              <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-                {csvError.message}
-              </ThemedText>
-            </View>
-          ) : null}
-        </View>
+            <AtlasButton
+              variant="ghost"
+              label={isExportingCsv ? 'Exporting…' : 'Export CSV'}
+              onPress={exportWorkoutCsv}
+              disabled={isExportingCsv}
+              accessibilityLabel="Export completed workout history as CSV"
+              leftIcon={
+                isExportingCsv ? (
+                  <ActivityIndicator color={c.goldSoft} />
+                ) : (
+                  <Ionicons name="document-text-outline" size={18} color={c.goldSoft} />
+                )
+              }
+            />
 
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.border,
-            },
-          ]}>
-          <View style={styles.cardHeader}>
-            <View style={styles.iconWrap}>
-              <IconSymbol name="clock.arrow.circlepath" size={24} color={palette.danger} />
-            </View>
-            <View style={styles.cardTitleBlock}>
-              <ThemedText type="subtitle" style={styles.cardTitle}>
-                Import JSON backup
-              </ThemedText>
-              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                Restore is deferred until a transaction-safe full replacement flow is added.
-              </ThemedText>
-            </View>
-          </View>
+            {csvStatus === 'success' && csvResult ? (
+              <StatusPanel>
+                <AtlasText variant="cardTitle" tone="strong">
+                  CSV ready
+                </AtlasText>
+                <AtlasText variant="label" tone="muted">
+                  {csvResult.fileName}
+                </AtlasText>
+                <AtlasText variant="body" tone="default">
+                  Rows: {csvResult.rowCount}
+                </AtlasText>
+              </StatusPanel>
+            ) : null}
 
-          <View
-            style={[
-              styles.statusPanel,
-              {
-                backgroundColor: palette.surfaceMuted,
-                borderColor: palette.border,
-              },
-            ]}>
-            <ThemedText type="defaultSemiBold" style={[styles.statusTitle, { color: palette.danger }]}>
-              Import disabled for field-test safety
-            </ThemedText>
-            <ThemedText style={[styles.statusText, { color: palette.muted }]}>
-              JSON backups can be exported and inspected now. Destructive restore is intentionally unavailable in this phase.
-            </ThemedText>
-          </View>
-        </View>
-      </ScrollView>
-    </ThemedView>
+            {csvStatus === 'error' && csvError ? (
+              <StatusPanel>
+                <AtlasText variant="cardTitle" tone="warning">
+                  CSV export failed
+                </AtlasText>
+                <AtlasText variant="body" tone="muted">
+                  {csvError.message}
+                </AtlasText>
+              </StatusPanel>
+            ) : null}
+          </AtlasCard>
+
+          {/* Import — intentionally disabled */}
+          <AtlasCard style={{ gap: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <IconBadge name="lock-closed-outline" tone="warning" />
+              <View style={{ flex: 1 }}>
+                <AtlasText variant="cardTitle" tone="strong">
+                  Import JSON backup
+                </AtlasText>
+                <AtlasText variant="label" tone="muted" style={{ marginTop: 2 }}>
+                  Restore is deferred until a transaction-safe full replacement flow is added.
+                </AtlasText>
+              </View>
+            </View>
+
+            <StatusPanel>
+              <AtlasText variant="cardTitle" tone="warning">
+                Import disabled for field-test safety
+              </AtlasText>
+              <AtlasText variant="body" tone="muted">
+                JSON backups can be exported and inspected now. Destructive restore is intentionally
+                unavailable in this phase.
+              </AtlasText>
+            </StatusPanel>
+          </AtlasCard>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  caption: {
-    fontSize: 13,
-    lineHeight: 18,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  card: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 16,
-    gap: 16,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    gap: 12,
-    alignItems: 'center',
-  },
-  cardTitle: {
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  cardTitleBlock: {
-    flex: 1,
-    gap: 3,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  countGrid: {
-    gap: 4,
-  },
-  countText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  exportButton: {
-    minHeight: 50,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 14,
-  },
-  exportButtonText: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  header: {
-    gap: 4,
-  },
-  iconWrap: {
-    width: 42,
-    height: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  screen: {
-    flex: 1,
-  },
-  secondaryButton: {
-    minHeight: 50,
-    borderRadius: 8,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-    paddingHorizontal: 14,
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  statusPanel: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  statusText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  statusTitle: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  supportingText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  title: {
-    fontSize: 34,
-    lineHeight: 38,
-  },
-});

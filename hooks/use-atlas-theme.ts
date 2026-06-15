@@ -1,4 +1,3 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import {
   AtlasColors,
   AtlasFonts,
@@ -7,6 +6,7 @@ import {
   type AtlasPalette,
   type AtlasScheme,
 } from '@/constants/atlas-theme';
+import { useAppearance } from '@/hooks/use-appearance';
 
 export type AtlasTheme = {
   scheme: AtlasScheme;
@@ -17,12 +17,12 @@ export type AtlasTheme = {
 };
 
 /**
- * Lift Atlas theme hook. Dark Atlas is the brand default; falls back to the
- * device color scheme. An in-app appearance override (Dark/Light Atlas toggle)
- * is layered in via the Profile screen later.
+ * Lift Atlas theme hook. The effective scheme comes from the Appearance
+ * preference (System / Dark Atlas / Light Atlas) so theme changes apply
+ * everywhere immediately.
  */
 export function useAtlasTheme(): AtlasTheme {
-  const scheme: AtlasScheme = useColorScheme() === 'light' ? 'light' : 'dark';
+  const { scheme } = useAppearance();
 
   return {
     scheme,

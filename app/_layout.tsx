@@ -17,6 +17,11 @@ import { getDatabaseClient } from '@/db/client';
 import { ExerciseLogRepository } from '@/db/repositories/exercise-log-repository';
 import { TemplateRepository } from '@/db/repositories/template-repository';
 import { WorkoutLogRepository } from '@/db/repositories/workout-log-repository';
+import {
+  AppearanceProvider,
+  loadAppearancePreference,
+  type AppearancePreference,
+} from '@/hooks/use-appearance';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useDatabaseBootstrap } from '@/hooks/use-database-bootstrap';
 
@@ -29,7 +34,9 @@ export const unstable_settings = {
 export default function RootLayout() {
   const { error, isReady } = useDatabaseBootstrap();
   const [isRecovering, setIsRecovering] = useState(false);
-  const colorScheme = useColorScheme();
+  const [appearancePreference, setAppearancePreference] = useState<AppearancePreference | null>(
+    null
+  );
   const [fontsLoaded] = useFonts({
     Sora_600SemiBold,
     Sora_700Bold,
@@ -40,20 +47,9 @@ export default function RootLayout() {
     BebasNeue_400Regular,
   });
 
-  const palette = AtlasColors[colorScheme === 'light' ? 'light' : 'dark'];
-  const base = colorScheme === 'light' ? DefaultTheme : DarkTheme;
-  const navigationTheme = {
-    ...base,
-    colors: {
-      ...base.colors,
-      background: palette.bg,
-      border: palette.cardBorder,
-      card: palette.bgFrame,
-      notification: palette.gold,
-      primary: palette.gold,
-      text: palette.text,
-    },
-  };
+  useEffect(() => {
+    void loadAppearancePreference().then(setAppearancePreference);
+  }, []);
 
   useEffect(() => {
     if (!isReady || error) return;
@@ -85,11 +81,13 @@ export default function RootLayout() {
     })();
   }, [isReady, error]);
 
+  const isAppReady = isReady && fontsLoaded && appearancePreference !== null;
+
   useEffect(() => {
-    if (isReady && fontsLoaded) {
+    if (isAppReady) {
       void SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isReady, fontsLoaded]);
+  }, [isAppReady]);
 
   async function handleResetLocalDatabase(): Promise<void> {
     Alert.alert(
@@ -145,9 +143,33 @@ export default function RootLayout() {
     );
   }
 
-  if (!isReady || !fontsLoaded) {
+  if (!isAppReady) {
     return null;
   }
+
+  return (
+    <AppearanceProvider initialPreference={appearancePreference ?? 'system'}>
+      <RootNavigation />
+    </AppearanceProvider>
+  );
+}
+
+function RootNavigation() {
+  const colorScheme = useColorScheme();
+  const palette = AtlasColors[colorScheme];
+  const base = colorScheme === 'light' ? DefaultTheme : DarkTheme;
+  const navigationTheme = {
+    ...base,
+    colors: {
+      ...base.colors,
+      background: palette.bg,
+      border: palette.cardBorder,
+      card: palette.bgFrame,
+      notification: palette.gold,
+      primary: palette.gold,
+      text: palette.text,
+    },
+  };
 
   return (
     <ThemeProvider value={navigationTheme}>

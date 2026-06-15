@@ -37,7 +37,7 @@ export function StatTile({
           borderWidth: 1,
           borderColor: c.cardBorder,
           borderRadius: radius.sm,
-          padding: 13,
+          padding: 11,
         }
       : null),
   };
@@ -48,7 +48,13 @@ export function StatTile({
       <AtlasText variant="micro" tone="faint">
         {label}
       </AtlasText>
-      <AtlasText variant="cardTitle" tone={valueTone}>
+      <AtlasText
+        variant="cardTitle"
+        tone={valueTone}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+        style={{ fontSize: 14, lineHeight: 19 }}>
         {value}
       </AtlasText>
       {sub ? (

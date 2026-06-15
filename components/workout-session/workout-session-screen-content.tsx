@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -6,18 +7,19 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type TextStyle,
+  type ViewStyle,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { AtlasButton, AtlasCard, AtlasPill, AtlasText, TopoBackground } from '@/components/atlas';
 import type { ExerciseHistoryComparison } from '@/db/repositories/history-comparison-repository';
 import type {
   CompleteWorkoutSessionInput,
   WorkoutSessionDetail,
   WorkoutSessionExerciseDetail,
 } from '@/db/repositories/workout-session-repository';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAtlasTheme } from '@/hooks/use-atlas-theme';
 import type { EffortRating, ProgressionRecommendation } from '@/types/domain';
 
 type SetDraft = {
@@ -54,46 +56,12 @@ type WorkoutSessionScreenContentProps = {
   session: WorkoutSessionDetail | null;
 };
 
-type WorkoutPalette = {
-  accent: string;
-  border: string;
-  input: string;
-  muted: string;
-  primaryButtonText: string;
-  surface: string;
-  surfaceMuted: string;
-};
-
 const effortOptions: { label: string; rir: 0 | 1 | 2 | 3; value: EffortRating }[] = [
   { label: 'Easy', value: 'easy', rir: 3 },
   { label: 'Moderate', value: 'moderate', rir: 2 },
   { label: 'Hard', value: 'hard', rir: 1 },
   { label: 'Failure', value: 'failure', rir: 0 },
 ];
-
-function getPalette(colorScheme: 'light' | 'dark'): WorkoutPalette {
-  if (colorScheme === 'light') {
-    return {
-      surface: '#F3F5F7',
-      surfaceMuted: '#E8EDF1',
-      input: '#FFFFFF',
-      border: '#D5DDE5',
-      muted: '#5E6A75',
-      accent: '#0A7EA4',
-      primaryButtonText: '#FFFFFF',
-    };
-  }
-
-  return {
-    surface: '#171B20',
-    surfaceMuted: '#11151A',
-    input: '#0D1116',
-    border: '#2A3138',
-    muted: '#93A0AB',
-    accent: '#D7F75B',
-    primaryButtonText: '#11151A',
-  };
-}
 
 function formatToken(value: string | null): string {
   if (!value) {
@@ -301,6 +269,70 @@ function getTotalLoggedVolume(drafts: Record<string, ExerciseDraft>): number {
   );
 }
 
+/** Small gold uppercase eyebrow used across the session panels. */
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <AtlasText variant="micro" tone="gold">
+      {children}
+    </AtlasText>
+  );
+}
+
+/** A label: value line where the value reads in the primary tone. */
+function MetaLine({ label, value }: { label: string; value: string }) {
+  return (
+    <AtlasText variant="label" tone="muted">
+      {label} <AtlasText variant="label" tone="strong">{value}</AtlasText>
+    </AtlasText>
+  );
+}
+
+function SecondaryButton({
+  label,
+  onPress,
+  active = false,
+  flex = false,
+  leftIcon,
+  accessibilityLabel,
+}: {
+  label: string;
+  onPress: () => void;
+  active?: boolean;
+  flex?: boolean;
+  leftIcon?: ReactNode;
+  accessibilityLabel?: string;
+}) {
+  const { c, radius, fonts } = useAtlasTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          minHeight: 46,
+          borderRadius: radius.sm,
+          borderWidth: 1,
+          paddingHorizontal: 16,
+          backgroundColor: active ? c.gold : 'transparent',
+          borderColor: active ? c.gold : c.goldBorder,
+          flex: flex ? 1 : undefined,
+        },
+        pressed && { opacity: 0.85 },
+      ]}>
+      {leftIcon}
+      <AtlasText style={{ fontFamily: fonts.displaySemi, fontSize: 14, color: active ? c.onGold : c.goldSoft }}>
+        {label}
+      </AtlasText>
+    </Pressable>
+  );
+}
+
 function ExerciseCard({
   draft,
   exercise,
@@ -317,11 +349,9 @@ function ExerciseCard({
   onStartRestTimer,
   onToggleWarmup,
   onToggleSubstitution,
-  palette,
   progressionError,
   progressionRecommendation,
   isProgressionLoading,
-  textColor,
 }: {
   draft: ExerciseDraft;
   exercise: WorkoutSessionExerciseDetail;
@@ -344,204 +374,188 @@ function ExerciseCard({
   onStartRestTimer: (seconds: number) => void;
   onToggleWarmup: (exerciseId: string, setIndex: number) => void;
   onToggleSubstitution: (exerciseId: string) => void;
-  palette: WorkoutPalette;
   progressionError: Error | null;
   progressionRecommendation: ProgressionRecommendation | null;
-  textColor: string;
 }) {
+  const { c, radius, fonts } = useAtlasTheme();
+
+  const inputStyle: TextStyle = {
+    backgroundColor: c.field,
+    borderColor: c.cardBorder,
+    color: c.text,
+    borderWidth: 1,
+    borderRadius: radius.field,
+    minHeight: 46,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+    fontFamily: fonts.body,
+  };
+
   return (
-    <View style={[styles.exerciseCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-      <View style={styles.exerciseHeader}>
-        <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
-          Current Exercise
-        </ThemedText>
-        <ThemedText type="defaultSemiBold" style={styles.exerciseName}>
+    <AtlasCard active style={{ gap: 14 }}>
+      <View style={{ gap: 4 }}>
+        <SectionLabel>Current Exercise</SectionLabel>
+        <AtlasText variant="title" tone="strong" style={{ marginTop: 4 }}>
           {exercise.exerciseName}
-        </ThemedText>
-        <ThemedText style={[styles.exerciseMeta, { color: palette.muted }]}>
-          {formatTarget(exercise)} - {formatToken(exercise.muscleGroup)}
-        </ThemedText>
-        <ThemedText style={[styles.exerciseMeta, { color: palette.muted }]}>
+        </AtlasText>
+        <AtlasText variant="label" tone="muted">
+          {formatTarget(exercise)} · {formatToken(exercise.muscleGroup)}
+        </AtlasText>
+        <AtlasText variant="label" tone="muted">
           {formatToken(exercise.progressionMethod)}
-          {exercise.restSeconds ? ` - ${exercise.restSeconds}s rest` : ''}
-        </ThemedText>
+          {exercise.restSeconds ? ` · ${exercise.restSeconds}s rest` : ''}
+        </AtlasText>
         {exercise.notes ? (
-          <ThemedText style={[styles.exerciseMeta, { color: palette.muted }]}>
+          <AtlasText variant="label" tone="muted">
             Cues: {exercise.notes}
-          </ThemedText>
+          </AtlasText>
         ) : null}
       </View>
 
+      {/* Previous performance */}
       <View
-        style={[
-          styles.historyPanel,
-          { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-        ]}>
-        <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>History</ThemedText>
+        style={{
+          backgroundColor: c.field,
+          borderColor: c.cardBorder,
+          borderWidth: 1,
+          borderRadius: radius.sm,
+          padding: 13,
+          gap: 8,
+        }}>
+        <SectionLabel>History</SectionLabel>
         {isHistoryLoading ? (
-          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+          <AtlasText variant="label" tone="muted">
             Loading history
-          </ThemedText>
+          </AtlasText>
         ) : historyError ? (
-          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+          <AtlasText variant="label" tone="muted">
             History unavailable
-          </ThemedText>
+          </AtlasText>
         ) : historyComparison?.lastTime ? (
-          <View style={styles.historyContent}>
-            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
-              Last time:{' '}
-              <ThemedText style={styles.historyValue}>
-                {formatHistorySets(historyComparison.lastTime.sets)}
-              </ThemedText>
-            </ThemedText>
-            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
-              Best:{' '}
-              <ThemedText style={styles.historyValue}>
-                {historyComparison.bestSet
-                  ? formatHistorySet(
-                      historyComparison.bestSet.weight,
-                      historyComparison.bestSet.reps
-                    )
-                  : 'No PR yet'}
-              </ThemedText>
-            </ThemedText>
+          <View style={{ gap: 7 }}>
+            <MetaLine label="Last time:" value={formatHistorySets(historyComparison.lastTime.sets)} />
+            <MetaLine
+              label="Best:"
+              value={
+                historyComparison.bestSet
+                  ? formatHistorySet(historyComparison.bestSet.weight, historyComparison.bestSet.reps)
+                  : 'No PR yet'
+              }
+            />
             {historyComparison.lastFive.length > 0 ? (
-              <View style={styles.historySubsection}>
-                <ThemedText style={[styles.historySubhead, { color: palette.muted }]}>
+              <View style={{ gap: 4 }}>
+                <AtlasText variant="micro" tone="faint">
                   Last 5
-                </ThemedText>
+                </AtlasText>
                 {historyComparison.lastFive.map((item) => (
-                  <ThemedText
+                  <AtlasText
                     key={`${item.workoutSessionId}-${item.completedAt}`}
-                    style={styles.historyDetailLine}>
-                    {formatHistoryDate(item.completedAt)} - {item.setSummary}
-                  </ThemedText>
+                    variant="label"
+                    tone="default">
+                    {formatHistoryDate(item.completedAt)} · {item.setSummary}
+                  </AtlasText>
                 ))}
               </View>
             ) : null}
             {historyComparison.priorNotes.length > 0 ? (
-              <View style={styles.historySubsection}>
-                <ThemedText style={[styles.historySubhead, { color: palette.muted }]}>
+              <View style={{ gap: 4 }}>
+                <AtlasText variant="micro" tone="faint">
                   Notes
-                </ThemedText>
+                </AtlasText>
                 {historyComparison.priorNotes.slice(0, 3).map((item) => (
-                  <ThemedText
+                  <AtlasText
                     key={`${item.workoutSessionId}-${item.completedAt}`}
-                    style={styles.historyDetailLine}>
-                    {formatHistoryDate(item.completedAt)} - {item.notes}
-                  </ThemedText>
+                    variant="label"
+                    tone="default">
+                    {formatHistoryDate(item.completedAt)} · {item.notes}
+                  </AtlasText>
                 ))}
               </View>
             ) : null}
           </View>
         ) : (
-          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+          <AtlasText variant="label" tone="muted">
             No prior working-set history yet.
-          </ThemedText>
+          </AtlasText>
         )}
       </View>
 
+      {/* Progression recommendation */}
       <View
-        style={[
-          styles.progressionPanel,
-          { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-        ]}>
-        <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>Progression</ThemedText>
+        style={{
+          backgroundColor: c.field,
+          borderColor: c.cardBorder,
+          borderWidth: 1,
+          borderRadius: radius.sm,
+          padding: 13,
+          gap: 8,
+        }}>
+        <SectionLabel>Progression</SectionLabel>
         {isProgressionLoading ? (
-          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+          <AtlasText variant="label" tone="muted">
             Loading recommendation
-          </ThemedText>
+          </AtlasText>
         ) : progressionError ? (
-          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+          <AtlasText variant="label" tone="muted">
             Recommendation unavailable
-          </ThemedText>
+          </AtlasText>
         ) : progressionRecommendation ? (
-          <View style={styles.progressionContent}>
-            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
-              Recommendation:{' '}
-              <ThemedText style={styles.historyValue}>
-                {formatRecommendationAction(progressionRecommendation)}
-              </ThemedText>
-            </ThemedText>
-            <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
-              Reason:{' '}
-              <ThemedText style={styles.historyValue}>
-                {progressionRecommendation.reason}
-              </ThemedText>
-            </ThemedText>
+          <View style={{ gap: 7 }}>
+            <MetaLine
+              label="Recommendation:"
+              value={formatRecommendationAction(progressionRecommendation)}
+            />
+            <MetaLine label="Reason:" value={progressionRecommendation.reason} />
             {progressionRecommendation.previousPerformanceSummary ? (
-              <ThemedText style={[styles.historyLine, { color: palette.muted }]}>
-                Used:{' '}
-                <ThemedText style={styles.historyValue}>
-                  {progressionRecommendation.previousPerformanceSummary}
-                </ThemedText>
-              </ThemedText>
+              <MetaLine label="Used:" value={progressionRecommendation.previousPerformanceSummary} />
             ) : null}
           </View>
         ) : (
-          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+          <AtlasText variant="label" tone="muted">
             Complete this exercise once to unlock recommendations.
-          </ThemedText>
+          </AtlasText>
         )}
       </View>
 
-      <View style={styles.setList}>
-        <View style={styles.setListHeader}>
-          <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
-            Sets
-          </ThemedText>
-          <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
+      {/* Sets */}
+      <View style={{ gap: 8 }}>
+        <View style={{ gap: 4 }}>
+          <SectionLabel>Sets</SectionLabel>
+          <AtlasText variant="label" tone="muted">
             Warmups are excluded from PRs, history volume, and progression.
-          </ThemedText>
+          </AtlasText>
         </View>
         {draft.setDrafts.map((setDraft, setIndex) => (
           <View
             key={setDraft.id}
-            style={[
-              styles.setCard,
-              { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-            ]}>
-            <View style={styles.setCardHeader}>
-              <ThemedText style={[styles.setNumber, { color: palette.muted }]}>
+            style={{
+              backgroundColor: c.field,
+              borderColor: c.cardBorder,
+              borderWidth: 1,
+              borderRadius: radius.sm,
+              padding: 11,
+              gap: 9,
+            }}>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              <AtlasText variant="bodyStrong" tone="strong">
                 Set {setIndex + 1}
-              </ThemedText>
-              <Pressable
-                accessibilityLabel={
-                  setDraft.isWarmup
-                    ? `Mark ${exercise.exerciseName} set ${setIndex + 1} as working`
-                    : `Mark ${exercise.exerciseName} set ${setIndex + 1} as warmup`
-                }
-                accessibilityRole="button"
+              </AtlasText>
+              <AtlasPill
+                label={setDraft.isWarmup ? 'Warmup' : 'Working'}
+                selected={setDraft.isWarmup}
                 onPress={() => onToggleWarmup(exercise.id, setIndex)}
-                style={[
-                  styles.warmupChip,
-                  {
-                    backgroundColor: setDraft.isWarmup ? palette.accent : 'transparent',
-                    borderColor: setDraft.isWarmup ? palette.accent : palette.border,
-                  },
-                ]}>
-                <ThemedText
-                  style={[
-                    styles.warmupChipText,
-                    { color: setDraft.isWarmup ? palette.primaryButtonText : palette.muted },
-                  ]}>
-                  {setDraft.isWarmup ? 'Warmup' : 'Working'}
-                </ThemedText>
-              </Pressable>
+              />
             </View>
-            <View style={styles.setInputRow}>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               <TextInput
                 accessibilityLabel={`${exercise.exerciseName} set ${setIndex + 1} weight`}
                 keyboardType="decimal-pad"
-                onChangeText={(value) =>
-                  onSetDraftChange(exercise.id, setIndex, 'weightText', value)
-                }
+                onChangeText={(value) => onSetDraftChange(exercise.id, setIndex, 'weightText', value)}
                 placeholder="Weight"
-                placeholderTextColor={palette.muted}
-                style={[
-                  styles.input,
-                  { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
-                ]}
+                placeholderTextColor={c.faint}
+                style={[inputStyle, { flex: 1 }]}
                 value={setDraft.weightText}
               />
               <TextInput
@@ -549,73 +563,71 @@ function ExerciseCard({
                 keyboardType="number-pad"
                 onChangeText={(value) => onSetDraftChange(exercise.id, setIndex, 'repsText', value)}
                 placeholder="Reps"
-                placeholderTextColor={palette.muted}
-                style={[
-                  styles.input,
-                  { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
-                ]}
+                placeholderTextColor={c.faint}
+                style={[inputStyle, { flex: 1 }]}
                 value={setDraft.repsText}
               />
             </View>
-            <View style={styles.setUtilityRow}>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>
               <Pressable
-                accessibilityLabel={`Start rest timer after ${exercise.exerciseName} set ${setIndex + 1}`}
                 accessibilityRole="button"
+                accessibilityLabel={`Start rest timer after ${exercise.exerciseName} set ${setIndex + 1}`}
                 onPress={() => onStartRestTimer(exercise.restSeconds ?? 90)}
-                style={[styles.timerInlineButton, { borderColor: palette.border }]}>
-                <ThemedText style={[styles.timerInlineButtonText, { color: palette.accent }]}>
+                style={({ pressed }) => [
+                  {
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingHorizontal: 12,
+                    minHeight: 36,
+                    borderRadius: radius.field,
+                    borderWidth: 1,
+                    borderColor: c.goldBorder,
+                  },
+                  pressed && { opacity: 0.85 },
+                ]}>
+                <Ionicons name="timer-outline" size={16} color={c.goldSoft} />
+                <AtlasText variant="label" tone="gold">
                   Start Rest
-                </ThemedText>
+                </AtlasText>
               </Pressable>
             </View>
           </View>
         ))}
       </View>
 
-      <Pressable
-        accessibilityLabel={`Add set for ${exercise.exerciseName}`}
-        accessibilityRole="button"
+      <SecondaryButton
+        label="Add Working Set"
         onPress={() => onAddSet(exercise.id)}
-        style={[styles.secondaryButton, { borderColor: palette.border }]}>
-        <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>
-          Add Working Set
-        </ThemedText>
-      </Pressable>
+        leftIcon={<Ionicons name="add" size={18} color={c.goldSoft} />}
+        accessibilityLabel={`Add set for ${exercise.exerciseName}`}
+      />
 
-      <Pressable
+      <SecondaryButton
+        label="Substitute"
+        active={draft.isSubstitution}
+        onPress={() => onToggleSubstitution(exercise.id)}
+        leftIcon={
+          <MaterialCommunityIcons
+            name="swap-horizontal"
+            size={18}
+            color={draft.isSubstitution ? c.onGold : c.goldSoft}
+          />
+        }
         accessibilityLabel={
           draft.isSubstitution
             ? `Use planned exercise for ${exercise.exerciseName}`
             : `Log a substitution for ${exercise.exerciseName}`
         }
-        accessibilityRole="button"
-        onPress={() => onToggleSubstitution(exercise.id)}
-        style={[
-          styles.secondaryButton,
-          {
-            backgroundColor: draft.isSubstitution ? palette.accent : 'transparent',
-            borderColor: draft.isSubstitution ? palette.accent : palette.border,
-          },
-        ]}>
-        <ThemedText
-          style={[
-            styles.secondaryButtonText,
-            { color: draft.isSubstitution ? palette.primaryButtonText : palette.accent },
-          ]}>
-          Substitute
-        </ThemedText>
-      </Pressable>
+      />
 
       {draft.isSubstitution ? (
         <TextInput
           accessibilityLabel={`${exercise.exerciseName} substitution name`}
           onChangeText={(value) => onSetSubstituteName(exercise.id, value)}
           placeholder="Performed exercise"
-          placeholderTextColor={palette.muted}
-          style={[
-            styles.input,
-            { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
-          ]}
+          placeholderTextColor={c.faint}
+          style={inputStyle}
           value={draft.substituteName}
         />
       ) : null}
@@ -625,64 +637,40 @@ function ExerciseCard({
         multiline
         onChangeText={(value) => onSetNotes(exercise.id, value)}
         placeholder="Exercise notes"
-        placeholderTextColor={palette.muted}
-        style={[
-          styles.notesInput,
-          { backgroundColor: palette.input, borderColor: palette.border, color: textColor },
-        ]}
+        placeholderTextColor={c.faint}
+        style={[inputStyle, { minHeight: 74, paddingTop: 10, textAlignVertical: 'top' }]}
         value={draft.notes}
       />
 
-      <View style={styles.effortGrid}>
-        {effortOptions.map((option) => {
-          const isSelected = draft.effortRating === option.value;
-
-          return (
-            <Pressable
-              accessibilityLabel={`Set ${exercise.exerciseName} effort to ${option.label}`}
-              accessibilityRole="button"
-              key={option.value}
-              onPress={() => onSetEffort(exercise.id, option.value, option.rir)}
-              style={[
-                styles.effortChip,
-                {
-                  backgroundColor: isSelected ? palette.accent : 'transparent',
-                  borderColor: isSelected ? palette.accent : palette.border,
-                },
-              ]}>
-              <ThemedText
-                style={[
-                  styles.effortChipText,
-                  { color: isSelected ? palette.primaryButtonText : palette.muted },
-                ]}>
-                {option.label}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {effortOptions.map((option) => (
+          <AtlasPill
+            key={option.value}
+            label={option.label}
+            selected={draft.effortRating === option.value}
+            onPress={() => onSetEffort(exercise.id, option.value, option.rir)}
+            style={{ flexGrow: 1, justifyContent: 'center' }}
+          />
+        ))}
       </View>
 
-      <View style={styles.exerciseNavRow}>
-        <Pressable
-          accessibilityLabel="Previous exercise"
-          accessibilityRole="button"
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <SecondaryButton
+          label="Previous"
+          flex
           onPress={onSelectPreviousExercise}
-          style={[styles.secondaryButton, { borderColor: palette.border, flex: 1 }]}>
-          <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>
-            Previous
-          </ThemedText>
-        </Pressable>
-        <Pressable
-          accessibilityLabel="Next exercise"
-          accessibilityRole="button"
+          leftIcon={<Ionicons name="chevron-back" size={16} color={c.goldSoft} />}
+          accessibilityLabel="Previous exercise"
+        />
+        <SecondaryButton
+          label="Next"
+          flex
           onPress={onSelectNextExercise}
-          style={[styles.secondaryButton, { borderColor: palette.border, flex: 1 }]}>
-          <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>
-            Next
-          </ThemedText>
-        </Pressable>
+          leftIcon={<Ionicons name="chevron-forward" size={16} color={c.goldSoft} />}
+          accessibilityLabel="Next exercise"
+        />
       </View>
-    </View>
+    </AtlasCard>
   );
 }
 
@@ -703,9 +691,7 @@ export function WorkoutSessionScreenContent({
   savedAt,
   session,
 }: WorkoutSessionScreenContentProps) {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const palette = getPalette(colorScheme);
-  const theme = Colors[colorScheme];
+  const { c, radius, spacing, fonts } = useAtlasTheme();
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, ExerciseDraft>>({});
   const [restTimerSeconds, setRestTimerSeconds] = useState(0);
@@ -795,10 +781,7 @@ export function WorkoutSessionScreenContent({
   const hasNotes = Object.values(drafts).some((draft) => draft.notes.trim().length > 0);
   const hasSubstitutions = Object.values(drafts).some((draft) => draft.isSubstitution);
 
-  function updateDraft(
-    exerciseId: string,
-    updater: (draft: ExerciseDraft) => ExerciseDraft
-  ): void {
+  function updateDraft(exerciseId: string, updater: (draft: ExerciseDraft) => ExerciseDraft): void {
     setDrafts((currentDrafts) => {
       const currentDraft = currentDrafts[exerciseId];
 
@@ -813,709 +796,382 @@ export function WorkoutSessionScreenContent({
     });
   }
 
+  const summaryTileStyle: ViewStyle = {
+    flexBasis: '30%',
+    flexGrow: 1,
+    minWidth: 100,
+    gap: 4,
+    backgroundColor: c.field,
+    borderColor: c.cardBorder,
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    padding: 12,
+  };
+
   if (isLoading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator color={palette.accent} />
-        <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-          Loading Workout
-        </ThemedText>
-      </ThemedView>
+      <View style={[styles.loadingContainer, { backgroundColor: c.bg }]}>
+        <ActivityIndicator color={c.gold} />
+        <AtlasText variant="label" tone="muted">
+          Loading workout…
+        </AtlasText>
+      </View>
     );
   }
 
   if (error || !session) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ThemedText type="subtitle">Workout</ThemedText>
-        <ThemedText style={[styles.centerText, { color: palette.muted }]}>
+      <View style={[styles.loadingContainer, { backgroundColor: c.bg }]}>
+        <AtlasText variant="title" tone="strong">
+          Off the trail
+        </AtlasText>
+        <AtlasText variant="body" tone="muted" style={{ textAlign: 'center' }}>
           Unable to load this workout session.
-        </ThemedText>
-        <Pressable
-          accessibilityLabel="Return to Train"
-          accessibilityRole="button"
+        </AtlasText>
+        <SecondaryButton
+          label="Back to Today"
           onPress={onBack}
-          style={[styles.secondaryButton, { borderColor: palette.border }]}>
-          <ThemedText style={[styles.secondaryButtonText, { color: palette.accent }]}>
-            Back to Train
-          </ThemedText>
-        </Pressable>
-      </ThemedView>
+          leftIcon={<Ionicons name="chevron-back" size={16} color={c.goldSoft} />}
+          accessibilityLabel="Return to Today"
+        />
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}>
-        <Pressable
-          accessibilityLabel="Return to Train"
-          accessibilityRole="button"
-          onPress={onBack}
-          style={styles.backButton}>
-          <ThemedText style={[styles.backButtonText, { color: palette.accent }]}>
-            Back to Train
-          </ThemedText>
-        </Pressable>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <TopoBackground />
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenX,
+            paddingTop: 8,
+            paddingBottom: 40,
+            gap: spacing.gap,
+          }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Return to Today"
+            onPress={onBack}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 }}>
+            <Ionicons name="chevron-back" size={18} color={c.goldSoft} />
+            <AtlasText variant="label" tone="gold">
+              Back to Today
+            </AtlasText>
+          </Pressable>
 
-        <View style={styles.header}>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>Workout</ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            {session.templateDayName ?? 'Current Workout'}
-          </ThemedText>
-          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-            {session.templateName ?? 'Active routine'}
-          </ThemedText>
-        </View>
-
-        <View
-          style={[
-            styles.sessionOverview,
-            { backgroundColor: palette.surface, borderColor: palette.border },
-          ]}>
-          <View style={styles.sessionOverviewHeader}>
-            <View style={styles.sessionOverviewTitleBlock}>
-              <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
-                In Progress
-              </ThemedText>
-              <ThemedText type="defaultSemiBold" style={styles.sessionOverviewTitle}>
-                {currentExercise
-                  ? `${currentExerciseIndex + 1} of ${session.exercises.length}: ${currentExercise.exerciseName}`
-                  : 'No exercises planned'}
-              </ThemedText>
-            </View>
-            <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
-              {saveError ? 'Autosave needs attention' : formatSavedAt(savedAt)}
-            </ThemedText>
+          <View style={{ gap: 4 }}>
+            <SectionLabel>Workout</SectionLabel>
+            <AtlasText variant="h1" tone="strong">
+              {session.templateDayName ?? 'Current Workout'}
+            </AtlasText>
+            <AtlasText variant="label" tone="muted">
+              {session.templateName ?? 'Active route'}
+            </AtlasText>
           </View>
-          {saveError ? (
-            <ThemedText style={[styles.historyEmptyText, { color: palette.muted }]}>
-              {saveError.message}
-            </ThemedText>
-          ) : null}
-          <View style={styles.summaryGrid}>
-            <View style={[styles.summaryTile, { borderColor: palette.border }]}>
-              <ThemedText style={[styles.historyTitle, { color: palette.muted }]}>
-                Exercises
-              </ThemedText>
-              <ThemedText type="defaultSemiBold" style={styles.summaryValue}>
-                {session.exercises.length}
-              </ThemedText>
-            </View>
-            <View style={[styles.summaryTile, { borderColor: palette.border }]}>
-              <ThemedText style={[styles.historyTitle, { color: palette.muted }]}>
-                Working Sets
-              </ThemedText>
-              <ThemedText type="defaultSemiBold" style={styles.summaryValue}>
-                {loggedWorkingSets}/{totalWorkingSets}
-              </ThemedText>
-            </View>
-            <View style={[styles.summaryTile, { borderColor: palette.border }]}>
-              <ThemedText style={[styles.historyTitle, { color: palette.muted }]}>
-                Volume
-              </ThemedText>
-              <ThemedText type="defaultSemiBold" style={styles.summaryValue}>
-                {totalVolume > 0 ? `${totalVolume} lb` : 'Pending'}
-              </ThemedText>
-            </View>
-          </View>
-        </View>
 
-        <View
-          style={[
-            styles.restTimerPanel,
-            { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-          ]}>
-          <View style={styles.restTimerHeader}>
-            <View>
-              <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
-                Rest Timer
-              </ThemedText>
-              <ThemedText type="defaultSemiBold" style={styles.restTimerValue}>
-                {formatTimer(restTimerSeconds)}
-              </ThemedText>
+          {/* Session overview */}
+          <AtlasCard active>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <View style={{ flex: 1 }}>
+                <SectionLabel>In Progress</SectionLabel>
+                <AtlasText variant="cardTitle" tone="strong" style={{ marginTop: 5 }}>
+                  {currentExercise
+                    ? `${currentExerciseIndex + 1} of ${session.exercises.length}: ${currentExercise.exerciseName}`
+                    : 'No exercises planned'}
+                </AtlasText>
+              </View>
+              <AtlasText variant="label" tone={saveError ? 'warning' : 'muted'}>
+                {saveError ? 'Autosave needs attention' : formatSavedAt(savedAt)}
+              </AtlasText>
             </View>
-            <View style={styles.restTimerActions}>
-              <Pressable
-                accessibilityLabel="Start rest timer"
-                accessibilityRole="button"
-                onPress={() => {
-                  setRestTimerSeconds(currentExercise?.restSeconds ?? 90);
-                  setIsRestTimerRunning(true);
-                }}
-                style={[styles.timerButton, { borderColor: palette.border }]}>
-                <ThemedText style={[styles.timerButtonText, { color: palette.accent }]}>
-                  Start
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Stop rest timer"
-                accessibilityRole="button"
-                onPress={() => setIsRestTimerRunning(false)}
-                style={[styles.timerButton, { borderColor: palette.border }]}>
-                <ThemedText style={[styles.timerButtonText, { color: palette.accent }]}>
-                  Stop
-                </ThemedText>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Reset rest timer"
-                accessibilityRole="button"
-                onPress={() => {
-                  setIsRestTimerRunning(false);
-                  setRestTimerSeconds(0);
-                }}
-                style={[styles.timerButton, { borderColor: palette.border }]}>
-                <ThemedText style={[styles.timerButtonText, { color: palette.accent }]}>
-                  Reset
-                </ThemedText>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        {session.exercises.length > 0 ? (
-          <View style={styles.exerciseFocusStack}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.exerciseRail}
-              contentContainerStyle={styles.exerciseRailContent}>
-              {session.exercises.map((exercise, index) => {
-                const draft = drafts[exercise.id];
-                const isCurrent = index === currentExerciseIndex;
-                const hasLoggedSet = draft?.setDrafts.some(
-                  (setDraft) => setDraft.weightText.trim() || setDraft.repsText.trim()
-                );
-
-                return (
-                  <Pressable
-                    accessibilityLabel={`Open ${exercise.exerciseName}`}
-                    accessibilityRole="button"
-                    key={exercise.id}
-                    onPress={() => setCurrentExerciseIndex(index)}
-                    style={[
-                      styles.exerciseRailChip,
-                      {
-                        backgroundColor: isCurrent ? palette.accent : 'transparent',
-                        borderColor: isCurrent ? palette.accent : palette.border,
-                      },
-                    ]}>
-                    <ThemedText
-                      style={[
-                        styles.exerciseRailText,
-                        { color: isCurrent ? palette.primaryButtonText : palette.accent },
-                      ]}>
-                      {index + 1}. {exercise.exerciseName}
-                      {hasLoggedSet ? ' done' : ''}
-                    </ThemedText>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            {currentExercise && drafts[currentExercise.id] ? (
-              <ExerciseCard
-                draft={drafts[currentExercise.id]}
-                exercise={currentExercise}
-                historyComparison={
-                  currentExercise.exerciseDefinitionId
-                    ? historyComparisons[currentExercise.exerciseDefinitionId] ?? null
-                    : null
-                }
-                historyError={historyError}
-                isHistoryLoading={isHistoryLoading}
-                isProgressionLoading={isProgressionLoading}
-                key={currentExercise.id}
-                onAddSet={(exerciseId) => {
-                  updateDraft(exerciseId, (currentDraft) => {
-                    const lastSet = currentDraft.setDrafts[currentDraft.setDrafts.length - 1];
-
-                    return {
-                      ...currentDraft,
-                      setDrafts: [
-                        ...currentDraft.setDrafts,
-                        createSetDraft(currentDraft.setDrafts.length + 1, lastSet),
-                      ],
-                    };
-                  });
-                }}
-                onSelectNextExercise={() =>
-                  setCurrentExerciseIndex((currentIndex) =>
-                    Math.min(currentIndex + 1, session.exercises.length - 1)
-                  )
-                }
-                onSelectPreviousExercise={() =>
-                  setCurrentExerciseIndex((currentIndex) => Math.max(currentIndex - 1, 0))
-                }
-                onSetDraftChange={(exerciseId, setIndex, field, value) => {
-                  updateDraft(exerciseId, (currentDraft) => ({
-                    ...currentDraft,
-                    setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
-                      currentIndex === setIndex ? { ...setDraft, [field]: value } : setDraft
-                    ),
-                  }));
-                }}
-                onSetEffort={(exerciseId, effortRating, estimatedRir) => {
-                  updateDraft(exerciseId, (currentDraft) => ({
-                    ...currentDraft,
-                    effortRating,
-                    estimatedRir,
-                  }));
-                }}
-                onSetNotes={(exerciseId, notes) => {
-                  updateDraft(exerciseId, (currentDraft) => ({
-                    ...currentDraft,
-                    notes,
-                  }));
-                }}
-                onSetSubstituteName={(exerciseId, substituteName) => {
-                  updateDraft(exerciseId, (currentDraft) => ({
-                    ...currentDraft,
-                    substituteName,
-                  }));
-                }}
-                onStartRestTimer={(seconds) => {
-                  setRestTimerSeconds(seconds);
-                  setIsRestTimerRunning(true);
-                }}
-                onToggleWarmup={(exerciseId, setIndex) => {
-                  updateDraft(exerciseId, (currentDraft) => ({
-                    ...currentDraft,
-                    setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
-                      currentIndex === setIndex
-                        ? { ...setDraft, isWarmup: !setDraft.isWarmup }
-                        : setDraft
-                    ),
-                  }));
-                }}
-                onToggleSubstitution={(exerciseId) => {
-                  updateDraft(exerciseId, (currentDraft) => ({
-                    ...currentDraft,
-                    isSubstitution: !currentDraft.isSubstitution,
-                    substituteName: currentDraft.isSubstitution
-                      ? ''
-                      : currentDraft.substituteName || currentExercise.exerciseName,
-                  }));
-                }}
-                palette={palette}
-                progressionError={progressionError}
-                progressionRecommendation={progressionRecommendations[currentExercise.id] ?? null}
-                textColor={theme.text}
-              />
+            {saveError ? (
+              <AtlasText variant="label" tone="muted">
+                {saveError.message}
+              </AtlasText>
             ) : null}
-          </View>
-        ) : (
-          <View
-            style={[styles.exerciseCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-              This template day does not have planned exercises yet.
-            </ThemedText>
-          </View>
-        )}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              <View style={summaryTileStyle}>
+                <AtlasText variant="micro" tone="faint">
+                  Exercises
+                </AtlasText>
+                <AtlasText variant="cardTitle" tone="strong">
+                  {session.exercises.length}
+                </AtlasText>
+              </View>
+              <View style={summaryTileStyle}>
+                <AtlasText variant="micro" tone="faint">
+                  Working Sets
+                </AtlasText>
+                <AtlasText variant="cardTitle" tone="strong">
+                  {loggedWorkingSets}/{totalWorkingSets}
+                </AtlasText>
+              </View>
+              <View style={summaryTileStyle}>
+                <AtlasText variant="micro" tone="faint">
+                  Volume
+                </AtlasText>
+                <AtlasText variant="cardTitle" tone="strong">
+                  {totalVolume > 0 ? `${totalVolume} lb` : 'Pending'}
+                </AtlasText>
+              </View>
+            </View>
+          </AtlasCard>
 
-        <View
-          style={[
-            styles.completionSummary,
-            { backgroundColor: palette.surface, borderColor: palette.border },
-          ]}>
-          <ThemedText style={[styles.historyTitle, { color: palette.accent }]}>
-            Completion Summary
-          </ThemedText>
-          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-            {session.templateName ?? 'Routine'} / {session.templateDayName ?? 'Workout'}
-          </ThemedText>
-          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-            {session.exercises.length} exercises, {loggedWorkingSets} logged working sets
-            {totalVolume > 0 ? `, ${totalVolume} lb volume` : ''}
-          </ThemedText>
-          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-            Notes {hasNotes ? 'saved' : 'pending'} / Substitutions{' '}
-            {hasSubstitutions ? 'included' : 'none'}
-          </ThemedText>
-        </View>
+          {/* Rest timer */}
+          <AtlasCard variant="field">
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <View>
+                <SectionLabel>Rest Timer</SectionLabel>
+                <AtlasText
+                  style={{
+                    fontFamily: fonts.displaySemi,
+                    fontSize: 32,
+                    lineHeight: 36,
+                    color: isRestTimerRunning ? c.gold : c.text,
+                    marginTop: 2,
+                  }}>
+                  {formatTimer(restTimerSeconds)}
+                </AtlasText>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TimerButton
+                  icon="play"
+                  label="Start"
+                  onPress={() => {
+                    setRestTimerSeconds(currentExercise?.restSeconds ?? 90);
+                    setIsRestTimerRunning(true);
+                  }}
+                  accessibilityLabel="Start rest timer"
+                />
+                <TimerButton
+                  icon="pause"
+                  label="Stop"
+                  onPress={() => setIsRestTimerRunning(false)}
+                  accessibilityLabel="Stop rest timer"
+                />
+                <TimerButton
+                  icon="refresh"
+                  label="Reset"
+                  onPress={() => {
+                    setIsRestTimerRunning(false);
+                    setRestTimerSeconds(0);
+                  }}
+                  accessibilityLabel="Reset rest timer"
+                />
+              </View>
+            </View>
+          </AtlasCard>
 
-        <Pressable
-          accessibilityLabel="Complete workout"
-          accessibilityRole="button"
-          disabled={isCompleting || session.status !== 'active'}
-          onPress={() => onComplete(completeInput)}
-          style={[
-            styles.completeButton,
-            {
-              backgroundColor: palette.accent,
-              borderColor: palette.accent,
-              opacity: isCompleting || session.status !== 'active' ? 0.65 : 1,
-            },
-          ]}>
-          <ThemedText style={[styles.completeButtonText, { color: palette.primaryButtonText }]}>
-            {session.status === 'completed'
-              ? 'Workout Complete'
-              : isCompleting
-                ? 'Completing'
-                : 'Complete Workout'}
-          </ThemedText>
-        </Pressable>
-      </ScrollView>
-    </ThemedView>
+          {/* Exercise focus */}
+          {session.exercises.length > 0 ? (
+            <View style={{ gap: 12 }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ gap: 8, paddingRight: 2 }}>
+                {session.exercises.map((exercise, index) => {
+                  const draft = drafts[exercise.id];
+                  const isCurrent = index === currentExerciseIndex;
+                  const hasLoggedSet = draft?.setDrafts.some(
+                    (setDraft) => setDraft.weightText.trim() || setDraft.repsText.trim()
+                  );
+
+                  return (
+                    <AtlasPill
+                      key={exercise.id}
+                      label={`${index + 1}. ${exercise.exerciseName}`}
+                      selected={isCurrent}
+                      dot={!!hasLoggedSet && !isCurrent}
+                      tone={hasLoggedSet ? 'gold' : 'neutral'}
+                      onPress={() => setCurrentExerciseIndex(index)}
+                    />
+                  );
+                })}
+              </ScrollView>
+
+              {currentExercise && drafts[currentExercise.id] ? (
+                <ExerciseCard
+                  draft={drafts[currentExercise.id]}
+                  exercise={currentExercise}
+                  historyComparison={
+                    currentExercise.exerciseDefinitionId
+                      ? historyComparisons[currentExercise.exerciseDefinitionId] ?? null
+                      : null
+                  }
+                  historyError={historyError}
+                  isHistoryLoading={isHistoryLoading}
+                  isProgressionLoading={isProgressionLoading}
+                  key={currentExercise.id}
+                  onAddSet={(exerciseId) => {
+                    updateDraft(exerciseId, (currentDraft) => {
+                      const lastSet = currentDraft.setDrafts[currentDraft.setDrafts.length - 1];
+
+                      return {
+                        ...currentDraft,
+                        setDrafts: [
+                          ...currentDraft.setDrafts,
+                          createSetDraft(currentDraft.setDrafts.length + 1, lastSet),
+                        ],
+                      };
+                    });
+                  }}
+                  onSelectNextExercise={() =>
+                    setCurrentExerciseIndex((currentIndex) =>
+                      Math.min(currentIndex + 1, session.exercises.length - 1)
+                    )
+                  }
+                  onSelectPreviousExercise={() =>
+                    setCurrentExerciseIndex((currentIndex) => Math.max(currentIndex - 1, 0))
+                  }
+                  onSetDraftChange={(exerciseId, setIndex, field, value) => {
+                    updateDraft(exerciseId, (currentDraft) => ({
+                      ...currentDraft,
+                      setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
+                        currentIndex === setIndex ? { ...setDraft, [field]: value } : setDraft
+                      ),
+                    }));
+                  }}
+                  onSetEffort={(exerciseId, effortRating, estimatedRir) => {
+                    updateDraft(exerciseId, (currentDraft) => ({
+                      ...currentDraft,
+                      effortRating,
+                      estimatedRir,
+                    }));
+                  }}
+                  onSetNotes={(exerciseId, notes) => {
+                    updateDraft(exerciseId, (currentDraft) => ({
+                      ...currentDraft,
+                      notes,
+                    }));
+                  }}
+                  onSetSubstituteName={(exerciseId, substituteName) => {
+                    updateDraft(exerciseId, (currentDraft) => ({
+                      ...currentDraft,
+                      substituteName,
+                    }));
+                  }}
+                  onStartRestTimer={(seconds) => {
+                    setRestTimerSeconds(seconds);
+                    setIsRestTimerRunning(true);
+                  }}
+                  onToggleWarmup={(exerciseId, setIndex) => {
+                    updateDraft(exerciseId, (currentDraft) => ({
+                      ...currentDraft,
+                      setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
+                        currentIndex === setIndex
+                          ? { ...setDraft, isWarmup: !setDraft.isWarmup }
+                          : setDraft
+                      ),
+                    }));
+                  }}
+                  onToggleSubstitution={(exerciseId) => {
+                    updateDraft(exerciseId, (currentDraft) => ({
+                      ...currentDraft,
+                      isSubstitution: !currentDraft.isSubstitution,
+                      substituteName: currentDraft.isSubstitution
+                        ? ''
+                        : currentDraft.substituteName || currentExercise.exerciseName,
+                    }));
+                  }}
+                  progressionError={progressionError}
+                  progressionRecommendation={progressionRecommendations[currentExercise.id] ?? null}
+                />
+              ) : null}
+            </View>
+          ) : (
+            <AtlasCard>
+              <AtlasText variant="body" tone="muted">
+                This route day does not have planned exercises yet.
+              </AtlasText>
+            </AtlasCard>
+          )}
+
+          {/* Completion summary */}
+          <AtlasCard style={{ gap: 7 }}>
+            <SectionLabel>Completion Summary</SectionLabel>
+            <AtlasText variant="body" tone="muted">
+              {session.templateName ?? 'Route'} · {session.templateDayName ?? 'Workout'}
+            </AtlasText>
+            <AtlasText variant="body" tone="muted">
+              {session.exercises.length} exercises, {loggedWorkingSets} logged working sets
+              {totalVolume > 0 ? `, ${totalVolume} lb volume` : ''}
+            </AtlasText>
+            <AtlasText variant="body" tone="muted">
+              Notes {hasNotes ? 'saved' : 'pending'} · Substitutions{' '}
+              {hasSubstitutions ? 'included' : 'none'}
+            </AtlasText>
+          </AtlasCard>
+
+          <AtlasButton
+            label={
+              session.status === 'completed'
+                ? 'Workout Complete'
+                : isCompleting
+                  ? 'Completing…'
+                  : 'Complete Workout'
+            }
+            onPress={() => onComplete(completeInput)}
+            disabled={isCompleting || session.status !== 'active'}
+            leftIcon={<MaterialCommunityIcons name="flag-checkered" size={20} color={c.onGold} />}
+            accessibilityLabel="Complete workout"
+          />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+}
+
+function TimerButton({
+  icon,
+  label,
+  onPress,
+  accessibilityLabel,
+}: {
+  icon: 'play' | 'pause' | 'refresh';
+  label: string;
+  onPress: () => void;
+  accessibilityLabel: string;
+}) {
+  const { c, radius } = useAtlasTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      style={({ pressed }) => [
+        {
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 2,
+          minWidth: 52,
+          minHeight: 44,
+          borderRadius: radius.field,
+          borderWidth: 1,
+          borderColor: c.goldBorder,
+          paddingHorizontal: 8,
+        },
+        pressed && { opacity: 0.85 },
+      ]}>
+      <Ionicons name={icon} size={18} color={c.goldSoft} />
+      <AtlasText variant="micro" tone="gold">
+        {label}
+      </AtlasText>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-  },
-  backButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  caption: {
-    fontSize: 13,
-    letterSpacing: 1,
-    lineHeight: 18,
-    textTransform: 'uppercase',
-  },
-  centerText: {
-    textAlign: 'center',
-  },
-  completeButton: {
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 54,
-    paddingHorizontal: 16,
-  },
-  completeButtonText: {
-    fontSize: 15,
-    fontWeight: '800',
-    lineHeight: 20,
-    textTransform: 'uppercase',
-  },
-  completionSummary: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 7,
-    padding: 15,
-  },
-  content: {
-    gap: 18,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  effortChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    flexBasis: '46%',
-    flexGrow: 1,
-    minHeight: 38,
-    justifyContent: 'center',
-    paddingHorizontal: 10,
-  },
-  effortChipText: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  effortGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  exerciseCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 12,
-    padding: 15,
-  },
-  exerciseFocusStack: {
-    gap: 12,
-  },
-  exerciseHeader: {
-    gap: 4,
-  },
-  exerciseList: {
-    gap: 12,
-  },
-  exerciseMeta: {
-    flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  exerciseName: {
-    flexShrink: 1,
-    fontSize: 19,
-    lineHeight: 25,
-  },
-  exerciseNavRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  exerciseRail: {
-    flexGrow: 0,
-  },
-  exerciseRailChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 38,
-    paddingHorizontal: 12,
-  },
-  exerciseRailContent: {
-    gap: 8,
-    paddingRight: 2,
-  },
-  exerciseRailText: {
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 18,
-    textTransform: 'uppercase',
-  },
-  header: {
-    gap: 5,
-  },
-  historyContent: {
-    gap: 7,
-  },
-  historyDetailLine: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  historyEmptyText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  historyLine: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  historyPanel: {
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 8,
-    padding: 12,
-  },
-  historySubhead: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  historySubsection: {
-    gap: 4,
-  },
-  historyTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  historyValue: {
-    fontWeight: '700',
-  },
-  input: {
-    borderRadius: 12,
-    borderWidth: 1,
-    flex: 1,
-    fontSize: 16,
-    minHeight: 44,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
   loadingContainer: {
     alignItems: 'center',
     flex: 1,
     gap: 12,
     justifyContent: 'center',
     paddingHorizontal: 24,
-  },
-  loadingText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  notesInput: {
-    borderRadius: 14,
-    borderWidth: 1,
-    fontSize: 15,
-    minHeight: 72,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    textAlignVertical: 'top',
-  },
-  progressionContent: {
-    gap: 7,
-  },
-  progressionPanel: {
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 8,
-    padding: 12,
-  },
-  restTimerActions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'flex-end',
-  },
-  restTimerHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  restTimerPanel: {
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 8,
-    padding: 14,
-  },
-  restTimerValue: {
-    fontSize: 24,
-    lineHeight: 30,
-  },
-  screen: {
-    flex: 1,
-  },
-  secondaryButton: {
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: 16,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 20,
-    textTransform: 'uppercase',
-  },
-  setList: {
-    gap: 8,
-  },
-  setListHeader: {
-    gap: 4,
-  },
-  setCard: {
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 8,
-    padding: 10,
-  },
-  setCardHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  setInputRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  setNumber: {
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  setUtilityRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  sessionOverview: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 12,
-    padding: 15,
-  },
-  sessionOverviewHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  sessionOverviewTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-  },
-  sessionOverviewTitleBlock: {
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  summaryTile: {
-    borderRadius: 14,
-    borderWidth: 1,
-    flexBasis: '30%',
-    flexGrow: 1,
-    gap: 4,
-    minHeight: 68,
-    minWidth: 120,
-    padding: 10,
-  },
-  summaryValue: {
-    fontSize: 17,
-    lineHeight: 22,
-  },
-  supportingText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  title: {
-    fontSize: 34,
-    lineHeight: 38,
-  },
-  timerButton: {
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 36,
-    paddingHorizontal: 10,
-  },
-  timerButtonText: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  timerInlineButton: {
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 34,
-    paddingHorizontal: 10,
-  },
-  timerInlineButtonText: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  warmupChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 34,
-    minWidth: 86,
-    paddingHorizontal: 12,
-  },
-  warmupChipText: {
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 18,
   },
 });

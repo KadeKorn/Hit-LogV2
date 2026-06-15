@@ -1,16 +1,15 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { AtlasButton, AtlasCard, AtlasPill, AtlasText, TopoBackground, Waypoint } from '@/components/atlas';
 import type {
   CompletedSessionSummary,
   ExerciseHistoryLookupItem,
   ExerciseHistoryPerformance,
   ExerciseHistorySet,
 } from '@/db/repositories/v2-history-repository';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAtlasTheme } from '@/hooks/use-atlas-theme';
 
 type V2HistoryScreenContentProps = {
   completedSessions: CompletedSessionSummary[];
@@ -23,37 +22,6 @@ type V2HistoryScreenContentProps = {
   onSelectExercise: (exerciseHistoryKey: string) => void;
   selectedExerciseHistoryKey: string | null;
 };
-
-type HistoryPalette = {
-  accent: string;
-  border: string;
-  muted: string;
-  primaryButtonText: string;
-  surface: string;
-  surfaceMuted: string;
-};
-
-function getPalette(colorScheme: 'light' | 'dark'): HistoryPalette {
-  if (colorScheme === 'light') {
-    return {
-      accent: '#0A7EA4',
-      border: '#D5DDE5',
-      muted: '#5E6A75',
-      primaryButtonText: '#FFFFFF',
-      surface: '#F3F5F7',
-      surfaceMuted: '#E8EDF1',
-    };
-  }
-
-  return {
-    accent: '#D7F75B',
-    border: '#2A3138',
-    muted: '#93A0AB',
-    primaryButtonText: '#11151A',
-    surface: '#171B20',
-    surfaceMuted: '#11151A',
-  };
-}
 
 function formatDate(value: string): string {
   const parsedDate = new Date(value);
@@ -70,7 +38,7 @@ function formatDate(value: string): string {
 }
 
 function formatSessionSubtitle(session: CompletedSessionSummary): string {
-  return [session.templateName, session.templateDayName].filter(Boolean).join(' - ') || 'V2 workout';
+  return [session.templateName, session.templateDayName].filter(Boolean).join(' · ') || 'V2 workout';
 }
 
 function formatVolume(value: number): string {
@@ -100,15 +68,10 @@ export function V2HistoryScreenContent({
   onSelectExercise,
   selectedExerciseHistoryKey,
 }: V2HistoryScreenContentProps) {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const palette = getPalette(colorScheme);
-  const theme = Colors[colorScheme];
+  const { c, spacing } = useAtlasTheme();
   const [isShowingAllCompletedSessions, setIsShowingAllCompletedSessions] = useState(false);
   const displayedCompletedSessions = useMemo(
-    () =>
-      isShowingAllCompletedSessions
-        ? completedSessions
-        : completedSessions.slice(0, 5),
+    () => (isShowingAllCompletedSessions ? completedSessions : completedSessions.slice(0, 5)),
     [completedSessions, isShowingAllCompletedSessions]
   );
   const canToggleCompletedSessions = completedSessions.length > 5;
@@ -117,356 +80,189 @@ export function V2HistoryScreenContent({
 
   if (isLoading) {
     return (
-      <ThemedView style={styles.centeredState}>
-        <ActivityIndicator color={palette.accent} />
-        <ThemedText style={[styles.stateText, { color: palette.muted }]}>
-          Loading history
-        </ThemedText>
-      </ThemedView>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <ActivityIndicator color={c.gold} />
+        <AtlasText variant="label" tone="muted">
+          Loading the Trail…
+        </AtlasText>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <ThemedView style={styles.centeredState}>
-        <ThemedText type="subtitle">History</ThemedText>
-        <ThemedText style={[styles.stateText, { color: palette.muted }]}>
-          Unable to load workout history.
-        </ThemedText>
-      </ThemedView>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 }}>
+        <AtlasText variant="title" tone="strong">
+          Trail unavailable
+        </AtlasText>
+        <AtlasText variant="body" tone="muted" style={{ textAlign: 'center' }}>
+          Unable to load your training history.
+        </AtlasText>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>History</ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            Workout History
-          </ThemedText>
-        </View>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <TopoBackground />
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenX,
+            paddingTop: 8,
+            paddingBottom: 36,
+            gap: 22,
+          }}>
+          <View style={{ gap: 4 }}>
+            <AtlasText variant="micro" tone="gold">
+              History
+            </AtlasText>
+            <AtlasText variant="h1" tone="strong">
+              Trail
+            </AtlasText>
+            <AtlasText variant="body" tone="muted" style={{ marginTop: 2 }}>
+              Every session you&apos;ve logged, mapped.
+            </AtlasText>
+          </View>
 
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: palette.accent }]}>
-            Completed Sessions
-          </ThemedText>
-          {completedSessions.length === 0 ? (
-            <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                Completed workouts will appear here after you finish a V2 workout.
-              </ThemedText>
-            </View>
-          ) : (
-            <View style={styles.list}>
-              {displayedCompletedSessions.map((session) => (
-                <Pressable
-                  accessibilityLabel={`Open workout completed ${formatDate(session.completedAt)}`}
-                  accessibilityRole="button"
-                  key={session.id}
-                  onPress={() => onOpenSession(session.id)}
-                  style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                  <View style={styles.cardHeader}>
-                    <View style={styles.cardTitleBlock}>
-                      <ThemedText style={[styles.dateText, { color: palette.accent }]}>
-                        {formatDate(session.completedAt)}
-                      </ThemedText>
-                      <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                        {formatSessionSubtitle(session)}
-                      </ThemedText>
-                    </View>
-                    {session.hasNotes ? (
-                      <View style={[styles.notePill, { borderColor: palette.border }]}>
-                        <ThemedText style={[styles.notePillText, { color: palette.muted }]}>
-                          Notes
-                        </ThemedText>
-                      </View>
-                    ) : null}
-                  </View>
-                  <View style={styles.metaGrid}>
-                    <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                      {session.completedExerciseCount} exercises
-                    </ThemedText>
-                    <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                      {session.workingSetCount} working sets
-                    </ThemedText>
-                    <ThemedText style={[styles.metaText, { color: palette.muted }]}>
-                      {formatVolume(session.totalVolume)} volume
-                    </ThemedText>
-                  </View>
-                </Pressable>
-              ))}
-              {canToggleCompletedSessions ? (
-                <Pressable
-                  accessibilityLabel={
-                    isShowingAllCompletedSessions
-                      ? 'Show fewer completed sessions'
-                      : 'View all completed sessions'
-                  }
-                  accessibilityRole="button"
-                  onPress={() => setIsShowingAllCompletedSessions((currentValue) => !currentValue)}
-                  style={[styles.secondaryControl, { borderColor: palette.border }]}>
-                  <ThemedText style={[styles.secondaryControlText, { color: palette.accent }]}>
-                    {isShowingAllCompletedSessions ? 'Show less' : 'View all completed sessions'}
-                  </ThemedText>
-                </Pressable>
-              ) : null}
-            </View>
-          )}
-        </View>
-
-        <View style={styles.section}>
-          <ThemedText style={[styles.sectionLabel, { color: palette.accent }]}>
-            Exercise History
-          </ThemedText>
-          {exerciseHistoryLookup.length === 0 ? (
-            <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-              <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                Exercise history will appear after you complete working sets.
-              </ThemedText>
-            </View>
-          ) : (
-            <View style={styles.exerciseHistoryLayout}>
-              <ScrollView
-                contentContainerStyle={styles.exerciseChipRow}
-                horizontal
-                showsHorizontalScrollIndicator={false}>
-                {exerciseHistoryLookup.map((exercise) => {
-                  const isSelected = exercise.exerciseHistoryKey === selectedExerciseHistoryKey;
-
-                  return (
-                    <Pressable
-                      accessibilityLabel={`Show ${exercise.exerciseName} history`}
-                      accessibilityRole="button"
-                      key={exercise.exerciseHistoryKey}
-                      onPress={() => onSelectExercise(exercise.exerciseHistoryKey)}
-                      style={[
-                        styles.exerciseChip,
-                        {
-                          backgroundColor: isSelected ? palette.accent : 'transparent',
-                          borderColor: isSelected ? palette.accent : palette.border,
-                        },
-                      ]}>
-                      <ThemedText
-                        style={[
-                          styles.exerciseChipText,
-                          { color: isSelected ? palette.primaryButtonText : theme.text },
-                        ]}>
-                        {exercise.exerciseName}
-                      </ThemedText>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-
-              {hasLoadedSelectedExercise && exerciseHistoryPerformances.length === 0 ? (
-                <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-                  <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                    Exercise history will appear after you complete working sets.
-                  </ThemedText>
-                </View>
-              ) : (
-                <View style={styles.list}>
-                  {exerciseHistoryPerformances.map((performance) => (
+          {/* Logged Sessions */}
+          <View style={{ gap: 12 }}>
+            <AtlasText variant="micro" tone="gold">
+              Logged Sessions
+            </AtlasText>
+            {completedSessions.length === 0 ? (
+              <AtlasCard variant="field">
+                <AtlasText variant="body" tone="muted">
+                  Logged sessions will appear here after you finish a session.
+                </AtlasText>
+              </AtlasCard>
+            ) : (
+              <View style={{ gap: 12 }}>
+                {displayedCompletedSessions.map((session) => (
+                  <AtlasCard
+                    key={session.id}
+                    onPress={() => onOpenSession(session.id)}
+                    accessibilityLabel={`Open session logged ${formatDate(session.completedAt)}`}
+                    style={{ gap: 10 }}>
                     <View
-                      key={`${performance.sessionId}-${performance.completedAt}`}
-                      style={[
-                        styles.card,
-                        { backgroundColor: palette.surface, borderColor: palette.border },
-                      ]}>
-                      <ThemedText style={[styles.dateText, { color: palette.accent }]}>
-                        {formatDate(performance.completedAt)}
-                      </ThemedText>
-                      <ThemedText type="defaultSemiBold" style={styles.cardTitle}>
-                        {[performance.templateName, performance.templateDayName]
-                          .filter(Boolean)
-                          .join(' - ') || 'V2 workout'}
-                      </ThemedText>
-                      <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                        Best set: {performance.bestSet ? formatSet(performance.bestSet) : 'No working set'}
-                      </ThemedText>
-                      <ThemedText style={[styles.setLine, { color: theme.text }]}>
-                        {formatSets(performance.workingSets)}
-                      </ThemedText>
-                      {performance.exerciseNotes ? (
-                        <View
-                          style={[
-                            styles.noteBlock,
-                            { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-                          ]}>
-                          <ThemedText style={[styles.noteLabel, { color: palette.muted }]}>
-                            Notes
-                          </ThemedText>
-                          <ThemedText style={styles.noteText}>{performance.exerciseNotes}</ThemedText>
+                      style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Waypoint state="done" size={11} />
+                          <AtlasText variant="micro" tone="gold">
+                            {formatDate(session.completedAt)}
+                          </AtlasText>
                         </View>
-                      ) : null}
+                        <AtlasText variant="cardTitle" tone="strong" style={{ marginTop: 5 }}>
+                          {formatSessionSubtitle(session)}
+                        </AtlasText>
+                      </View>
+                      {session.hasNotes ? <AtlasPill label="Notes" tone="neutral" /> : null}
                     </View>
+                    <AtlasText variant="label" tone="muted">
+                      {session.completedExerciseCount} exercises · {session.workingSetCount} working sets ·{' '}
+                      {formatVolume(session.totalVolume)} volume
+                    </AtlasText>
+                  </AtlasCard>
+                ))}
+                {canToggleCompletedSessions ? (
+                  <AtlasButton
+                    variant="ghost"
+                    label={isShowingAllCompletedSessions ? 'Show less' : 'View all logged sessions'}
+                    onPress={() => setIsShowingAllCompletedSessions((currentValue) => !currentValue)}
+                    accessibilityLabel={
+                      isShowingAllCompletedSessions
+                        ? 'Show fewer logged sessions'
+                        : 'View all logged sessions'
+                    }
+                  />
+                ) : null}
+              </View>
+            )}
+          </View>
+
+          {/* Movement History */}
+          <View style={{ gap: 12 }}>
+            <AtlasText variant="micro" tone="gold">
+              Movement History
+            </AtlasText>
+            {exerciseHistoryLookup.length === 0 ? (
+              <AtlasCard variant="field">
+                <AtlasText variant="body" tone="muted">
+                  Movement history will appear after you complete working sets.
+                </AtlasText>
+              </AtlasCard>
+            ) : (
+              <View style={{ gap: 12 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+                  {exerciseHistoryLookup.map((exercise) => (
+                    <AtlasPill
+                      key={exercise.exerciseHistoryKey}
+                      label={exercise.exerciseName}
+                      selected={exercise.exerciseHistoryKey === selectedExerciseHistoryKey}
+                      onPress={() => onSelectExercise(exercise.exerciseHistoryKey)}
+                    />
                   ))}
-                </View>
-              )}
-            </View>
-          )}
-        </View>
-      </ScrollView>
-    </ThemedView>
+                </ScrollView>
+
+                {hasLoadedSelectedExercise && exerciseHistoryPerformances.length === 0 ? (
+                  <AtlasCard variant="field">
+                    <AtlasText variant="body" tone="muted">
+                      Movement history will appear after you complete working sets.
+                    </AtlasText>
+                  </AtlasCard>
+                ) : (
+                  <View style={{ gap: 12 }}>
+                    {exerciseHistoryPerformances.map((performance) => (
+                      <AtlasCard key={`${performance.sessionId}-${performance.completedAt}`} style={{ gap: 7 }}>
+                        <AtlasText variant="micro" tone="gold">
+                          {formatDate(performance.completedAt)}
+                        </AtlasText>
+                        <AtlasText variant="cardTitle" tone="strong">
+                          {[performance.templateName, performance.templateDayName]
+                            .filter(Boolean)
+                            .join(' · ') || 'V2 workout'}
+                        </AtlasText>
+                        <AtlasText variant="label" tone="muted">
+                          Best set:{' '}
+                          <AtlasText variant="label" tone="strong">
+                            {performance.bestSet ? formatSet(performance.bestSet) : 'No working set'}
+                          </AtlasText>
+                        </AtlasText>
+                        <AtlasText variant="body" tone="default">
+                          {formatSets(performance.workingSets)}
+                        </AtlasText>
+                        {performance.exerciseNotes ? (
+                          <View
+                            style={{
+                              backgroundColor: c.field,
+                              borderColor: c.cardBorder,
+                              borderWidth: 1,
+                              borderRadius: 14,
+                              padding: 12,
+                              gap: 6,
+                            }}>
+                            <AtlasText variant="micro" tone="faint">
+                              Notes
+                            </AtlasText>
+                            <AtlasText variant="body" tone="default">
+                              {performance.exerciseNotes}
+                            </AtlasText>
+                          </View>
+                        ) : null}
+                      </AtlasCard>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 10,
-    padding: 15,
-  },
-  cardHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  cardTitle: {
-    flexShrink: 1,
-    fontSize: 19,
-    lineHeight: 25,
-  },
-  cardTitleBlock: {
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
-  caption: {
-    fontSize: 13,
-    letterSpacing: 1,
-    lineHeight: 18,
-    textTransform: 'uppercase',
-  },
-  centeredState: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  content: {
-    gap: 18,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  dateText: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  exerciseChip: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 38,
-    paddingHorizontal: 13,
-  },
-  exerciseChipRow: {
-    gap: 8,
-    paddingRight: 20,
-  },
-  exerciseChipText: {
-    fontSize: 13,
-    fontWeight: '800',
-    lineHeight: 18,
-  },
-  exerciseHistoryLayout: {
-    gap: 12,
-  },
-  header: {
-    gap: 4,
-  },
-  list: {
-    gap: 12,
-  },
-  metaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  metaText: {
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  noteBlock: {
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 6,
-    padding: 12,
-  },
-  noteLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  notePill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  notePillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  noteText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  screen: {
-    flex: 1,
-  },
-  secondaryControl: {
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: 16,
-  },
-  secondaryControlText: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 20,
-    textTransform: 'uppercase',
-  },
-  section: {
-    gap: 10,
-  },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1.1,
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  setLine: {
-    fontSize: 15,
-    lineHeight: 21,
-  },
-  stateText: {
-    textAlign: 'center',
-  },
-  supportingText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  title: {
-    fontSize: 34,
-    lineHeight: 38,
-  },
-});

@@ -268,7 +268,9 @@ Warmups, blank/incomplete sets, legacy Yates data, bodyweight data, wearable dat
 
 ## Current Phase
 
-Phase 10 is implemented and ready for user manual verification.
+Phase 11 - Lift Atlas brand pass, visual migration in progress.
+
+The Lift Atlas visual system (Dark Atlas + Light Atlas) and the primary screens — Today, Atlas, Trail, Progress, the active workout/session screen, and Settings data tools — have been migrated to the gold cartographic design, and an in-app Appearance selector is live. App rename and onboarding remain.
 
 ## Recently Completed Phases
 
@@ -335,6 +337,15 @@ Scope:
 - Update onboarding
 - Update visual identity
 - Make the product feel like a training map rather than a workout logger
+
+Implemented so far:
+
+- Lift Atlas design tokens and theme system with Dark Atlas and Light Atlas modes.
+- Sora / Inter / Bebas Neue typography and a reusable Atlas component kit (topographic background, compass mark, route line, waypoints, cards, buttons, pills, stat tiles).
+- Visual migration of Today, Atlas (Library), Trail (History), Progress, the active workout/session screen, and Settings data tools, using Routes / Waypoints / Trail / Movements language.
+- In-app Appearance selector (System / Dark Atlas / Light Atlas) with a persisted preference.
+
+Still pending: app rename and onboarding. These visual changes preserved existing data behavior, schema, and export shape.
 
 ## Long-Term Direction
 

@@ -140,6 +140,7 @@ Implemented Phase 10 behavior:
 - Legacy workout-log export data remains present where the existing export already included it, but V2 backup counts are separated from legacy counts in the summary.
 - Settings exposes a completed-workout CSV export for user-readable review of completed sessions, completed exercises, and set logs.
 - Import/restore is intentionally disabled in Phase 10. A destructive restore flow must not be added until it can validate export shape, show a summary, require confirmation, and replace local app data transactionally without partial writes.
+- Settings includes an Appearance selector with System, Dark Atlas, and Light Atlas options. The choice persists across launches and applies app-wide; System follows the device color scheme.
 
 ## Template model
 
@@ -503,6 +504,8 @@ Goal: transition HIT Log V2 into Lift Atlas.
 High-level scope: app rename, branding, product copy, onboarding, visual identity, and a training-map product feel.
 
 Intended user value: the product gains a clearer long-term identity once the training system is solid.
+
+Implemented so far (visual migration): Lift Atlas design tokens with Dark Atlas and Light Atlas modes, Sora/Inter/Bebas typography, a reusable Atlas component kit, migrated Today/Atlas/Trail/Progress/workout/Settings screens, and a persisted in-app Appearance selector. App rename and onboarding remain. The visual migration did not change data behavior, schema, or export shape.
 
 ## Local-first data
 

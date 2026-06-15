@@ -203,8 +203,21 @@
 ## Phase 11 - Lift Atlas Brand Pass
 
 - [ ] Rename app
-- [ ] Update branding
-- [ ] Update product copy
+- [x] Update branding
+- [x] Update product copy
 - [ ] Update onboarding
-- [ ] Update visual identity
-- [ ] Shift product feel toward a training map
+- [x] Update visual identity
+- [x] Shift product feel toward a training map
+
+### Phase 11 - Visual Migration
+
+- [x] Add Atlas design tokens and theme system (Dark Atlas + Light Atlas)
+- [x] Load Sora / Inter / Bebas Neue fonts
+- [x] Build Atlas component kit (cards, buttons, pills, stat tiles, topo background, compass mark, route line, waypoints)
+- [x] Migrate Today screen
+- [x] Migrate Atlas (Library) screen
+- [x] Migrate Trail (History) screen
+- [x] Migrate Progress screen
+- [x] Migrate active workout/session screen
+- [x] Migrate Settings data tools
+- [x] Add in-app Appearance selector (System / Dark Atlas / Light Atlas, persisted)

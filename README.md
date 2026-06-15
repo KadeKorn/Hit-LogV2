@@ -48,6 +48,8 @@ Bottom navigation for V2:
 - Progress
 - Settings
 
+Under the Lift Atlas visual system these routes are surfaced in-app as Today, Atlas, Trail, Progress, and Settings (same routes, renamed for the training-map language).
+
 Before an active routine exists, Library is central. After an active routine exists, Train becomes central.
 
 ## Training Flow
@@ -90,9 +92,9 @@ Read these before making meaningful changes:
 
 ## Current Phase
 
-Phase 10 - Export / Backup / Import.
+Phase 11 - Lift Atlas brand pass (visual migration in progress).
 
-Phase 9 is complete. Phase 10 is implemented and ready for user manual verification.
+Phase 10 is complete. The Lift Atlas visual system and the primary in-app screens have been migrated to the new gold cartographic design; app rename and onboarding remain.
 
 ## Current Status
 
@@ -121,6 +123,9 @@ The History tab is the top-level factual record for completed V2 workouts. Libra
 - Expanded exercise library with richer deterministic metadata and inline custom exercise creation during custom template editing
 - Local-first JSON backup export with V2 schema/export summary metadata and separated legacy counts
 - Completed-workout CSV export for user-readable session, exercise, and set-log review
+- Lift Atlas visual system: gold cartographic design tokens (Dark Atlas + Light Atlas), Sora/Inter/Bebas typography, and a reusable Atlas component kit (topographic background, compass mark, route line, waypoints, cards, buttons, pills, stat tiles)
+- Lift Atlas screen migration for Today, Atlas (Library), Trail (History), Progress, the active workout/session screen, and Settings data tools
+- In-app Appearance selector (System / Dark Atlas / Light Atlas) with a persisted preference
 
 ## Backup Workflow
 
@@ -132,6 +137,6 @@ Database startup runs migrations and deterministic seed upserts idempotently, th
 
 ## Upcoming Roadmap
 
-The next planned phase is the Lift Atlas brand pass.
+The Lift Atlas brand pass is underway: the visual identity and primary screens are migrated. Remaining brand-pass work includes the app rename and onboarding.
 
 See `docs/ROADMAP.md` for the full phase roadmap.

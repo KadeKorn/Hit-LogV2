@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TopoBackground } from '@/components/atlas';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { AtlasColors, AtlasFonts } from '@/constants/atlas-theme';
 import type {
   ExercisePrescriptionDetail,
   TemplateDayDetail,
@@ -84,12 +84,14 @@ type TemplateDetailScreenContentProps = {
 
 type DetailPalette = {
   accent: string;
+  background: string;
   border: string;
   destructive: string;
   muted: string;
   primaryButtonText: string;
   surface: string;
   surfaceMuted: string;
+  text: string;
 };
 
 const PROGRESSION_METHODS: ProgressionMethod[] = [
@@ -133,26 +135,18 @@ const CUSTOM_EXERCISE_MUSCLE_GROUPS = MUSCLE_GROUP_ORDER.filter(
 );
 
 function getPalette(colorScheme: 'light' | 'dark'): DetailPalette {
-  if (colorScheme === 'light') {
-    return {
-      surface: '#F3F5F7',
-      surfaceMuted: '#E8EDF1',
-      border: '#D5DDE5',
-      muted: '#5E6A75',
-      accent: '#0A7EA4',
-      destructive: '#B42318',
-      primaryButtonText: '#FFFFFF',
-    };
-  }
+  const a = AtlasColors[colorScheme];
 
   return {
-    surface: '#171B20',
-    surfaceMuted: '#11151A',
-    border: '#2A3138',
-    muted: '#93A0AB',
-    accent: '#D7F75B',
-    destructive: '#FF8A7A',
-    primaryButtonText: '#11151A',
+    accent: a.gold,
+    background: a.bg,
+    border: a.cardBorder,
+    destructive: a.warning,
+    muted: a.muted,
+    primaryButtonText: a.onGold,
+    surface: a.surface,
+    surfaceMuted: a.field,
+    text: a.text,
   };
 }
 
@@ -325,9 +319,6 @@ function LabeledInput({
   placeholder: string;
   value: string;
 }) {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const theme = Colors[colorScheme];
-
   return (
     <View style={styles.inputGroup}>
       <ThemedText style={[styles.inputLabel, { color: palette.muted }]}>{label}</ThemedText>
@@ -339,7 +330,7 @@ function LabeledInput({
         placeholderTextColor={palette.muted}
         style={[
           multiline ? styles.textArea : styles.textInput,
-          { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: theme.text },
+          { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: palette.text },
         ]}
         value={value}
       />
@@ -410,8 +401,6 @@ function ExerciseSelector({
   palette: DetailPalette;
   selectedExerciseDefinitionId: string;
 }) {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const theme = Colors[colorScheme];
   const [searchQuery, setSearchQuery] = useState('');
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const filteredExerciseDefinitions = useMemo(() => {
@@ -450,7 +439,7 @@ function ExerciseSelector({
         placeholderTextColor={palette.muted}
         style={[
           styles.textInput,
-          { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: theme.text },
+          { backgroundColor: palette.surfaceMuted, borderColor: palette.border, color: palette.text },
         ]}
         value={searchQuery}
       />
@@ -824,7 +813,7 @@ function TemplateDayCard({
       {editingDay ? (
         <View style={styles.editorPanel}>
           <LabeledInput
-            label="Day Name"
+            label="Session Name"
             onChangeText={setDayNameDraft}
             palette={palette}
             placeholder="Push Day"
@@ -840,7 +829,7 @@ function TemplateDayCard({
           <View style={styles.inlineActions}>
             <SmallButton
               disabled={isSaving || !dayNameDraft.trim()}
-              label={isSaving ? 'Saving' : 'Save Day'}
+              label={isSaving ? 'Saving' : 'Save Session'}
               onPress={() => {
                 void onUpdateDay(day.id, { focus: dayFocusDraft, name: dayNameDraft })
                   .then(() => setEditingDay(false))
@@ -902,7 +891,7 @@ function TemplateDayCard({
                     return;
                   }
 
-                  Alert.alert('Delete template day?', 'This removes the day from the custom template.', [
+                  Alert.alert('Delete session?', 'This removes the session from the custom route.', [
                     { text: 'Cancel', style: 'cancel' },
                     {
                       text: 'Delete',
@@ -920,7 +909,7 @@ function TemplateDayCard({
           ) : null}
           {canEdit && !canDeleteDay ? (
             <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-              A template needs at least one day.
+              A route needs at least one session.
             </ThemedText>
           ) : null}
         </View>
@@ -1023,7 +1012,7 @@ function TemplateDayCard({
         </View>
       ) : (
         <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-          Planned exercises have not been filled in for this template yet.
+          Planned exercises have not been filled in for this route yet.
         </ThemedText>
       )}
 
@@ -1082,10 +1071,10 @@ function getEditingGuardrailSummary(analysis: TemplateAnalysisResult): string {
   }
 
   if (analysis.goalFitLabel === 'Low signal / insufficient metadata') {
-    return 'Add more complete prescription metadata before judging this custom template.';
+    return 'Add more complete prescription metadata before judging this custom route.';
   }
 
-  return 'This custom template still looks like a good fit.';
+  return 'This custom route still looks like a good fit.';
 }
 
 function TrainingAnalysisSection({
@@ -1182,7 +1171,7 @@ function TrainingAnalysisSection({
           </>
         ) : (
           <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-            Add prescription sets and muscle groups before this template can be analyzed.
+            Add prescription sets and muscle groups before this route can be analyzed.
           </ThemedText>
         )}
 
@@ -1230,7 +1219,6 @@ export function TemplateDetailScreenContent({
 }: TemplateDetailScreenContentProps) {
   const colorScheme = useColorScheme() ?? 'dark';
   const palette = getPalette(colorScheme);
-  const theme = Colors[colorScheme];
   const isActiveRoutine = activeRoutine?.templateId === template?.id;
   const isPrebuilt = template?.sourceType === 'prebuilt';
   const canEdit = template?.sourceType === 'custom' && template.isEditable;
@@ -1258,53 +1246,54 @@ export function TemplateDetailScreenContent({
 
   if (isLoading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: palette.background }]}>
         <ActivityIndicator color={palette.accent} />
         <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-          Loading Template
+          Loading Route
         </ThemedText>
-      </ThemedView>
+      </View>
     );
   }
 
   if (error || !template || !analysis) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ThemedText type="subtitle">Template</ThemedText>
+      <View style={[styles.loadingContainer, { backgroundColor: palette.background }]}>
+        <ThemedText type="subtitle">Route</ThemedText>
         <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-          Unable to load this template right now.
+          Unable to load this route right now.
         </ThemedText>
         <DetailButton
-          accessibilityLabel="Go back to Library"
-          label="Back to Library"
+          accessibilityLabel="Go back to Atlas"
+          label="Back to Atlas"
           onPress={onBack}
           palette={palette}
           variant="secondary"
         />
-      </ThemedView>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: palette.background }]}>
+      <TopoBackground />
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         <ScrollView
           contentContainerStyle={styles.content}
           contentInsetAdjustmentBehavior="automatic"
           showsVerticalScrollIndicator={false}>
           <Pressable
-            accessibilityLabel="Go back to Library"
+            accessibilityLabel="Go back to Atlas"
             accessibilityRole="button"
             onPress={onBack}
             style={styles.backButton}>
             <ThemedText style={[styles.backButtonText, { color: palette.accent }]}>
-              Back to Library
+              Back to Atlas
             </ThemedText>
           </Pressable>
 
           <View style={styles.header}>
             <ThemedText style={[styles.caption, { color: palette.muted }]}>
-              {isPrebuilt ? 'Prebuilt Template' : 'Custom Template'}
+              {isPrebuilt ? 'Prebuilt Route' : 'Custom Route'}
             </ThemedText>
             {isEditing ? (
               <View style={styles.editForm}>
@@ -1346,7 +1335,7 @@ export function TemplateDetailScreenContent({
                   {template.name}
                 </ThemedText>
                 {template.description ? (
-                  <ThemedText style={[styles.description, { color: theme.text }]}>
+                  <ThemedText style={[styles.description, { color: palette.text }]}>
                     {template.description}
                   </ThemedText>
                 ) : null}
@@ -1381,7 +1370,7 @@ export function TemplateDetailScreenContent({
                 isActiveRoutine ? 'This template is already active' : 'Set template as active routine'
               }
               disabled={isActiveRoutine || isSettingActive}
-              label={isActiveRoutine ? 'Active Routine' : isSettingActive ? 'Setting Active' : 'Set Active'}
+              label={isActiveRoutine ? 'Active Route' : isSettingActive ? 'Setting Active' : 'Set Active'}
               onPress={onSetActive}
               palette={palette}
               variant="primary"
@@ -1398,8 +1387,8 @@ export function TemplateDetailScreenContent({
             ) : null}
             {canEdit && !isEditing ? (
               <DetailButton
-                accessibilityLabel="Edit custom template metadata"
-                label="Edit Template"
+                accessibilityLabel="Edit custom route metadata"
+                label="Edit Route"
                 onPress={() => setIsEditing(true)}
                 palette={palette}
                 variant="secondary"
@@ -1493,7 +1482,7 @@ export function TemplateDetailScreenContent({
             ) : (
               <View style={[styles.dayCard, { backgroundColor: palette.surfaceMuted, borderColor: palette.border }]}>
                 <ThemedText style={[styles.emptyText, { color: palette.muted }]}>
-                  This template does not have Phase 2C template days yet.
+                  This route does not have sessions yet.
                 </ThemedText>
               </View>
             )}
@@ -1502,7 +1491,7 @@ export function TemplateDetailScreenContent({
               isAddingDay ? (
                 <View style={[styles.dayCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
                   <LabeledInput
-                    label="Day Name"
+                    label="Session Name"
                     onChangeText={setDayNameDraft}
                     palette={palette}
                     placeholder="Upper Day"
@@ -1518,7 +1507,7 @@ export function TemplateDetailScreenContent({
                   <View style={styles.inlineActions}>
                     <SmallButton
                       disabled={isSaving || !dayNameDraft.trim()}
-                      label={isSaving ? 'Saving' : 'Save Day'}
+                      label={isSaving ? 'Saving' : 'Save Session'}
                       onPress={() => {
                         void onAddTemplateDay({ focus: dayFocusDraft, name: dayNameDraft })
                           .then(() => {
@@ -1541,9 +1530,9 @@ export function TemplateDetailScreenContent({
                 </View>
               ) : (
                 <DetailButton
-                  accessibilityLabel="Add custom template day"
+                  accessibilityLabel="Add custom session"
                   disabled={isSaving}
-                  label="Add Day"
+                  label="Add Session"
                   onPress={() => setIsAddingDay(true)}
                   palette={palette}
                   variant="secondary"
@@ -1553,7 +1542,7 @@ export function TemplateDetailScreenContent({
           </View>
         </ScrollView>
       </SafeAreaView>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -1568,6 +1557,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   analysisFit: {
+    fontFamily: AtlasFonts.displaySemi,
     fontSize: 18,
     lineHeight: 24,
   },
@@ -1578,10 +1568,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   analysisInlineText: {
+    fontFamily: AtlasFonts.body,
     fontSize: 15,
     lineHeight: 21,
   },
   analysisLabel: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
@@ -1594,6 +1586,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   analysisPillText: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
@@ -1603,6 +1596,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   analysisSummary: {
+    fontFamily: AtlasFonts.body,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -1616,12 +1610,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   backButtonText: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 15,
     fontWeight: '700',
     lineHeight: 20,
   },
   breakdownLabel: {
     flex: 1,
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 15,
     lineHeight: 20,
     minWidth: 0,
@@ -1636,6 +1632,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   breakdownValue: {
+    fontFamily: AtlasFonts.body,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -1648,12 +1645,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   buttonText: {
+    fontFamily: AtlasFonts.displaySemi,
     fontSize: 15,
     fontWeight: '800',
     lineHeight: 20,
     textTransform: 'uppercase',
   },
   caption: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 13,
     letterSpacing: 1,
     lineHeight: 18,
@@ -1671,6 +1670,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   choiceChipText: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
@@ -1700,6 +1700,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   dayFocus: {
+    fontFamily: AtlasFonts.body,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -1710,6 +1711,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   dayTitle: {
+    fontFamily: AtlasFonts.displaySemi,
     fontSize: 18,
     lineHeight: 24,
   },
@@ -1717,6 +1719,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   description: {
+    fontFamily: AtlasFonts.body,
     fontSize: 15,
     lineHeight: 22,
   },
@@ -1735,10 +1738,12 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   emptyText: {
+    fontFamily: AtlasFonts.body,
     fontSize: 14,
     lineHeight: 20,
   },
   errorText: {
+    fontFamily: AtlasFonts.body,
     textAlign: 'center',
   },
   exerciseChoice: {
@@ -1754,10 +1759,12 @@ const styles = StyleSheet.create({
     maxHeight: 280,
   },
   exerciseChoiceName: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 14,
     lineHeight: 19,
   },
   exerciseChoiceMeta: {
+    fontFamily: AtlasFonts.body,
     fontSize: 12,
     lineHeight: 16,
   },
@@ -1765,12 +1772,14 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   exerciseGroupLabel: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
     textTransform: 'uppercase',
   },
   exerciseName: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 16,
     lineHeight: 22,
   },
@@ -1787,10 +1796,12 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   helpText: {
+    fontFamily: AtlasFonts.body,
     fontSize: 13,
     lineHeight: 18,
   },
   helpTitle: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
@@ -1810,6 +1821,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inputLabel: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
@@ -1823,6 +1835,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   loadingText: {
+    fontFamily: AtlasFonts.body,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -1832,6 +1845,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   metaLabel: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 16,
@@ -1849,6 +1863,7 @@ const styles = StyleSheet.create({
   },
   metaValue: {
     flexShrink: 1,
+    fontFamily: AtlasFonts.displaySemi,
     fontSize: 16,
     lineHeight: 21,
   },
@@ -1858,6 +1873,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   messageText: {
+    fontFamily: AtlasFonts.body,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -1870,10 +1886,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   prescriptionMeta: {
+    fontFamily: AtlasFonts.body,
     fontSize: 13,
     lineHeight: 18,
   },
   prescriptionNotes: {
+    fontFamily: AtlasFonts.body,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -1899,6 +1917,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   sectionTitle: {
+    fontFamily: AtlasFonts.displaySemi,
     fontSize: 22,
     lineHeight: 28,
   },
@@ -1911,6 +1930,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   smallButtonText: {
+    fontFamily: AtlasFonts.bodySemi,
     fontSize: 12,
     fontWeight: '800',
     lineHeight: 16,
@@ -1919,6 +1939,7 @@ const styles = StyleSheet.create({
   textArea: {
     borderRadius: 14,
     borderWidth: 1,
+    fontFamily: AtlasFonts.body,
     fontSize: 15,
     minHeight: 90,
     paddingHorizontal: 12,
@@ -1928,6 +1949,7 @@ const styles = StyleSheet.create({
   textInput: {
     borderRadius: 14,
     borderWidth: 1,
+    fontFamily: AtlasFonts.body,
     fontSize: 15,
     minHeight: 46,
     paddingHorizontal: 12,
@@ -1935,6 +1957,7 @@ const styles = StyleSheet.create({
   },
   title: {
     flexShrink: 1,
+    fontFamily: AtlasFonts.display,
     fontSize: 34,
     lineHeight: 38,
   },

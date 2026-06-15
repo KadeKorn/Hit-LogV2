@@ -1,13 +1,13 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { AtlasCard, AtlasPill, AtlasText, TopoBackground } from '@/components/atlas';
 import type {
   CompletedSessionDetail,
   CompletedSessionExercise,
 } from '@/db/repositories/v2-history-repository';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAtlasTheme } from '@/hooks/use-atlas-theme';
 import type { SetLog } from '@/types/domain';
 
 type V2CompletedSessionScreenContentProps = {
@@ -16,34 +16,6 @@ type V2CompletedSessionScreenContentProps = {
   onBack: () => void;
   session: CompletedSessionDetail | null;
 };
-
-type SessionPalette = {
-  accent: string;
-  border: string;
-  muted: string;
-  surface: string;
-  surfaceMuted: string;
-};
-
-function getPalette(colorScheme: 'light' | 'dark'): SessionPalette {
-  if (colorScheme === 'light') {
-    return {
-      accent: '#0A7EA4',
-      border: '#D5DDE5',
-      muted: '#5E6A75',
-      surface: '#F3F5F7',
-      surfaceMuted: '#E8EDF1',
-    };
-  }
-
-  return {
-    accent: '#D7F75B',
-    border: '#2A3138',
-    muted: '#93A0AB',
-    surface: '#171B20',
-    surfaceMuted: '#11151A',
-  };
-}
 
 function formatDate(value: string): string {
   const parsedDate = new Date(value);
@@ -67,7 +39,7 @@ function formatEffort(exercise: CompletedSessionExercise): string | null {
   const effort = exercise.effortRating
     ? exercise.effortRating.charAt(0).toUpperCase() + exercise.effortRating.slice(1)
     : 'Effort';
-  const rir = exercise.estimatedRir == null ? '' : ` - ${exercise.estimatedRir} RIR`;
+  const rir = exercise.estimatedRir == null ? '' : ` · ${exercise.estimatedRir} RIR`;
 
   return `${effort}${rir}`;
 }
@@ -80,37 +52,61 @@ function formatSet(set: SetLog): string {
   return `${set.weight} x ${set.reps}`;
 }
 
-function SetGroup({
-  label,
-  palette,
-  sets,
-  textColor,
-}: {
-  label: string;
-  palette: SessionPalette;
-  sets: SetLog[];
-  textColor: string;
-}) {
+function BackToTrail({ onBack }: { onBack: () => void }) {
+  const { c } = useAtlasTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Return to Trail"
+      onPress={onBack}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingVertical: 4 }}>
+      <Ionicons name="chevron-back" size={18} color={c.goldSoft} />
+      <AtlasText variant="label" tone="gold">
+        Back to Trail
+      </AtlasText>
+    </Pressable>
+  );
+}
+
+function SetGroup({ label, sets }: { label: string; sets: SetLog[] }) {
+  const { c, radius } = useAtlasTheme();
+
   if (sets.length === 0) {
     return null;
   }
 
   return (
-    <View style={styles.setGroup}>
-      <ThemedText style={[styles.setGroupLabel, { color: palette.muted }]}>{label}</ThemedText>
+    <View style={{ gap: 8 }}>
+      <AtlasText variant="micro" tone="faint">
+        {label}
+      </AtlasText>
       {sets.map((set) => (
         <View
           key={set.id}
-          style={[
-            styles.setRow,
-            { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-          ]}>
-          <ThemedText style={[styles.setNumber, { color: palette.muted }]}>
+          style={{
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            backgroundColor: c.field,
+            borderColor: c.cardBorder,
+            borderWidth: 1,
+            borderRadius: radius.field,
+            paddingHorizontal: 12,
+            paddingVertical: 10,
+          }}>
+          <AtlasText variant="label" tone="muted">
             Set {set.setNumber}
-          </ThemedText>
-          <ThemedText style={[styles.setValue, { color: textColor }]}>{formatSet(set)}</ThemedText>
+          </AtlasText>
+          <AtlasText variant="bodyStrong" tone="strong">
+            {formatSet(set)}
+          </AtlasText>
           {set.notes ? (
-            <ThemedText style={[styles.setNote, { color: palette.muted }]}>{set.notes}</ThemedText>
+            <AtlasText variant="label" tone="muted" style={{ flexBasis: '100%' }}>
+              {set.notes}
+            </AtlasText>
           ) : null}
         </View>
       ))}
@@ -124,281 +120,126 @@ export function V2CompletedSessionScreenContent({
   onBack,
   session,
 }: V2CompletedSessionScreenContentProps) {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const palette = getPalette(colorScheme);
-  const theme = Colors[colorScheme];
+  const { c, spacing, radius } = useAtlasTheme();
 
   if (isLoading) {
     return (
-      <ThemedView style={styles.centeredState}>
-        <ActivityIndicator color={palette.accent} />
-        <ThemedText style={[styles.stateText, { color: palette.muted }]}>
-          Loading completed workout
-        </ThemedText>
-      </ThemedView>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <ActivityIndicator color={c.gold} />
+        <AtlasText variant="label" tone="muted">
+          Loading logged session…
+        </AtlasText>
+      </View>
     );
   }
 
   if (error || !session) {
     return (
-      <ThemedView style={styles.centeredState}>
-        <ThemedText type="subtitle">Completed Workout</ThemedText>
-        <ThemedText style={[styles.stateText, { color: palette.muted }]}>
-          Unable to load this completed workout.
-        </ThemedText>
-        <Pressable
-          accessibilityLabel="Return to History"
-          accessibilityRole="button"
-          onPress={onBack}
-          style={[styles.backButtonPanel, { borderColor: palette.border }]}>
-          <ThemedText style={[styles.backButtonText, { color: palette.accent }]}>
-            Back to History
-          </ThemedText>
-        </Pressable>
-      </ThemedView>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12 }}>
+        <AtlasText variant="title" tone="strong">
+          Session unavailable
+        </AtlasText>
+        <AtlasText variant="body" tone="muted" style={{ textAlign: 'center' }}>
+          Unable to load this logged session.
+        </AtlasText>
+        <BackToTrail onBack={onBack} />
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}>
-        <Pressable
-          accessibilityLabel="Return to History"
-          accessibilityRole="button"
-          onPress={onBack}
-          style={styles.backButton}>
-          <ThemedText style={[styles.backButtonText, { color: palette.accent }]}>
-            Back to History
-          </ThemedText>
-        </Pressable>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <TopoBackground />
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenX,
+            paddingTop: 8,
+            paddingBottom: 36,
+            gap: spacing.gap,
+          }}>
+          <BackToTrail onBack={onBack} />
 
-        <View style={styles.header}>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>Completed Workout</ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            {session.templateDayName ?? 'Workout'}
-          </ThemedText>
-          <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-            {session.templateName ?? 'V2 workout'} - {formatDate(session.completedAt)}
-          </ThemedText>
-        </View>
-
-        {session.notes ? (
-          <View
-            style={[styles.noteBlock, { backgroundColor: palette.surface, borderColor: palette.border }]}>
-            <ThemedText style={[styles.noteLabel, { color: palette.muted }]}>Session Notes</ThemedText>
-            <ThemedText style={styles.noteText}>{session.notes}</ThemedText>
+          <View style={{ gap: 4 }}>
+            <AtlasText variant="micro" tone="gold">
+              Logged Session
+            </AtlasText>
+            <AtlasText variant="h1" tone="strong">
+              {session.templateDayName ?? 'Workout'}
+            </AtlasText>
+            <AtlasText variant="label" tone="muted">
+              {session.templateName ?? 'V2 workout'} · {formatDate(session.completedAt)}
+            </AtlasText>
           </View>
-        ) : null}
 
-        <View style={styles.exerciseList}>
-          {session.exercises.map((exercise) => {
-            const warmupSets = exercise.setLogs.filter((set) => set.isWarmup);
-            const workingSets = exercise.setLogs.filter((set) => !set.isWarmup);
-            const effort = formatEffort(exercise);
+          {session.notes ? (
+            <AtlasCard style={{ gap: 6 }}>
+              <AtlasText variant="micro" tone="gold">
+                Session Notes
+              </AtlasText>
+              <AtlasText variant="body" tone="default">
+                {session.notes}
+              </AtlasText>
+            </AtlasCard>
+          ) : null}
 
-            return (
-              <View
-                key={exercise.id}
-                style={[
-                  styles.exerciseCard,
-                  { backgroundColor: palette.surface, borderColor: palette.border },
-                ]}>
-                <View style={styles.exerciseHeader}>
-                  <ThemedText type="defaultSemiBold" style={styles.exerciseName}>
-                    {exercise.exerciseName}
-                  </ThemedText>
-                  {exercise.isSubstitution ? (
-                    <View style={[styles.substitutionPill, { borderColor: palette.accent }]}>
-                      <ThemedText style={[styles.substitutionPillText, { color: palette.accent }]}>
-                        Substitution
-                      </ThemedText>
+          <View style={{ gap: 12 }}>
+            {session.exercises.map((exercise) => {
+              const warmupSets = exercise.setLogs.filter((set) => set.isWarmup);
+              const workingSets = exercise.setLogs.filter((set) => !set.isWarmup);
+              const effort = formatEffort(exercise);
+
+              return (
+                <AtlasCard key={exercise.id} style={{ gap: 12 }}>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                    <AtlasText variant="cardTitle" tone="strong" style={{ flex: 1 }}>
+                      {exercise.exerciseName}
+                    </AtlasText>
+                    {exercise.isSubstitution ? (
+                      <AtlasPill label="Substitution" tone="gold" dot />
+                    ) : null}
+                  </View>
+                  {effort ? (
+                    <AtlasText variant="label" tone="muted">
+                      {effort}
+                    </AtlasText>
+                  ) : null}
+
+                  <SetGroup label="Warmup Sets" sets={warmupSets} />
+                  <SetGroup label="Working Sets" sets={workingSets} />
+
+                  {warmupSets.length === 0 && workingSets.length === 0 ? (
+                    <AtlasText variant="body" tone="muted">
+                      No completed sets were logged.
+                    </AtlasText>
+                  ) : null}
+
+                  {exercise.notes ? (
+                    <View
+                      style={{
+                        backgroundColor: c.field,
+                        borderColor: c.cardBorder,
+                        borderWidth: 1,
+                        borderRadius: radius.sm,
+                        padding: 12,
+                        gap: 6,
+                      }}>
+                      <AtlasText variant="micro" tone="faint">
+                        Exercise Notes
+                      </AtlasText>
+                      <AtlasText variant="body" tone="default">
+                        {exercise.notes}
+                      </AtlasText>
                     </View>
                   ) : null}
-                </View>
-                {effort ? (
-                  <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                    {effort}
-                  </ThemedText>
-                ) : null}
-
-                <SetGroup
-                  label="Warmup Sets"
-                  palette={palette}
-                  sets={warmupSets}
-                  textColor={theme.text}
-                />
-                <SetGroup
-                  label="Working Sets"
-                  palette={palette}
-                  sets={workingSets}
-                  textColor={theme.text}
-                />
-
-                {warmupSets.length === 0 && workingSets.length === 0 ? (
-                  <ThemedText style={[styles.supportingText, { color: palette.muted }]}>
-                    No completed sets were logged.
-                  </ThemedText>
-                ) : null}
-
-                {exercise.notes ? (
-                  <View
-                    style={[
-                      styles.noteBlock,
-                      { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-                    ]}>
-                    <ThemedText style={[styles.noteLabel, { color: palette.muted }]}>
-                      Exercise Notes
-                    </ThemedText>
-                    <ThemedText style={styles.noteText}>{exercise.notes}</ThemedText>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </ThemedView>
+                </AtlasCard>
+              );
+            })}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  backButton: {
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-  },
-  backButtonPanel: {
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    justifyContent: 'center',
-    minHeight: 44,
-    paddingHorizontal: 16,
-  },
-  backButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    lineHeight: 20,
-  },
-  caption: {
-    fontSize: 13,
-    letterSpacing: 1,
-    lineHeight: 18,
-    textTransform: 'uppercase',
-  },
-  centeredState: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  content: {
-    gap: 18,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  exerciseCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 12,
-    padding: 15,
-  },
-  exerciseHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'space-between',
-  },
-  exerciseList: {
-    gap: 12,
-  },
-  exerciseName: {
-    flex: 1,
-    fontSize: 20,
-    lineHeight: 26,
-  },
-  header: {
-    gap: 5,
-  },
-  noteBlock: {
-    borderRadius: 14,
-    borderWidth: 1,
-    gap: 6,
-    padding: 12,
-  },
-  noteLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  noteText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  screen: {
-    flex: 1,
-  },
-  setGroup: {
-    gap: 8,
-  },
-  setGroupLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  setNote: {
-    flexBasis: '100%',
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  setNumber: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 18,
-  },
-  setRow: {
-    alignItems: 'center',
-    borderRadius: 14,
-    borderWidth: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  setValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  stateText: {
-    textAlign: 'center',
-  },
-  substitutionPill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  substitutionPillText: {
-    fontSize: 12,
-    fontWeight: '800',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  supportingText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  title: {
-    fontSize: 34,
-    lineHeight: 38,
-  },
-});

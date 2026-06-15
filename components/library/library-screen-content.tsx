@@ -1,10 +1,11 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ActivityIndicator, ScrollView, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
+import { AtlasCard, AtlasText, RouteLine, TopoBackground } from '@/components/atlas';
+import { AtlasSpacing } from '@/constants/atlas-theme';
 import type { WorkoutTemplateListItem } from '@/db/repositories/template-repository';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAtlasTheme } from '@/hooks/use-atlas-theme';
 import type { ActiveRoutine } from '@/types/domain';
 
 type LibraryScreenContentProps = {
@@ -15,34 +16,6 @@ type LibraryScreenContentProps = {
   onTemplatePress: (templateId: string) => void;
   prebuiltTemplates: WorkoutTemplateListItem[];
 };
-
-type LibraryPalette = {
-  accent: string;
-  border: string;
-  muted: string;
-  surface: string;
-  surfaceMuted: string;
-};
-
-function getPalette(colorScheme: 'light' | 'dark'): LibraryPalette {
-  if (colorScheme === 'light') {
-    return {
-      surface: '#F3F5F7',
-      surfaceMuted: '#E8EDF1',
-      border: '#D5DDE5',
-      muted: '#5E6A75',
-      accent: '#0A7EA4',
-    };
-  }
-
-  return {
-    surface: '#171B20',
-    surfaceMuted: '#11151A',
-    border: '#2A3138',
-    muted: '#93A0AB',
-    accent: '#D7F75B',
-  };
-}
 
 function formatToken(value: string | null): string | null {
   if (!value) {
@@ -68,108 +41,124 @@ function getDaySummary(template: WorkoutTemplateListItem): string {
   return 'Session structure pending';
 }
 
-function TemplateCard({
+function RouteCard({
   activeTemplateId,
+  cardInner,
   onPress,
-  palette,
   template,
 }: {
   activeTemplateId: string | null;
+  cardInner: number;
   onPress: (templateId: string) => void;
-  palette: LibraryPalette;
   template: WorkoutTemplateListItem;
 }) {
+  const { c } = useAtlasTheme();
+  const isActive = activeTemplateId === template.id;
   const splitLabel = formatToken(template.splitType);
   const goalLabel = formatToken(template.goal);
-  const isActiveRoutine = activeTemplateId === template.id;
+  const meta = [getDaySummary(template), splitLabel ?? goalLabel].filter(Boolean).join(' · ');
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${template.name} template details`}
+    <AtlasCard
+      active={isActive}
       onPress={() => onPress(template.id)}
-      style={[
-        styles.templateCard,
-        {
-          backgroundColor: palette.surface,
-          borderColor: isActiveRoutine ? palette.accent : palette.border,
-        },
-      ]}>
-      <View style={styles.templateHeader}>
-        <View style={styles.templateTitleBlock}>
-          <ThemedText type="defaultSemiBold" style={styles.templateName}>
+      accessibilityLabel={`Open ${template.name} route details`}
+      style={{ gap: 12 }}>
+      {isActive ? (
+        <AtlasText variant="micro" tone="gold">
+          Active Route
+        </AtlasText>
+      ) : null}
+
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+        <View style={{ flex: 1 }}>
+          <AtlasText variant="cardTitle" tone="strong">
             {template.name}
-          </ThemedText>
-          <ThemedText style={[styles.templateMeta, { color: palette.muted }]}>
-            {[getDaySummary(template), splitLabel ?? goalLabel].filter(Boolean).join(' - ')}
-          </ThemedText>
+          </AtlasText>
+          {meta ? (
+            <AtlasText variant="label" tone="muted" style={{ marginTop: 2 }}>
+              {meta}
+            </AtlasText>
+          ) : null}
         </View>
-        {isActiveRoutine ? (
-          <View style={[styles.activePill, { borderColor: palette.accent }]}>
-            <ThemedText style={[styles.activePillText, { color: palette.accent }]}>
-              Active
-            </ThemedText>
-          </View>
-        ) : null}
+        <View
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 17,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isActive ? c.goldTint : c.steelTint,
+            borderWidth: 1,
+            borderColor: isActive ? c.goldBorder : c.cardBorder,
+          }}>
+          <MaterialCommunityIcons name="map-marker" size={18} color={isActive ? c.gold : c.steel} />
+        </View>
       </View>
 
+      <RouteLine
+        width={cardInner}
+        height={58}
+        seed={template.id}
+        lineColor={isActive ? c.gold : c.steel}
+        fill
+        showSummit={false}
+      />
+
       {template.description ? (
-        <ThemedText style={[styles.description, { color: palette.muted }]}>
+        <AtlasText variant="label" tone="muted" numberOfLines={2}>
           {template.description}
-        </ThemedText>
+        </AtlasText>
       ) : null}
-    </Pressable>
+    </AtlasCard>
   );
 }
 
-function TemplateSection({
+function RouteSection({
   activeTemplateId,
+  cardInner,
   emptyText,
   onTemplatePress,
-  palette,
   templates,
   title,
 }: {
   activeTemplateId: string | null;
+  cardInner: number;
   emptyText: string;
   onTemplatePress: (templateId: string) => void;
-  palette: LibraryPalette;
   templates: WorkoutTemplateListItem[];
   title: string;
 }) {
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionHeader}>
-        <ThemedText type="subtitle" style={styles.sectionTitle}>
+    <View style={{ gap: 12 }}>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+        <AtlasText variant="title" tone="strong">
           {title}
-        </ThemedText>
-        <ThemedText style={[styles.caption, { color: palette.muted }]}>
-          {templates.length} {templates.length === 1 ? 'template' : 'templates'}
-        </ThemedText>
+        </AtlasText>
+        <AtlasText variant="label" tone="muted">
+          {templates.length} {templates.length === 1 ? 'route' : 'routes'}
+        </AtlasText>
       </View>
 
       {templates.length > 0 ? (
-        <View style={styles.cardList}>
+        <View style={{ gap: 12 }}>
           {templates.map((template) => (
-            <TemplateCard
+            <RouteCard
               key={template.id}
               activeTemplateId={activeTemplateId}
+              cardInner={cardInner}
               onPress={onTemplatePress}
-              palette={palette}
               template={template}
             />
           ))}
         </View>
       ) : (
-        <View
-          style={[
-            styles.emptyCard,
-            { backgroundColor: palette.surfaceMuted, borderColor: palette.border },
-          ]}>
-          <ThemedText style={[styles.description, { color: palette.muted }]}>
+        <AtlasCard variant="field">
+          <AtlasText variant="body" tone="muted">
             {emptyText}
-          </ThemedText>
-        </View>
+          </AtlasText>
+        </AtlasCard>
       )}
     </View>
   );
@@ -183,172 +172,78 @@ export function LibraryScreenContent({
   onTemplatePress,
   prebuiltTemplates,
 }: LibraryScreenContentProps) {
-  const colorScheme = useColorScheme() ?? 'dark';
-  const palette = getPalette(colorScheme);
-  const theme = Colors[colorScheme];
+  const { c, spacing } = useAtlasTheme();
+  const { width } = useWindowDimensions();
+  const cardInner = Math.round(width - AtlasSpacing.screenX * 2 - AtlasSpacing.cardPad * 2);
   const activeTemplateId = activeRoutine?.templateId ?? null;
 
   if (isLoading) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ActivityIndicator color={palette.accent} />
-        <ThemedText style={[styles.loadingText, { color: palette.muted }]}>
-          Loading Library
-        </ThemedText>
-      </ThemedView>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <ActivityIndicator color={c.gold} />
+        <AtlasText variant="label" tone="muted">
+          Loading the Atlas…
+        </AtlasText>
+      </View>
     );
   }
 
   if (error) {
     return (
-      <ThemedView style={styles.loadingContainer}>
-        <ThemedText type="subtitle">Library</ThemedText>
-        <ThemedText style={[styles.errorText, { color: palette.muted }]}>
-          Unable to load template library right now.
-        </ThemedText>
-      </ThemedView>
+      <View style={{ flex: 1, backgroundColor: c.bg, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 }}>
+        <AtlasText variant="title" tone="strong">
+          Atlas unavailable
+        </AtlasText>
+        <AtlasText variant="body" tone="muted" style={{ textAlign: 'center' }}>
+          Unable to load your routes right now.
+        </AtlasText>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-        showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <ThemedText style={[styles.caption, { color: palette.muted }]}>Library</ThemedText>
-          <ThemedText type="title" style={styles.title}>
-            Templates
-          </ThemedText>
-          <ThemedText style={[styles.intro, { color: theme.text }]}>
-            Choose a reusable routine before training, or duplicate a prebuilt plan into your
-            custom library.
-          </ThemedText>
-        </View>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <TopoBackground />
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingHorizontal: spacing.screenX,
+            paddingTop: 8,
+            paddingBottom: 36,
+            gap: 22,
+          }}>
+          <View style={{ gap: 4 }}>
+            <AtlasText variant="micro" tone="gold">
+              Library
+            </AtlasText>
+            <AtlasText variant="h1" tone="strong">
+              Atlas
+            </AtlasText>
+            <AtlasText variant="body" tone="muted" style={{ marginTop: 2 }}>
+              Choose a route to train, or duplicate a prebuilt plan into your own routes.
+            </AtlasText>
+          </View>
 
-        <TemplateSection
-          activeTemplateId={activeTemplateId}
-          emptyText="Prebuilt routines will appear here after the local template seeds are available."
-          onTemplatePress={onTemplatePress}
-          palette={palette}
-          templates={prebuiltTemplates}
-          title="Prebuilt Templates"
-        />
+          <RouteSection
+            activeTemplateId={activeTemplateId}
+            cardInner={cardInner}
+            emptyText="Prebuilt routes will appear here once the local route seeds are available."
+            onTemplatePress={onTemplatePress}
+            templates={prebuiltTemplates}
+            title="Training Routes"
+          />
 
-        <TemplateSection
-          activeTemplateId={activeTemplateId}
-          emptyText="Duplicate a prebuilt routine to start a custom template."
-          onTemplatePress={onTemplatePress}
-          palette={palette}
-          templates={customTemplates}
-          title="Custom Templates"
-        />
-      </ScrollView>
-    </ThemedView>
+          <RouteSection
+            activeTemplateId={activeTemplateId}
+            cardInner={cardInner}
+            emptyText="Duplicate a prebuilt route to start one of your own."
+            onTemplatePress={onTemplatePress}
+            templates={customTemplates}
+            title="Your Routes"
+          />
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  activePill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  activePillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 16,
-    textTransform: 'uppercase',
-  },
-  caption: {
-    fontSize: 13,
-    letterSpacing: 1,
-    lineHeight: 18,
-    textTransform: 'uppercase',
-  },
-  cardList: {
-    gap: 12,
-  },
-  content: {
-    gap: 22,
-    paddingBottom: 32,
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  emptyCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
-  },
-  errorText: {
-    textAlign: 'center',
-  },
-  header: {
-    gap: 6,
-  },
-  intro: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  loadingText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  screen: {
-    flex: 1,
-  },
-  section: {
-    gap: 10,
-  },
-  sectionHeader: {
-    gap: 4,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    lineHeight: 28,
-  },
-  templateCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    gap: 10,
-    padding: 15,
-  },
-  templateHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    gap: 12,
-    justifyContent: 'space-between',
-  },
-  templateMeta: {
-    flexShrink: 1,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  templateName: {
-    flexShrink: 1,
-    fontSize: 18,
-    lineHeight: 24,
-  },
-  templateTitleBlock: {
-    flex: 1,
-    gap: 4,
-    minWidth: 0,
-  },
-  title: {
-    fontSize: 34,
-    lineHeight: 38,
-  },
-});
