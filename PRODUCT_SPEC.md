@@ -2,15 +2,15 @@
 
 ## Title
 
-HIT Log V2
+Lift Atlas (internal project name: HIT Log V2)
 
 ## One-sentence summary
 
-HIT Log V2 is a mobile-first, local-first training system that begins as a template library and becomes a guided progressive-overload workout companion once the user selects an active routine.
+Lift Atlas is a mobile-first, local-first training system that begins as a template library and becomes a guided progressive-overload workout companion once the user selects an active routine.
 
 ## Product thesis
 
-HIT Log V2 is template-library-first and guide-centered.
+Lift Atlas is template-library-first and guide-centered.
 
 The app should first help the user understand good training structure, browse prebuilt templates, create custom templates, duplicate prebuilt templates, and set one routine as active. After an active routine exists, the app should guide the user into the next workout with relevant context instead of making them search history manually.
 

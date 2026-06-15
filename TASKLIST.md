@@ -202,7 +202,7 @@
 
 ## Phase 11 - Lift Atlas Brand Pass
 
-- [ ] Rename app
+- [x] Rename app (public display name; internal identifiers retained)
 - [x] Update branding
 - [x] Update product copy
 - [ ] Update onboarding
@@ -221,3 +221,12 @@
 - [x] Migrate active workout/session screen
 - [x] Migrate Settings data tools
 - [x] Add in-app Appearance selector (System / Dark Atlas / Light Atlas, persisted)
+
+### Phase 11C - Public Rename + App Icon
+
+- [x] Set Expo display name to Lift Atlas
+- [x] Generate Lift Atlas app icon (dark, muted gold compass / peak / barbell)
+- [x] Update splash, Android adaptive icon, and favicon assets
+- [x] Rebrand export app name and backup/CSV file names
+- [x] Update product-facing docs (README, PRODUCT_SPEC, ROADMAP, ARCHITECTURE)
+- [x] Keep internal identifiers stable (slug, scheme, bundle id, db name, npm name)

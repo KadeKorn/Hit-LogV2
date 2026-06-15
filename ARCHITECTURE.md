@@ -2,13 +2,25 @@
 
 ## Architecture summary
 
-HIT Log V2 should use a thin screen layer, reusable components, a repository layer for local persistence, and small domain services for active-routine logic, history comparison, and progression recommendations.
+Lift Atlas should use a thin screen layer, reusable components, a repository layer for local persistence, and small domain services for active-routine logic, history comparison, and progression recommendations.
 
 The core V2 product flow is:
 
 ```txt
 Template Library -> Active Routine -> Workout Session -> History Comparison -> Progression Recommendation -> History Review
 ```
+
+## App identity and configuration
+
+The public product name is **Lift Atlas** (Expo `name` and the in-app brand). Internal technical identifiers are intentionally kept stable to avoid local-data, store, and project-linking risk:
+
+- Expo `slug`: `hit-log`
+- URL scheme: `hitlog`
+- iOS/Android application identifier: `com.kadekorn.hitlog`
+- npm package name: `hit-log`
+- Local SQLite database file: `hit-log.db`
+
+Renaming any of these is out of scope for the public rename: changing the database name would orphan local user data, and changing the slug/identifier would break store and EAS project identity.
 
 ## Guiding decisions
 

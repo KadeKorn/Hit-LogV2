@@ -1,6 +1,6 @@
-# HIT Log V2 Roadmap
+# Lift Atlas Roadmap
 
-This roadmap is the durable project history for HIT Log V2. It records completed work, the current phase, planned product phases, and the long-term product direction.
+This roadmap is the durable project history for Lift Atlas (formerly HIT Log V2). It records completed work, the current phase, planned product phases, and the long-term product direction.
 
 Source of truth hierarchy:
 
@@ -349,6 +349,6 @@ Still pending: app rename and onboarding. These visual changes preserved existin
 
 ## Long-Term Direction
 
-HIT Log V2 should remain local-first, template-library-first, and guided-progressive-overload focused. The product should prioritize fast workout execution, factual history, deterministic recommendations, and practical hypertrophy/mass-gain decision support before broader integrations or branding expansion.
+Lift Atlas should remain local-first, template-library-first, and guided-progressive-overload focused. The product should prioritize fast workout execution, factual history, deterministic recommendations, and practical hypertrophy/mass-gain decision support before broader integrations or branding expansion.
 
 Do not add AI, Oura, Withings, cloud sync, bodyweight tracking, advanced periodization, social features, or remote persistence unless explicitly requested.

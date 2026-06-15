@@ -5,7 +5,7 @@ import { bootstrapDatabase } from '@/db/bootstrap';
 import { JsonExportRepository, type WorkoutJsonExportData } from '@/db/export';
 import { SCHEMA_VERSION } from '@/db/migrations';
 
-const APP_NAME = 'HIT Log V2';
+const APP_NAME = 'Lift Atlas';
 const EXPORT_VERSION = 2;
 const EXPORT_SOURCE = 'local-sqlite';
 
@@ -56,13 +56,13 @@ export type WorkoutCsvExportResult = {
 function createExportFileName(exportedAt: string): string {
   const safeTimestamp = exportedAt.replace(/[:.]/g, '-');
 
-  return `hit-log-v2-backup-${safeTimestamp}.json`;
+  return `lift-atlas-backup-${safeTimestamp}.json`;
 }
 
 function createCsvFileName(exportedAt: string): string {
   const safeTimestamp = exportedAt.replace(/[:.]/g, '-');
 
-  return `hit-log-v2-workout-history-${safeTimestamp}.csv`;
+  return `lift-atlas-workout-history-${safeTimestamp}.csv`;
 }
 
 function getSummary(data: WorkoutJsonExportData, exportedAt: string): WorkoutJsonExportSummary {

@@ -1,12 +1,12 @@
-# HIT Log V2
+# Lift Atlas
 
-HIT Log V2 is a template-library-first, guided-progressive-overload training system.
+Lift Atlas (internal project name: HIT Log V2) is a template-library-first, guided-progressive-overload training system.
 
 The app starts as a simple training library: browse best-practice training information, choose from prebuilt evidence-based templates, create custom templates, duplicate prebuilt templates, and set one routine as active. Once an active routine exists, the product shifts from library browsing to guided training: the Train tab should show the next workout, last-time comparison, best-ever context, recent history, prior notes, and deterministic progression recommendations.
 
 ## Product Direction
 
-HIT Log V2 is personal-first and hypertrophy / mass-gain focused. It prioritizes:
+Lift Atlas is personal-first and hypertrophy / mass-gain focused. It prioritizes:
 
 - physique-building volume
 - progressive overload
@@ -98,7 +98,7 @@ Phase 10 is complete. The Lift Atlas visual system and the primary in-app screen
 
 ## Current Status
 
-HIT Log V2 has the core V2 loop in place:
+Lift Atlas has the core V2 loop in place:
 
 ```txt
 Template Library -> Active Routine -> Workout Execution -> History Comparison -> Progression Recommendation -> History Review
