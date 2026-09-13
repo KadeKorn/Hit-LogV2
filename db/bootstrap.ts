@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { getDatabaseClient, resetDatabaseClientForFieldTestRecovery } from '@/db/client';
 import { runMigrations } from '@/db/migrations';
 import { runSeeds } from '@/db/seeds';
+import { runAestheticLowerBodySeeds } from '@/db/seeds/aesthetic-lower-body-seed-runner';
 import { runDatabaseStartupStep, runForeignKeyCheck } from '@/db/startup-diagnostics';
 
 let bootstrapPromise: Promise<SQLiteDatabase> | null = null;
@@ -198,6 +199,7 @@ export async function bootstrapDatabase(): Promise<SQLiteDatabase> {
       const database = await getDatabaseClient();
       await runMigrations(database);
       await runSeeds(database);
+      await runAestheticLowerBodySeeds(database);
       await logStartupActiveRoutineSeedPhase();
       await logStartupDraftRestorationPhase();
       await repairStartupForeignKeyReferences(database);
