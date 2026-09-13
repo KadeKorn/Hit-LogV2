@@ -39,6 +39,7 @@ export type WorkoutTemplateListItem = WorkoutTemplate & {
 
 export type ExercisePrescriptionDetail = ExercisePrescription & {
   exerciseName: string;
+  exerciseMovementPattern: string | null;
   progressionMethod: string | null;
 };
 
@@ -129,6 +130,7 @@ type TemplateDayRow = {
 
 type ExercisePrescriptionDetailRow = ExercisePrescriptionRow & {
   exercise_name: string;
+  exercise_movement_pattern: string | null;
   progression_method: string | null;
 };
 
@@ -222,6 +224,7 @@ function mapExercisePrescriptionDetailRow(
   return {
     ...mapExercisePrescriptionRow(row),
     exerciseName: row.exercise_name,
+    exerciseMovementPattern: row.exercise_movement_pattern,
     progressionMethod: row.progression_method,
   };
 }
@@ -506,6 +509,7 @@ export class TemplateRepository {
          ep.created_at,
          ep.updated_at,
          ed.name AS exercise_name,
+         ed.movement_pattern AS exercise_movement_pattern,
          pp.method AS progression_method
        FROM exercise_prescriptions ep
        INNER JOIN exercise_definitions ed ON ed.id = ep.exercise_definition_id

@@ -5,6 +5,8 @@ import { useAtlasTheme } from '@/hooks/use-atlas-theme';
 
 export type AtlasPillProps = {
   label: string;
+  accessibilityLabel?: string;
+  disabled?: boolean;
   /** Filter-chip style: selected = solid gold. Status style: see `tone`. */
   selected?: boolean;
   onPress?: () => void;
@@ -16,6 +18,8 @@ export type AtlasPillProps = {
 
 export function AtlasPill({
   label,
+  accessibilityLabel,
+  disabled,
   selected,
   onPress,
   tone = 'neutral',
@@ -80,9 +84,11 @@ export function AtlasPill({
     return (
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ selected: !!selected }}
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityState={{ selected: !!selected, disabled: !!disabled }}
+        disabled={disabled}
         onPress={onPress}
-        style={({ pressed }) => [base, pressed && { opacity: 0.8 }, style]}>
+        style={({ pressed }) => [base, disabled && { opacity: 0.5 }, pressed && { opacity: 0.8 }, style]}>
         {content}
       </Pressable>
     );

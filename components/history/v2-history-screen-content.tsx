@@ -46,11 +46,8 @@ function formatVolume(value: number): string {
 }
 
 function formatSet(set: ExerciseHistorySet): string {
-  if (set.weight == null) {
-    return `${set.reps} reps`;
-  }
-
-  return `${set.weight} x ${set.reps}`;
+  const performance = set.weight == null ? `${set.reps} reps` : `${set.weight} x ${set.reps}`;
+  return set.noRepsLeft ? `${performance} · No reps left` : performance;
 }
 
 function formatSets(sets: ExerciseHistorySet[]): string {

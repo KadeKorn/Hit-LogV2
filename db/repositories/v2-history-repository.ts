@@ -41,6 +41,7 @@ export type ExerciseHistoryLookupItem = {
 
 export type ExerciseHistorySet = {
   id: string;
+  noRepsLeft: boolean;
   reps: number;
   setNumber: number;
   weight: number | null;
@@ -90,6 +91,7 @@ type SetLogRow = {
   created_at: string;
   id: string;
   is_warmup: number;
+  no_reps_left: number;
   notes: string | null;
   reps: number | null;
   set_number: number;
@@ -109,6 +111,7 @@ type ExerciseHistoryPerformanceRow = {
   session_id: string;
   set_id: string;
   set_number: number;
+  no_reps_left: number;
   reps: number;
   template_day_name: string | null;
   template_name: string | null;
@@ -130,6 +133,7 @@ function mapSetLogRow(row: SetLogRow): SetLog {
     createdAt: row.created_at,
     id: row.id,
     isWarmup: row.is_warmup === 1,
+    noRepsLeft: row.no_reps_left === 1,
     notes: row.notes,
     reps: row.reps,
     setNumber: row.set_number,
@@ -269,6 +273,7 @@ export class V2HistoryRepository {
                weight,
                reps,
                is_warmup,
+               no_reps_left,
                notes,
                created_at,
                updated_at
@@ -343,6 +348,7 @@ export class V2HistoryRepository {
          ce.notes AS exercise_notes,
          sl.id AS set_id,
          sl.set_number,
+         sl.no_reps_left,
          sl.weight,
          sl.reps
        FROM completed_exercises ce
@@ -372,6 +378,7 @@ export class V2HistoryRepository {
 
       performance.workingSets.push({
         id: row.set_id,
+        noRepsLeft: row.no_reps_left === 1,
         reps: row.reps,
         setNumber: row.set_number,
         weight: row.weight,

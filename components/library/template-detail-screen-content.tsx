@@ -42,6 +42,7 @@ type CustomExerciseFormInput = {
 
 type TemplateDetailScreenContentProps = {
   activeRoutine: ActiveRoutine | null;
+  pausedRoutine: ActiveRoutine | null;
   error: Error | null;
   exerciseDefinitions: ExerciseDefinition[];
   isDuplicating: boolean;
@@ -65,6 +66,7 @@ type TemplateDetailScreenContentProps = {
   ) => TemplateMutationResult;
   onMoveTemplateDay: (templateDayId: string, direction: -1 | 1) => TemplateMutationResult;
   onSetActive: () => void;
+  onStartOver: () => void;
   onUpdateExercisePrescription: (
     prescriptionId: string,
     input: PrescriptionFormInput
@@ -1195,6 +1197,7 @@ function TrainingAnalysisSection({
 
 export function TemplateDetailScreenContent({
   activeRoutine,
+  pausedRoutine,
   error,
   exerciseDefinitions,
   isDuplicating,
@@ -1212,6 +1215,7 @@ export function TemplateDetailScreenContent({
   onMoveExercisePrescription,
   onMoveTemplateDay,
   onSetActive,
+  onStartOver,
   onUpdateExercisePrescription,
   onUpdateMetadata,
   onUpdateTemplateDay,
@@ -1220,6 +1224,7 @@ export function TemplateDetailScreenContent({
   const colorScheme = useColorScheme() ?? 'dark';
   const palette = getPalette(colorScheme);
   const isActiveRoutine = activeRoutine?.templateId === template?.id;
+  const isPausedRoutine = pausedRoutine?.templateId === template?.id;
   const isPrebuilt = template?.sourceType === 'prebuilt';
   const canEdit = template?.sourceType === 'custom' && template.isEditable;
   const [isAddingDay, setIsAddingDay] = useState(false);
@@ -1367,14 +1372,28 @@ export function TemplateDetailScreenContent({
           <View style={styles.actionGroup}>
             <DetailButton
               accessibilityLabel={
-                isActiveRoutine ? 'This template is already active' : 'Set template as active routine'
+                isActiveRoutine ? 'This template is already active' : isPausedRoutine ? 'Resume saved routine' : 'Set template as active routine'
               }
               disabled={isActiveRoutine || isSettingActive}
-              label={isActiveRoutine ? 'Active Route' : isSettingActive ? 'Setting Active' : 'Set Active'}
+              label={isActiveRoutine ? 'Active Route' : isSettingActive ? 'Setting Active' : isPausedRoutine ? 'Resume Route' : 'Set Active'}
               onPress={onSetActive}
               palette={palette}
               variant="primary"
             />
+            {isPausedRoutine ? (
+              <DetailButton
+                accessibilityLabel="Start this routine again from Day A"
+                disabled={isSettingActive}
+                label="Start Over From Day A"
+                onPress={() => Alert.alert(
+                  'Start routine over?',
+                  'Your completed workouts stay in History. Your saved place in this routine will reset to Day A.',
+                  [{ text: 'Cancel', style: 'cancel' }, { text: 'Start Over', onPress: onStartOver }]
+                )}
+                palette={palette}
+                variant="secondary"
+              />
+            ) : null}
             {isPrebuilt ? (
               <DetailButton
                 accessibilityLabel="Duplicate prebuilt template into custom templates"

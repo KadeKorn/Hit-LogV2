@@ -51,6 +51,7 @@ type SetLogRow = {
   created_at: string;
   id: string;
   is_warmup: number;
+  no_reps_left: number;
   notes: string | null;
   reps: number | null;
   set_number: number;
@@ -84,6 +85,7 @@ export type WorkoutSessionDetail = WorkoutSession & {
 
 export type ReplaceSetLogInput = {
   isWarmup: boolean;
+  noRepsLeft: boolean;
   reps: number | null;
   setNumber: number;
   weight: number | null;
@@ -113,6 +115,17 @@ function createEntityId(prefix: string): string {
 
 function toSqliteBoolean(value: boolean): number {
   return value ? 1 : 0;
+}
+
+function shouldSaveNoRepsLeft(setLog: ReplaceSetLogInput, allSets: ReplaceSetLogInput[]): boolean {
+  const finalWorkingSet = [...allSets].reverse().find((item) => !item.isWarmup);
+  return Boolean(
+    setLog.noRepsLeft &&
+    !setLog.isWarmup &&
+    setLog.reps != null &&
+    setLog.reps > 0 &&
+    finalWorkingSet?.setNumber === setLog.setNumber
+  );
 }
 
 function mapWorkoutSessionRow(row: WorkoutSessionRow): WorkoutSession {
@@ -160,6 +173,7 @@ function mapSetLogRow(row: SetLogRow): SetLog {
     weight: row.weight,
     reps: row.reps,
     isWarmup: row.is_warmup === 1,
+    noRepsLeft: row.no_reps_left === 1,
     notes: row.notes,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -387,6 +401,7 @@ export class WorkoutSessionRepository {
                weight,
                reps,
                is_warmup,
+               no_reps_left,
                notes,
                created_at,
                updated_at
@@ -470,17 +485,19 @@ export class WorkoutSessionRepository {
              weight,
              reps,
              is_warmup,
+             no_reps_left,
              notes,
              created_at,
              updated_at
            )
-           VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?);`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?);`,
           createEntityId('set-log'),
           completedExerciseId,
           setLog.setNumber,
           setLog.weight,
           setLog.reps,
           toSqliteBoolean(setLog.isWarmup),
+          toSqliteBoolean(shouldSaveNoRepsLeft(setLog, setLogs)),
           now,
           now
         );
@@ -561,17 +578,19 @@ export class WorkoutSessionRepository {
                weight,
                reps,
                is_warmup,
+               no_reps_left,
                notes,
                created_at,
                updated_at
              )
-             VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?);`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?);`,
             createEntityId('set-log'),
             exercise.id,
             setLog.setNumber,
             setLog.weight,
             setLog.reps,
             toSqliteBoolean(setLog.isWarmup),
+            toSqliteBoolean(shouldSaveNoRepsLeft(setLog, exercise.setLogs)),
             now,
             now
           );
@@ -692,17 +711,19 @@ export class WorkoutSessionRepository {
                weight,
                reps,
                is_warmup,
+               no_reps_left,
                notes,
                created_at,
                updated_at
              )
-             VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?);`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?, ?);`,
             createEntityId('set-log'),
             exercise.id,
             setLog.setNumber,
             setLog.weight,
             setLog.reps,
             toSqliteBoolean(setLog.isWarmup),
+            toSqliteBoolean(shouldSaveNoRepsLeft(setLog, exercise.setLogs)),
             now,
             now
           );

@@ -51,6 +51,7 @@ export class ProgressRepository {
            AND sl.is_warmup = 0
            AND sl.reps IS NOT NULL
            AND sl.reps > 0
+           AND COALESCE(ed.movement_pattern, '') NOT IN ('jump', 'sprint', 'throw', 'carry', 'swing')
          ORDER BY ws.completed_at ASC, ws.id ASC, ce.order_index ASC, ce.id ASC, sl.set_number ASC;`
       ),
     ]);

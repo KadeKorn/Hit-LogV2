@@ -165,6 +165,7 @@ export type ExportSetLogRow = {
   created_at: string;
   id: string;
   is_warmup: number;
+  no_reps_left: number;
   notes: string | null;
   reps: number | null;
   set_number: number;
@@ -468,6 +469,7 @@ export class JsonExportRepository {
          weight,
          reps,
          is_warmup,
+         no_reps_left,
          notes,
          created_at,
          updated_at

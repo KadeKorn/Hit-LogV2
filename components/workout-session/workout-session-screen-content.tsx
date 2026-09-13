@@ -25,6 +25,7 @@ import type { EffortRating, ProgressionRecommendation } from '@/types/domain';
 type SetDraft = {
   id: string;
   isWarmup: boolean;
+  noRepsLeft: boolean;
   repsText: string;
   weightText: string;
 };
@@ -60,7 +61,7 @@ const effortOptions: { label: string; rir: 0 | 1 | 2 | 3; value: EffortRating }[
   { label: 'Easy', value: 'easy', rir: 3 },
   { label: 'Moderate', value: 'moderate', rir: 2 },
   { label: 'Hard', value: 'hard', rir: 1 },
-  { label: 'Failure', value: 'failure', rir: 0 },
+  { label: '0 RIR (exercise)', value: 'failure', rir: 0 },
 ];
 
 function formatToken(value: string | null): string {
@@ -181,6 +182,7 @@ function createSetDraft(index: number, previousSet?: SetDraft): SetDraft {
   return {
     id: `draft-set-${Date.now()}-${index}`,
     isWarmup: false,
+    noRepsLeft: false,
     repsText: previousSet?.repsText ?? '',
     weightText: previousSet?.weightText ?? '',
   };
@@ -198,6 +200,7 @@ function createDrafts(session: WorkoutSessionDetail | null): Record<string, Exer
           ? exercise.setLogs.map((setLog) => ({
               id: setLog.id,
               isWarmup: setLog.isWarmup,
+              noRepsLeft: setLog.noRepsLeft,
               repsText: setLog.reps == null ? '' : String(setLog.reps),
               weightText: setLog.weight == null ? '' : String(setLog.weight),
             }))
@@ -348,6 +351,7 @@ function ExerciseCard({
   onSetSubstituteName,
   onStartRestTimer,
   onToggleWarmup,
+  onToggleNoRepsLeft,
   onToggleSubstitution,
   progressionError,
   progressionRecommendation,
@@ -373,6 +377,7 @@ function ExerciseCard({
   onSetSubstituteName: (exerciseId: string, substituteName: string) => void;
   onStartRestTimer: (seconds: number) => void;
   onToggleWarmup: (exerciseId: string, setIndex: number) => void;
+  onToggleNoRepsLeft: (exerciseId: string, setIndex: number) => void;
   onToggleSubstitution: (exerciseId: string) => void;
   progressionError: Error | null;
   progressionRecommendation: ProgressionRecommendation | null;
@@ -538,7 +543,7 @@ function ExerciseCard({
               gap: 9,
             }}>
             <View
-              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+              style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
               <AtlasText variant="bodyStrong" tone="strong">
                 Set {setIndex + 1}
               </AtlasText>
@@ -547,6 +552,15 @@ function ExerciseCard({
                 selected={setDraft.isWarmup}
                 onPress={() => onToggleWarmup(exercise.id, setIndex)}
               />
+              {!setDraft.isWarmup && !draft.setDrafts.slice(setIndex + 1).some((laterSet) => !laterSet.isWarmup) ? (
+                <AtlasPill
+                  label="No reps left"
+                  selected={setDraft.noRepsLeft}
+                  disabled={(parseNumberText(setDraft.repsText) ?? 0) <= 0}
+                  onPress={() => onToggleNoRepsLeft(exercise.id, setIndex)}
+                  accessibilityLabel={`Mark ${exercise.exerciseName} final working set as no reps left`}
+                />
+              ) : null}
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <TextInput
@@ -756,6 +770,7 @@ export function WorkoutSessionScreenContent({
                 weight: parseNumberText(setDraft.weightText),
                 reps: parseNumberText(setDraft.repsText),
                 isWarmup: setDraft.isWarmup,
+                noRepsLeft: setDraft.noRepsLeft,
               })) ?? [],
           };
         }) ?? [],
@@ -1014,7 +1029,7 @@ export function WorkoutSessionScreenContent({
                       return {
                         ...currentDraft,
                         setDrafts: [
-                          ...currentDraft.setDrafts,
+                          ...currentDraft.setDrafts.map((setDraft) => ({ ...setDraft, noRepsLeft: false })),
                           createSetDraft(currentDraft.setDrafts.length + 1, lastSet),
                         ],
                       };
@@ -1032,7 +1047,15 @@ export function WorkoutSessionScreenContent({
                     updateDraft(exerciseId, (currentDraft) => ({
                       ...currentDraft,
                       setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
-                        currentIndex === setIndex ? { ...setDraft, [field]: value } : setDraft
+                        currentIndex === setIndex
+                          ? {
+                              ...setDraft,
+                              [field]: value,
+                              noRepsLeft: field === 'repsText' && (parseNumberText(value) ?? 0) <= 0
+                                ? false
+                                : setDraft.noRepsLeft,
+                            }
+                          : setDraft
                       ),
                     }));
                   }}
@@ -1060,13 +1083,32 @@ export function WorkoutSessionScreenContent({
                     setIsRestTimerRunning(true);
                   }}
                   onToggleWarmup={(exerciseId, setIndex) => {
+                    updateDraft(exerciseId, (currentDraft) => {
+                      const updatedSets = currentDraft.setDrafts.map((setDraft, currentIndex) =>
+                        currentIndex === setIndex
+                          ? { ...setDraft, isWarmup: !setDraft.isWarmup, noRepsLeft: false }
+                          : setDraft
+                      );
+                      const lastWorkingIndex = updatedSets.reduce(
+                        (last, setDraft, index) => setDraft.isWarmup ? last : index,
+                        -1
+                      );
+                      return {
+                        ...currentDraft,
+                        setDrafts: updatedSets.map((setDraft, index) => ({
+                          ...setDraft,
+                          noRepsLeft: index === lastWorkingIndex && setDraft.noRepsLeft,
+                        })),
+                      };
+                    });
+                  }}
+                  onToggleNoRepsLeft={(exerciseId, setIndex) => {
                     updateDraft(exerciseId, (currentDraft) => ({
                       ...currentDraft,
-                      setDrafts: currentDraft.setDrafts.map((setDraft, currentIndex) =>
-                        currentIndex === setIndex
-                          ? { ...setDraft, isWarmup: !setDraft.isWarmup }
-                          : setDraft
-                      ),
+                      setDrafts: currentDraft.setDrafts.map((setDraft, index) => ({
+                        ...setDraft,
+                        noRepsLeft: index === setIndex ? !setDraft.noRepsLeft : false,
+                      })),
                     }));
                   }}
                   onToggleSubstitution={(exerciseId) => {

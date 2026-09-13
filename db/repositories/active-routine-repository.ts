@@ -63,18 +63,96 @@ export class ActiveRoutineRepository {
     return row ? mapActiveRoutineRow(row) : null;
   }
 
-  async setActiveRoutine(templateId: string): Promise<ActiveRoutine> {
+  async listPausedRoutines(): Promise<ActiveRoutine[]> {
+    const rows = await this.database.getAllAsync<ActiveRoutineRow>(
+      `SELECT id, template_id, current_template_day_id, current_day_index, status,
+              started_at, last_workout_session_id, created_at, updated_at
+       FROM active_routines
+       WHERE status = 'paused'
+       ORDER BY updated_at DESC, id DESC;`
+    );
+    return rows.map(mapActiveRoutineRow);
+  }
+
+  async getPausedRoutine(templateId: string): Promise<ActiveRoutine | null> {
+    const row = await this.database.getFirstAsync<ActiveRoutineRow>(
+      `SELECT id, template_id, current_template_day_id, current_day_index, status,
+              started_at, last_workout_session_id, created_at, updated_at
+       FROM active_routines
+       WHERE template_id = ? AND status = 'paused'
+       ORDER BY updated_at DESC, id DESC
+       LIMIT 1;`,
+      templateId
+    );
+    return row ? mapActiveRoutineRow(row) : null;
+  }
+
+  async setActiveRoutine(templateId: string, options: { startOver?: boolean } = {}): Promise<ActiveRoutine> {
+    const current = await this.getActiveRoutine();
+    if (current?.templateId === templateId && !options.startOver) {
+      return current;
+    }
+
     const now = new Date().toISOString();
     let activeRoutineId = '';
 
     await this.database.withTransactionAsync(async () => {
+      const inProgressWorkout = await this.database.getFirstAsync<{ id: string }>(
+        `SELECT id FROM workout_sessions WHERE status = 'active' LIMIT 1;`
+      );
+      if (inProgressWorkout) {
+        throw new Error('Finish or abandon the in-progress workout before switching routines.');
+      }
+
       await this.database.runAsync(
         `UPDATE active_routines
-         SET status = 'archived',
+         SET status = 'paused',
              updated_at = ?
          WHERE status = 'active';`,
         now
       );
+
+      if (options.startOver) {
+        await this.database.runAsync(
+          `UPDATE active_routines
+           SET status = 'archived', updated_at = ?
+           WHERE template_id = ? AND status = 'paused';`,
+          now,
+          templateId
+        );
+      } else {
+        const parked = await this.database.getFirstAsync<{ id: string; current_template_day_id: string | null }>(
+          `SELECT id, current_template_day_id
+           FROM active_routines
+           WHERE template_id = ? AND status = 'paused'
+           ORDER BY updated_at DESC, id DESC
+           LIMIT 1;`,
+          templateId
+        );
+        if (parked) {
+          const validDay = parked.current_template_day_id
+            ? await this.database.getFirstAsync<{ id: string }>(
+                `SELECT id FROM template_days WHERE id = ? AND template_id = ? LIMIT 1;`,
+                parked.current_template_day_id,
+                templateId
+              )
+            : null;
+          if (validDay) {
+            activeRoutineId = parked.id;
+            await this.database.runAsync(
+              `UPDATE active_routines SET status = 'active', updated_at = ? WHERE id = ?;`,
+              now,
+              parked.id
+            );
+            return;
+          }
+          await this.database.runAsync(
+            `UPDATE active_routines SET status = 'archived', updated_at = ? WHERE id = ?;`,
+            now,
+            parked.id
+          );
+        }
+      }
 
       const firstTemplateDay = await this.database.getFirstAsync<{
         id: string;
@@ -86,6 +164,10 @@ export class ActiveRoutineRepository {
          LIMIT 1;`,
         templateId
       );
+
+      if (!firstTemplateDay) {
+        throw new Error('This routine has no workout days.');
+      }
 
       activeRoutineId = createEntityId('active-routine');
 

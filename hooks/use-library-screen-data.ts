@@ -11,6 +11,7 @@ type LibraryScreenDataState = {
   customTemplates: WorkoutTemplateListItem[];
   error: Error | null;
   isLoading: boolean;
+  pausedTemplateIds: string[];
   prebuiltTemplates: WorkoutTemplateListItem[];
 };
 
@@ -20,6 +21,7 @@ export function useLibraryScreenData(): LibraryScreenDataState {
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [templates, setTemplates] = useState<WorkoutTemplateListItem[]>([]);
+  const [pausedTemplateIds, setPausedTemplateIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isFocused) {
@@ -37,9 +39,10 @@ export function useLibraryScreenData(): LibraryScreenDataState {
         const templateRepository = new TemplateRepository(database);
         const activeRoutineRepository = new ActiveRoutineRepository(database);
 
-        const [templateItems, currentActiveRoutine] = await Promise.all([
+        const [templateItems, currentActiveRoutine, pausedRoutines] = await Promise.all([
           templateRepository.listWorkoutTemplateItems(),
           activeRoutineRepository.getActiveRoutine(),
+          activeRoutineRepository.listPausedRoutines(),
         ]);
 
         if (!isMounted) {
@@ -48,6 +51,7 @@ export function useLibraryScreenData(): LibraryScreenDataState {
 
         setTemplates(templateItems);
         setActiveRoutine(currentActiveRoutine);
+        setPausedTemplateIds(pausedRoutines.map((routine) => routine.templateId));
       } catch (loadError) {
         if (!isMounted) {
           return;
@@ -85,6 +89,7 @@ export function useLibraryScreenData(): LibraryScreenDataState {
     customTemplates,
     error,
     isLoading,
+    pausedTemplateIds,
     prebuiltTemplates,
   };
 }

@@ -16,6 +16,7 @@ export default function TemplateDetailScreen() {
   const templateId = getTemplateIdParam(params.templateId);
   const {
     activeRoutine,
+    pausedRoutine,
     addExercisePrescription,
     addTemplateDay,
     createCustomExerciseDefinition,
@@ -35,12 +36,14 @@ export default function TemplateDetailScreen() {
     saveTemplateDay,
     saveTemplateMetadata,
     setTemplateAsActive,
+    startTemplateOver,
     template,
   } = useTemplateDetailScreenData(templateId);
 
   return (
     <TemplateDetailScreenContent
       activeRoutine={activeRoutine}
+      pausedRoutine={pausedRoutine}
       exerciseDefinitions={exerciseDefinitions}
       error={error}
       isDuplicating={isDuplicating}
@@ -66,6 +69,9 @@ export default function TemplateDetailScreen() {
       }}
       onSetActive={() => {
         void setTemplateAsActive().catch(() => undefined);
+      }}
+      onStartOver={() => {
+        void startTemplateOver().catch(() => undefined);
       }}
       onMoveExercisePrescription={moveExercisePrescription}
       onMoveTemplateDay={moveTemplateDay}

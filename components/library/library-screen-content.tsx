@@ -13,6 +13,7 @@ type LibraryScreenContentProps = {
   customTemplates: WorkoutTemplateListItem[];
   error: Error | null;
   isLoading: boolean;
+  pausedTemplateIds: string[];
   onTemplatePress: (templateId: string) => void;
   prebuiltTemplates: WorkoutTemplateListItem[];
 };
@@ -43,17 +44,20 @@ function getDaySummary(template: WorkoutTemplateListItem): string {
 
 function RouteCard({
   activeTemplateId,
+  pausedTemplateIds,
   cardInner,
   onPress,
   template,
 }: {
   activeTemplateId: string | null;
+  pausedTemplateIds: string[];
   cardInner: number;
   onPress: (templateId: string) => void;
   template: WorkoutTemplateListItem;
 }) {
   const { c } = useAtlasTheme();
   const isActive = activeTemplateId === template.id;
+  const isPaused = pausedTemplateIds.includes(template.id);
   const splitLabel = formatToken(template.splitType);
   const goalLabel = formatToken(template.goal);
   const meta = [getDaySummary(template), splitLabel ?? goalLabel].filter(Boolean).join(' · ');
@@ -67,6 +71,10 @@ function RouteCard({
       {isActive ? (
         <AtlasText variant="micro" tone="gold">
           Active Route
+        </AtlasText>
+      ) : isPaused ? (
+        <AtlasText variant="micro" tone="gold">
+          Saved Route · Ready to Resume
         </AtlasText>
       ) : null}
 
@@ -116,6 +124,7 @@ function RouteCard({
 
 function RouteSection({
   activeTemplateId,
+  pausedTemplateIds,
   cardInner,
   emptyText,
   onTemplatePress,
@@ -123,6 +132,7 @@ function RouteSection({
   title,
 }: {
   activeTemplateId: string | null;
+  pausedTemplateIds: string[];
   cardInner: number;
   emptyText: string;
   onTemplatePress: (templateId: string) => void;
@@ -147,6 +157,7 @@ function RouteSection({
             <RouteCard
               key={template.id}
               activeTemplateId={activeTemplateId}
+              pausedTemplateIds={pausedTemplateIds}
               cardInner={cardInner}
               onPress={onTemplatePress}
               template={template}
@@ -169,6 +180,7 @@ export function LibraryScreenContent({
   customTemplates,
   error,
   isLoading,
+  pausedTemplateIds,
   onTemplatePress,
   prebuiltTemplates,
 }: LibraryScreenContentProps) {
@@ -230,6 +242,7 @@ export function LibraryScreenContent({
             cardInner={cardInner}
             emptyText="Prebuilt routes will appear here once the local route seeds are available."
             onTemplatePress={onTemplatePress}
+            pausedTemplateIds={pausedTemplateIds}
             templates={prebuiltTemplates}
             title="Training Routes"
           />
@@ -239,6 +252,7 @@ export function LibraryScreenContent({
             cardInner={cardInner}
             emptyText="Duplicate a prebuilt route to start one of your own."
             onTemplatePress={onTemplatePress}
+            pausedTemplateIds={pausedTemplateIds}
             templates={customTemplates}
             title="Your Routes"
           />

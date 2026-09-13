@@ -160,6 +160,7 @@ export type SetLog = {
   createdAt: string;
   id: string;
   isWarmup: boolean;
+  noRepsLeft: boolean;
   notes: string | null;
   reps: number | null;
   setNumber: number;

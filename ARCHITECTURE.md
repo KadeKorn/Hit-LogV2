@@ -117,6 +117,7 @@ The user's currently selected routine. Tracks current day, status, and next work
 Key notes:
 
 - V2 supports one active routine at a time.
+- Switching marks the prior routine paused; returning to that template reactivates its saved current day. Start Over archives its saved position and creates a new run at Day A. An active workout session blocks switching.
 - The active routine references a template but does not mutate the template during workout execution.
 - Advancing the active routine should happen after a completed workout.
 - If a custom template edit deletes the active routine's current day, the active routine should be moved to a remaining day instead of retaining an invalid reference.
@@ -374,7 +375,7 @@ Outputs:
 
 The service must stay deterministic and testable. It must not read completed workout sessions, set logs, legacy Yates data, chart state, or remote services.
 
-Phase 5 target-profile constants live in `lib/template-analysis.ts`. Phase 9 stores richer exercise definition metadata, including secondary muscles, equipment, movement pattern, difficulty, and notes/cues, but template analysis still counts each prescription toward its stored primary `muscleGroup`. Do not add fractional secondary-muscle counting until the analysis rule is intentionally designed and covered.
+Target-profile constants live in `lib/template-analysis.ts`. Planned muscle-set analysis counts prescriptions toward their stored primary `muscleGroup`, except movement patterns `jump`, `sprint`, `throw`, `swing`, and `carry`. Secondary muscles are not fractionally counted.
 
 ## Progress analysis service
 
@@ -391,6 +392,7 @@ Rules:
 - Unlock Progress charts only after at least 4 completed V2 workouts, at least 2 calendar weeks with completed V2 workouts, and at least one exercise with 2 or more completed exposures.
 - Show exercise trends only for exercises with at least 2 completed exposures.
 - Exclude warmup sets from charts, progression indicators, working-set volume, and muscle-group weekly set totals.
+- Exclude jumps, sprints, throws, swings, and carries from hypertrophy-style muscle-set and volume summaries; completed-workout consistency still counts those sessions.
 - Exclude blank or incomplete sets.
 - Use weighted `weight x reps` volume only when weight exists.
 - Show reps history instead of fake volume when an exercise has reps-only data.
@@ -424,7 +426,7 @@ Rules:
 
 ## Exercise library expansion
 
-Phase 9 expands exercise definitions through schema version 4 and repository-owned creation.
+Phase 9 expanded exercise definitions through schema version 4 and repository-owned creation. Schema version 5 adds a per-set `no_reps_left` flag and removes the original three beta prebuilt plans and only their associated workout history.
 
 Rules:
 
@@ -456,19 +458,19 @@ Prefer stable IDs, ISO timestamps, explicit foreign keys, and deterministic enum
 
 Startup opens SQLite, enables foreign keys, runs migrations, applies deterministic seed upserts, repairs nullable historical references when parent rows are legitimately gone, and then runs `PRAGMA foreign_key_check`. Any migration, seed, repair, or validation failure is logged with the failing logical step and SQL statement preview.
 
-Seed data is idempotent: parent rows are inserted before child rows, stable prebuilt IDs are upserted, and seed updates do not delete custom templates, custom exercises, completed workouts, completed exercise snapshots, set logs, or active routine state when it remains valid.
+Seed data is idempotent: parent rows are inserted before child rows and stable prebuilt IDs are upserted. The authorized schema version 5 beta cleanup deletes only the retired prebuilt templates and their directly associated sessions and routines. Custom templates, custom exercises, and custom-plan workout history remain.
 
 If initialization fails, the root layout renders a field-test database recovery screen instead of throwing an unhandled startup exception. The recovery reset is explicit and destructive; it recreates the local SQLite database only after confirmation and must not run automatically.
 
 ## Export and restore boundaries
 
-Phase 10 formalizes JSON backup export version 2 against SQLite schema version 4. The export payload contains:
+JSON backup export version 3 reflects SQLite schema version 5 and includes the per-set `no_reps_left` field. The export payload contains:
 
 - `metadata`: app name, export timestamp, export version, schema version, and local SQLite source
 - `summary`: user-facing counts for templates, custom templates, exercise definitions, custom exercises, completed workouts, set logs, active-routine presence, and separated legacy counts
 - `data`: normalized table exports for templates, template days, exercise definitions, exercise prescriptions, progression policies, active routines, workout sessions, completed exercises, and set logs
 
-Completed exercise snapshots remain part of the backup so historical performed exercises, substitutions, notes, effort/RIR, and warmup flags stay readable even if templates or exercise definitions change later. Existing legacy workout-log export tables remain included only because they were already part of the export surface; they are separated in the summary and should not be used for V2 Progress, progression, or template analysis.
+Completed exercise snapshots remain part of the backup so historical performed exercises, substitutions, notes, effort/RIR, warmup flags, and the final working-set `no_reps_left` marker stay readable even if templates or exercise definitions change later. Existing legacy workout-log export tables remain included only because they were already part of the export surface; they are separated in the summary and should not be used for V2 Progress, progression, or template analysis.
 
 CSV export is a read-only user-review format derived from completed V2 workout sessions, completed exercises, and set logs. CSV is not a restore format.
 

@@ -1,5 +1,16 @@
 # TASKLIST
 
+## Beta Prebuilt Library Refresh
+
+- [x] Replace the original beta prebuilt plans with Aesthetic Full-Body Hypertrophy, Strength & Athletic Performance, and Travel Calisthenics
+- [x] Remove only retired prebuilt-plan sessions and routine state during schema migration; preserve custom-plan history
+- [x] Pause and resume each routine at its saved next day, with a separate Start Over action
+- [x] Block routine switching during an in-progress workout
+- [x] Add an optional “No reps left” marker to each exercise's final working set and preserve it through autosave, History, JSON, and CSV
+- [x] Keep rep-only and athletic logging in the current set model without fixed rep-increase quotas
+- [x] Exclude jumps, sprints, throws, swings, and carries from hypertrophy-style muscle-set analysis
+- [x] Validate migration, scoped deletion, repeat seeding, routine resume, and set-flag persistence
+
 ## Phase 2A - Docs Lock
 
 - [x] Update README.md

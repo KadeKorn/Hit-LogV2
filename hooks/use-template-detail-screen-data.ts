@@ -20,6 +20,7 @@ import type { ActiveRoutine, ExerciseDefinition, WorkoutTemplate } from '@/types
 
 type TemplateDetailScreenDataState = {
   activeRoutine: ActiveRoutine | null;
+  pausedRoutine: ActiveRoutine | null;
   addExercisePrescription: (
     templateDayId: string,
     input: AddCustomExercisePrescriptionInput
@@ -54,12 +55,14 @@ type TemplateDetailScreenDataState = {
   ) => Promise<WorkoutTemplateDetail>;
   saveTemplateMetadata: (input: UpdateCustomTemplateMetadataInput) => Promise<WorkoutTemplateDetail>;
   setTemplateAsActive: () => Promise<ActiveRoutine>;
+  startTemplateOver: () => Promise<ActiveRoutine>;
   template: WorkoutTemplateDetail | null;
 };
 
 export function useTemplateDetailScreenData(templateId: string): TemplateDetailScreenDataState {
   const isFocused = useIsFocused();
   const [activeRoutine, setActiveRoutine] = useState<ActiveRoutine | null>(null);
+  const [pausedRoutine, setPausedRoutine] = useState<ActiveRoutine | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [exerciseDefinitions, setExerciseDefinitions] = useState<ExerciseDefinition[]>([]);
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -80,14 +83,16 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
       const activeRoutineRepository = new ActiveRoutineRepository(database);
       const exerciseDefinitionsRepository = new ExerciseDefinitionsRepository(database);
 
-      const [templateDetail, currentActiveRoutine, definitions] = await Promise.all([
+      const [templateDetail, currentActiveRoutine, parkedRoutine, definitions] = await Promise.all([
         templateRepository.getWorkoutTemplateDetail(templateId),
         activeRoutineRepository.getActiveRoutine(),
+        activeRoutineRepository.getPausedRoutine(templateId),
         exerciseDefinitionsRepository.listExerciseDefinitions(),
       ]);
 
       setTemplate(templateDetail);
       setActiveRoutine(currentActiveRoutine);
+      setPausedRoutine(parkedRoutine);
       setExerciseDefinitions(definitions);
     } catch (loadError) {
       setError(
@@ -143,16 +148,17 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
     }
   }, [templateId]);
 
-  const setTemplateAsActive = useCallback(async () => {
+  const activateTemplate = useCallback(async (startOver: boolean) => {
     try {
       setIsSettingActive(true);
       setMutationError(null);
 
       const database = await bootstrapDatabase();
       const activeRoutineRepository = new ActiveRoutineRepository(database);
-      const nextActiveRoutine = await activeRoutineRepository.setActiveRoutine(templateId);
+      const nextActiveRoutine = await activeRoutineRepository.setActiveRoutine(templateId, { startOver });
 
       setActiveRoutine(nextActiveRoutine);
+      setPausedRoutine(null);
       return nextActiveRoutine;
     } catch (setActiveError) {
       const nextError =
@@ -166,6 +172,9 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
       setIsSettingActive(false);
     }
   }, [templateId]);
+
+  const setTemplateAsActive = useCallback(() => activateTemplate(false), [activateTemplate]);
+  const startTemplateOver = useCallback(() => activateTemplate(true), [activateTemplate]);
 
   const saveTemplateMetadata = useCallback(
     async (input: UpdateCustomTemplateMetadataInput): Promise<WorkoutTemplateDetail> => {
@@ -334,6 +343,7 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
 
   return {
     activeRoutine,
+    pausedRoutine,
     addExercisePrescription,
     addTemplateDay,
     createCustomExerciseDefinition,
@@ -354,6 +364,7 @@ export function useTemplateDetailScreenData(templateId: string): TemplateDetailS
     saveTemplateDay,
     saveTemplateMetadata,
     setTemplateAsActive,
+    startTemplateOver,
     template,
   };
 }

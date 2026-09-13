@@ -6,7 +6,7 @@ import { JsonExportRepository, type WorkoutJsonExportData } from '@/db/export';
 import { SCHEMA_VERSION } from '@/db/migrations';
 
 const APP_NAME = 'Lift Atlas';
-const EXPORT_VERSION = 2;
+const EXPORT_VERSION = 3;
 const EXPORT_SOURCE = 'local-sqlite';
 
 export type WorkoutJsonExportMetadata = {
@@ -173,6 +173,7 @@ function buildWorkoutHistoryCsv(data: WorkoutJsonExportData): string {
     'exercise_name',
     'set_number',
     'set_type',
+    'no_reps_left',
     'weight',
     'reps',
     'rir',
@@ -213,6 +214,7 @@ function buildWorkoutHistoryCsv(data: WorkoutJsonExportData): string {
             completedExercise.exercise_name,
             setLog.set_number,
             isWarmup ? 'warmup' : 'working',
+            setLog.no_reps_left === 1 ? 'yes' : 'no',
             setLog.weight,
             setLog.reps,
             completedExercise.estimated_rir,

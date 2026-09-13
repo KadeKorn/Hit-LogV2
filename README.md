@@ -30,13 +30,15 @@ The app should stay structured cleanly enough to support other lifters later, bu
 - Safer local-first data and export structure
 - Gated progress dashboard and training charts after enough completed V2 data exists
 
-## Initial Prebuilt Templates
+## Prebuilt Templates
 
-- Aesthetic Hypertrophy 3x/week
-- Strength Foundation 3x/week
-- Dorian Yates-Inspired HIT Routine
+- Aesthetic Full-Body Hypertrophy — four days
+- Strength & Athletic Performance — four days
+- Travel Calisthenics — three-workout rotation
 
 Prebuilt templates are read-only. They can be duplicated into editable custom templates. Custom templates should be fast to create, simple to edit, and require only the minimum fields needed for progression.
+
+Only one routine trains at a time. Switching to another route saves the current route's next workout so it can be resumed later. The final working set of each exercise can optionally be marked “No reps left”; the marker records completed effort and does not alter progression recommendations.
 
 ## Navigation Model
 

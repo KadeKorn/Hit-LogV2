@@ -2,16 +2,18 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import {
   mvpExerciseDefinitionSeeds,
-  mvpExercisePrescriptionSeeds,
   mvpProgressionPolicySeeds,
-  prebuiltTemplateDaySeeds,
-  prebuiltTemplateSeeds,
   type SeedExerciseDefinitionRecord,
   type SeedExercisePrescriptionRecord,
   type SeedPrebuiltTemplateRecord,
   type SeedProgressionPolicyRecord,
   type SeedTemplateDayRecord,
 } from '@/db/seeds/prebuilt-templates';
+import {
+  mvpExercisePrescriptionSeeds,
+  prebuiltTemplateDaySeeds,
+  prebuiltTemplateSeeds,
+} from '@/db/seeds/current-prebuilt-templates';
 import {
   planCTemplateExerciseSeeds,
   planCTemplateSeeds,

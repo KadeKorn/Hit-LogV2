@@ -31,7 +31,7 @@ type TargetRange = {
 };
 
 type TargetProfile = {
-  key: 'aesthetic_hypertrophy' | 'strength_foundation' | 'hit_bodybuilding' | 'general';
+  key: 'aesthetic_hypertrophy' | 'strength_foundation' | 'hit_bodybuilding' | 'athletic_performance' | 'travel_calisthenics' | 'general';
   name: string;
   requiredMuscles: string[];
   ranges: Record<string, TargetRange>;
@@ -80,6 +80,18 @@ const GENERAL_TARGET_RANGES: Record<string, TargetRange> = {
   upper_back: { min: 4, max: 16 },
 };
 
+const TRAVEL_TARGET_RANGES: Record<string, TargetRange> = {
+  chest: { min: 4, max: 16 },
+  lats: { min: 4, max: 16 },
+  quads: { min: 3, max: 12 },
+  glutes: { min: 3, max: 14 },
+  hamstrings: { min: 2, max: 10 },
+  front_delts: { min: 4, max: 12 },
+  abs: { min: 4, max: 12 },
+};
+
+const NON_MUSCLE_SET_PATTERNS = new Set(['jump', 'sprint', 'throw', 'carry', 'swing']);
+
 const TARGET_PROFILES: Record<TargetProfile['key'], TargetProfile> = {
   aesthetic_hypertrophy: {
     key: 'aesthetic_hypertrophy',
@@ -108,6 +120,18 @@ const TARGET_PROFILES: Record<TargetProfile['key'], TargetProfile> = {
     name: 'Low-volume HIT bodybuilding',
     ranges: HIT_BODYBUILDING_TARGET_RANGES,
     requiredMuscles: ['chest', 'quads', 'glutes', 'lats', 'upper_back', 'side_delts'],
+  },
+  athletic_performance: {
+    key: 'athletic_performance',
+    name: 'Strength and athletic performance',
+    ranges: STRENGTH_FOUNDATION_TARGET_RANGES,
+    requiredMuscles: ['quads', 'chest', 'glutes', 'upper_back', 'lats'],
+  },
+  travel_calisthenics: {
+    key: 'travel_calisthenics',
+    name: 'Travel calisthenics',
+    ranges: TRAVEL_TARGET_RANGES,
+    requiredMuscles: ['chest', 'lats', 'quads', 'glutes', 'front_delts', 'abs'],
   },
   general: {
     key: 'general',
@@ -171,6 +195,14 @@ function resolveTargetProfile(template: WorkoutTemplateDetail): TargetProfile {
 
   if (searchable.includes('dorian') || searchable.includes('hit_rotating')) {
     return TARGET_PROFILES.hit_bodybuilding;
+  }
+
+  if (searchable.includes('athletic_performance') || searchable.includes('athletic')) {
+    return TARGET_PROFILES.athletic_performance;
+  }
+
+  if (searchable.includes('travel') || searchable.includes('calisthenics')) {
+    return TARGET_PROFILES.travel_calisthenics;
   }
 
   if (searchable.includes('strength')) {
@@ -251,6 +283,14 @@ function getGoalFitSummary(
     return 'Judged as a strength-first routine with supportive hypertrophy exposure, not as a bodybuilding specialization split.';
   }
 
+  if (profile.key === 'athletic_performance') {
+    return 'Strength-set guardrails only. Jumps, throws, sprints, swings, and carries are excluded from muscle-set totals.';
+  }
+
+  if (profile.key === 'travel_calisthenics') {
+    return 'Judged as a bodyweight rotation using the available primary-muscle metadata.';
+  }
+
   if (profile.key === 'hit_bodybuilding') {
     return 'Judged as a low-volume, high-effort bodybuilding rotation, so lower set counts are expected.';
   }
@@ -267,6 +307,9 @@ export function analyzeTemplate(template: WorkoutTemplateDetail): TemplateAnalys
 
   for (const day of template.days) {
     for (const prescription of day.prescriptions) {
+      if (NON_MUSCLE_SET_PATTERNS.has(prescription.exerciseMovementPattern ?? '')) {
+        continue;
+      }
       const muscleGroup = normalizeMuscleGroup(prescription.muscleGroup);
 
       if (!muscleGroup || prescription.sets <= 0) {
@@ -327,6 +370,10 @@ export function analyzeTemplate(template: WorkoutTemplateDetail): TemplateAnalys
     notes.push(
       'Current metadata counts each prescription toward its available muscle group; secondary muscles are not fractionally counted.'
     );
+  }
+
+  if (profile.key === 'athletic_performance') {
+    notes.push('Explosive and carry prescriptions are shown in the workout but excluded from hypertrophy-style working-set counts.');
   }
 
   return {

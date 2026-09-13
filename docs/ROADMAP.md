@@ -97,6 +97,8 @@ Refined the approved prebuilt templates:
 
 The refinement pass improved exercise selection, prescription-level progression defaults, rep ranges, volume, rest guidance, and template notes.
 
+These three original beta plans were superseded by the later prebuilt library refresh: Aesthetic Full-Body Hypertrophy (four days), Strength & Athletic Performance (four days), and Travel Calisthenics (three-workout rotation). The refresh also added routine pause/resume and a per-set “No reps left” marker. Schema version 5 removes the retired beta plans and their directly associated workout history while preserving custom-plan history; JSON export is now version 3.
+
 ### Phase 4 - History Tab Activation
 
 Goal: make the History tab useful as the factual V2 training record.

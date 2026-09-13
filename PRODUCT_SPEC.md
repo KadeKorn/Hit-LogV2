@@ -146,11 +146,13 @@ Implemented Phase 10 behavior:
 
 Templates are reusable training plans. V2 should support prebuilt templates and custom templates.
 
-### Initial prebuilt templates
+### Current prebuilt templates
 
-- Aesthetic Hypertrophy 3x/week
-- Strength Foundation 3x/week
-- Dorian Yates-Inspired HIT Routine
+- Aesthetic Full-Body Hypertrophy — four days
+- Strength & Athletic Performance — four days
+- Travel Calisthenics — three-workout rotation
+
+The original beta prebuilt plans and their directly associated workout sessions are removed during schema version 5 migration. Custom templates and custom-plan workout history remain.
 
 ### Template behavior
 
@@ -186,9 +188,9 @@ Warmups are excluded because this is planned-template analysis. Completed workou
 
 Goal fit should be goal-aware:
 
-- Aesthetic Hypertrophy 3x/week is judged against broad aesthetic hypertrophy guardrails for side delts, lats, chest, upper back, quads, glutes, hamstrings, biceps, triceps, and abs.
-- Strength Foundation 3x/week is judged as a strength-first routine emphasizing squat, press, hinge, and row/pull exposure with supportive accessory volume.
-- Dorian Yates-Inspired HIT Routine is judged as a 4-day low-volume, high-effort bodybuilding rotation, not as a normal weekly hypertrophy volume template.
+- Aesthetic Full-Body Hypertrophy is judged against broad aesthetic hypertrophy guardrails for side delts, lats, chest, upper back, quads, glutes, hamstrings, biceps, triceps, and abs.
+- Strength & Athletic Performance is judged on its strength work; jumps, throws, sprints, swings, and carries are excluded from muscle-set guardrails.
+- Travel Calisthenics is judged as a bodyweight rotation without assuming gym-equipment exercise choices.
 
 Initial labels:
 
@@ -197,7 +199,7 @@ Initial labels:
 - Needs review
 - Low signal / insufficient metadata
 
-Current analysis counts each prescription toward its stored prescription `muscleGroup`, which is derived from the exercise definition primary muscle when prescriptions are created or updated. Phase 9 adds secondary muscle, equipment, movement pattern, difficulty, source, and notes/cues metadata to exercise definitions, but template analysis remains primary-muscle-only for now and does not invent fractional secondary-muscle counting.
+Current analysis counts strength/hypertrophy prescriptions toward their stored primary `muscleGroup`. Jumps, throws, sprints, swings, and carries are excluded by movement pattern. Secondary muscles are not fractionally counted.
 
 Goal-fit labels should avoid over-penalizing minor near-misses caused by the current one-muscle-per-prescription metadata. `Needs review` is reserved for major structural issues such as multiple required muscles with 0 sets, severe undertraining across the template, clearly overloaded groups, or very low total analysis signal. Guardrail notes should remain visible even when the overall label is `Good fit`.
 
@@ -219,6 +221,8 @@ Progression happens at the exercise prescription level, not only at the workout 
 
 An active routine is the user's currently selected running plan. V2 should allow only one active routine at a time.
 
+Switching routines pauses the current routine at its next workout. Selecting a paused routine resumes that saved day; Start Over creates a new run at Day A without deleting completed workouts. An in-progress workout must be finished or abandoned before switching.
+
 ActiveRoutine is needed because a reusable template is not the same thing as the user's current place in a running plan. The active routine should track the selected template, current day, status, and next workout logic without mutating the underlying template.
 
 Once an active routine exists, the app should guide the user toward the next scheduled workout.
@@ -234,6 +238,8 @@ The user should be able to:
 5. Add exercise-level notes.
 6. Optionally record exercise-level effort.
 7. Complete the workout and save a durable history record.
+
+The last working set of every exercise has an optional “No reps left” marker. Reps always count completed repetitions; the marker records an actual set result, is unavailable for warmups or blank-rep sets, and does not change deterministic progression recommendations. Adding another working set clears the previous final-set marker.
 
 Workout execution should be flexible in the moment, but template mutation should be explicit. Substituting dumbbell bench for barbell bench during a workout should not silently merge or rewrite the barbell bench progression history.
 
