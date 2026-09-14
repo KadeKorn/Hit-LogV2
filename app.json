@@ -2,13 +2,14 @@
   "expo": {
     "name": "Lift Atlas",
     "slug": "hit-log",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/lift-atlas-icon.png",
     "scheme": "hitlog",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
+      "buildNumber": "3",
       "supportsTablet": true,
       "bundleIdentifier": "com.kadekorn.hitlog",
       "infoPlist": {
