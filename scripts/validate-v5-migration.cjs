@@ -90,30 +90,42 @@ async function main() {
   assert.equal(SCHEMA_VERSION, 5);
   await runMigrations(database);
   assert.equal(sqlite.prepare('PRAGMA user_version;').get().user_version, 5);
-  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM workout_sessions WHERE template_id = ?;').get(oldId).count, 0);
-  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM workout_templates WHERE id = ?;').get(oldId).count, 0);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM workout_sessions WHERE template_id = ?;').get(oldId).count, 1);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM workout_templates WHERE id = ?;').get(oldId).count, 1);
   assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM workout_sessions WHERE template_id = ?;').get(customId).count, 1);
   assert.equal(sqlite.prepare('SELECT no_reps_left FROM set_logs WHERE id = ?;').get(`${customId}-set`).no_reps_left, 0);
 
   const { runSeeds } = loadTypeScript('db/seeds/index.ts');
   await runSeeds(database);
   const current = loadTypeScript('db/seeds/current-prebuilt-templates.ts');
-  assert.equal(current.prebuiltTemplateSeeds.length, 3);
+  assert.equal(current.prebuiltTemplateSeeds.length, 4);
   const aestheticId = current.CURRENT_PREBUILT_TEMPLATE_IDS.aesthetic;
   const dayRows = sqlite.prepare(`SELECT td.id, COUNT(ep.id) AS exercises, COALESCE(SUM(ep.sets), 0) AS sets
     FROM template_days td LEFT JOIN exercise_prescriptions ep ON ep.template_day_id = td.id
     WHERE td.template_id = ? GROUP BY td.id ORDER BY td.day_order;`).all(aestheticId);
   assert.deepEqual(dayRows.map((day) => day.sets), [18, 19, 19, 18]);
   assert.deepEqual(dayRows.map((day) => day.exercises), [7, 7, 8, 8]);
-  assert.equal(sqlite.prepare(`SELECT COUNT(*) AS count FROM workout_templates WHERE source_type = 'prebuilt';`).get().count, 3);
+  assert.equal(sqlite.prepare(`SELECT COUNT(*) AS count FROM workout_templates WHERE source_type = 'prebuilt';`).get().count, 5);
   const dayCounts = sqlite.prepare(`SELECT wt.id, COUNT(td.id) AS days FROM workout_templates wt
     LEFT JOIN template_days td ON td.template_id = wt.id
     WHERE wt.source_type = 'prebuilt' GROUP BY wt.id;`).all();
   assert.deepEqual(Object.fromEntries(dayCounts.map((row) => [row.id, row.days])), {
+    [oldId]: 1,
+    [current.CURRENT_PREBUILT_TEMPLATE_IDS.original]: 3,
     [current.CURRENT_PREBUILT_TEMPLATE_IDS.aesthetic]: 4,
     [current.CURRENT_PREBUILT_TEMPLATE_IDS.athletic]: 4,
     [current.CURRENT_PREBUILT_TEMPLATE_IDS.travel]: 3,
   });
+  const originalId = current.CURRENT_PREBUILT_TEMPLATE_IDS.original;
+  const originalDays = sqlite.prepare(`SELECT td.id, COUNT(ep.id) AS count FROM template_days td
+    LEFT JOIN exercise_prescriptions ep ON ep.template_day_id = td.id
+    WHERE td.template_id = ? GROUP BY td.id ORDER BY td.day_order;`).all(originalId);
+  assert.deepEqual(originalDays.map((row) => row.count), [7, 5, 5]);
+  const originalNames = sqlite.prepare(`SELECT ed.name FROM template_days td
+    JOIN exercise_prescriptions ep ON ep.template_day_id = td.id
+    JOIN exercise_definitions ed ON ed.id = ep.exercise_definition_id
+    WHERE td.template_id = ? ORDER BY td.day_order, ep.exercise_order;`).all(originalId).map((row) => row.name);
+  assert.deepEqual(originalNames, ['Machine Chest Press', 'Pec Deck', 'Seated Cable Row', 'Lat Pulldown', 'Ab Rotation Machine', 'Dumbbell Shrug', 'Back Extensions', 'Bulgarian Split Squat', 'Leg Extension', 'Seated Leg Curl', 'Leg Press', 'Standing Calf Raise', 'Overhead Press', 'Dumbbell Lateral Raise', 'Cable Triceps Pressdown', 'Reverse Pec Deck', 'Curl Machine']);
   const automatedPower = sqlite.prepare(`SELECT COUNT(*) AS count FROM exercise_prescriptions ep
     INNER JOIN exercise_definitions ed ON ed.id = ep.exercise_definition_id
     INNER JOIN progression_policies pp ON pp.id = ep.progression_policy_id
@@ -129,12 +141,16 @@ async function main() {
   const athleticAnalysis = analyzeTemplate(athletic);
   assert.equal(athleticAnalysis.targetProfileName, 'Strength and athletic performance');
   assert.ok(athleticAnalysis.totalWorkingSets < athletic.days.flatMap((day) => day.prescriptions).reduce((total, prescription) => total + prescription.sets, 0));
-  const before = sqlite.prepare('SELECT COUNT(*) AS count FROM exercise_prescriptions;').get().count;
+  const tables = ['workout_templates', 'template_days', 'exercise_definitions', 'exercise_prescriptions'];
+  const before = tables.map((table) => sqlite.prepare(`SELECT COUNT(*) AS count FROM ${table};`).get().count);
   await runSeeds(database);
-  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM exercise_prescriptions;').get().count, before);
+  assert.deepEqual(tables.map((table) => sqlite.prepare(`SELECT COUNT(*) AS count FROM ${table};`).get().count), before);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM workout_sessions WHERE template_id = ?;').get(oldId).count, 1);
 
   const { ActiveRoutineRepository } = loadTypeScript('db/repositories/active-routine-repository.ts');
   const routines = new ActiveRoutineRepository(database);
+  await routines.setActiveRoutine(originalId);
+  assert.equal(sqlite.prepare('SELECT COUNT(*) AS count FROM workout_sessions WHERE template_id = ?;').get(oldId).count, 1);
   const first = await routines.setActiveRoutine(aestheticId);
   await routines.advanceActiveRoutineToNextTemplateDay(first.id);
   const travelId = current.CURRENT_PREBUILT_TEMPLATE_IDS.travel;
@@ -172,7 +188,7 @@ async function main() {
   const history = await new V2HistoryRepository(database).getCompletedSessionDetail(`${customId}-session`);
   assert.deepEqual(history.exercises[0].setLogs.map((set) => [set.setNumber, set.noRepsLeft]).sort((a, b) => a[0] - b[0]), [[1, false], [2, true], [3, false]]);
   assert.equal(sqlite.prepare('PRAGMA foreign_key_check;').all().length, 0);
-  console.log('V5 migration, scoped deletion, new plans, repeat seeding, routine resume, and set flag passed.');
+  console.log('V5 history preservation, new plans, repeat seeding, routine resume, and set flag passed.');
 }
 
 main().catch((error) => {

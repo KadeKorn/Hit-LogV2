@@ -9,6 +9,7 @@ import {
 const timestamp = '2026-09-13T00:00:00.000Z';
 
 export const CURRENT_PREBUILT_TEMPLATE_IDS = {
+  original: 'prebuilt-template-original-3-day',
   aesthetic: 'prebuilt-template-aesthetic-full-body-4x',
   athletic: 'prebuilt-template-strength-athletic-4x',
   travel: 'prebuilt-template-travel-calisthenics',
@@ -16,6 +17,9 @@ export const CURRENT_PREBUILT_TEMPLATE_IDS = {
 
 const T = CURRENT_PREBUILT_TEMPLATE_IDS;
 const D = {
+  original1: 'prebuilt-day-original-1',
+  original2: 'prebuilt-day-original-2',
+  original3: 'prebuilt-day-original-3',
   aestheticA: 'prebuilt-day-aesthetic-4x-a',
   aestheticB: 'prebuilt-day-aesthetic-4x-b',
   aestheticC: 'prebuilt-day-aesthetic-4x-c',
@@ -30,6 +34,12 @@ const D = {
 } as const;
 
 export const prebuiltTemplateSeeds: readonly SeedPrebuiltTemplateRecord[] = [
+  {
+    id: T.original, code: 'prebuilt-original-3-day', name: 'Original 3-Day Split',
+    description: 'Your original Monday, Wednesday, and Friday split. Sets and rep ranges are suggested starting targets.',
+    goal: 'hypertrophy', splitType: 'three_day_split', sourceType: 'prebuilt', isEditable: false,
+    orderIndex: 103, isActive: false, createdAt: timestamp, updatedAt: timestamp,
+  },
   {
     id: T.aesthetic, code: 'prebuilt-aesthetic-full-body-4x', name: 'Aesthetic Full-Body Hypertrophy',
     description: 'Four-day physique routine emphasizing side delts, chest, lats, arms, legs, and abs. Keep most sets 1–3 reps from your limit; a suggested last set may be pushed harder with clean form.',
@@ -55,6 +65,9 @@ const day = (id: string, templateId: string, name: string, dayOrder: number, foc
 });
 
 export const prebuiltTemplateDaySeeds: readonly SeedTemplateDayRecord[] = [
+  day(D.original1, T.original, 'Monday — Chest + Back', 1, 'chest_back'),
+  day(D.original2, T.original, 'Wednesday — Legs', 2, 'legs'),
+  day(D.original3, T.original, 'Friday — Shoulders + Arms', 3, 'shoulders_arms'),
   day(D.aestheticA, T.aesthetic, 'Day A — Upper Chest / Lats / Quads', 1, 'upper_chest_lats_quads'),
   day(D.aestheticB, T.aesthetic, 'Day B — Posterior Chain / Delts / Arms', 2, 'posterior_delts_arms'),
   day(D.aestheticC, T.aesthetic, 'Day C — Back / Chest / Quads', 3, 'back_chest_quads'),
@@ -77,6 +90,25 @@ type PrescriptionSpec = readonly [
 const finalSetCue = 'Suggested final working set: as many clean reps as possible. Mark No reps left only if true.';
 const noLimitCue = 'Keep speed and technique crisp. Do not train this movement to your rep limit.';
 const specs: readonly PrescriptionSpec[] = [
+  // Original split: sensible starting targets, not claimed historical prescriptions.
+  [D.original1, E.machineChestPress, 3, 8, 12, 'chest', 'double_progression', 5, 120],
+  [D.original1, E.pecDeckFly, 2, 10, 15, 'chest', 'rep_progression', 5, 90],
+  [D.original1, E.seatedCableRow, 3, 8, 12, 'upper_back', 'double_progression', 5, 120],
+  [D.original1, E.latPulldown, 3, 8, 12, 'lats', 'double_progression', 5, 120],
+  [D.original1, E.abRotationMachine, 2, 10, 15, 'abs', 'rep_progression', 5, 90, 'Reps are per side.'],
+  [D.original1, E.dumbbellShrug, 2, 10, 15, 'traps', 'double_progression', 5, 90],
+  [D.original1, E.backExtension, 2, 10, 15, 'lower_back', 'rep_progression', null, 90],
+  [D.original2, E.bulgarianSplitSquat, 3, 8, 12, 'glutes', 'double_progression', 5, 120, 'Reps are per leg.'],
+  [D.original2, E.legExtension, 3, 10, 15, 'quads', 'rep_progression', 5, 90],
+  [D.original2, E.seatedLegCurl, 3, 10, 15, 'hamstrings', 'rep_progression', 5, 90],
+  [D.original2, E.legPress, 3, 8, 12, 'quads', 'double_progression', 10, 150],
+  [D.original2, E.standingCalfRaise, 3, 10, 15, 'calves', 'rep_progression', 5, 90],
+  [D.original3, E.overheadPress, 3, 8, 12, 'front_delts', 'double_progression', 5, 120],
+  [D.original3, E.dumbbellLateralRaise, 3, 12, 20, 'side_delts', 'rep_progression', 5, 90],
+  [D.original3, E.ropePressdown, 3, 10, 15, 'triceps', 'rep_progression', 5, 90],
+  [D.original3, E.reversePecDeck, 3, 12, 20, 'rear_delts', 'rep_progression', 5, 90],
+  [D.original3, E.curlMachine, 3, 10, 15, 'biceps', 'rep_progression', 5, 90],
+
   // Aesthetic: the suggested hard set is already included in the listed set count.
   [D.aestheticA, E.inclineDumbbellPress, 3, 6, 10, 'chest', 'double_progression', 5, 180],
   [D.aestheticA, E.latPulldown, 3, 8, 12, 'lats', 'double_progression', 5, 120, finalSetCue],

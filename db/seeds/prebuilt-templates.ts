@@ -2,6 +2,9 @@ const PREBUILT_TEMPLATE_TIMESTAMP = '2026-06-06T00:00:00.000Z';
 
 export const MVP_EXERCISE_DEFINITION_IDS = {
   backSquat: 'mvp-exercise-back-squat',
+  abRotationMachine: 'mvp-exercise-ab-rotation-machine',
+  backExtension: 'mvp-exercise-back-extension',
+  curlMachine: 'mvp-exercise-curl-machine',
   abWheel: 'mvp-exercise-ab-wheel',
   arnoldPress: 'mvp-exercise-arnold-press',
   barbellCurl: 'mvp-exercise-barbell-curl',
@@ -230,6 +233,9 @@ function exerciseDefinition(
 }
 
 export const mvpExerciseDefinitionSeeds: readonly SeedExerciseDefinitionRecord[] = [
+  exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.abRotationMachine, 'Ab Rotation Machine', 'abs', 'machine', 10, 15, 'rep_progression', 5, 90, null, { movementPattern: 'rotation', notes: 'Reps are per side.' }),
+  exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.backExtension, 'Back Extensions', 'lower_back', 'bodyweight', 10, 15, 'rep_progression', null, 90, ['glutes'], { movementPattern: 'hip_hinge' }),
+  exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.curlMachine, 'Curl Machine', 'biceps', 'machine', 10, 15, 'rep_progression', 5, 90, null, { movementPattern: 'curl' }),
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.benchPress, 'Barbell Bench Press', 'chest', 'barbell', 4, 6, 'double_progression', 5, 240, ['triceps', 'front_delts'], { movementPattern: 'horizontal_press', notes: 'Stable main chest press for strength and hypertrophy.' }),
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.inclineBarbellPress, 'Incline Barbell Press', 'chest', 'barbell', 6, 10, 'double_progression', 5, 180, ['front_delts', 'triceps'], { movementPattern: 'incline_press' }),
   exerciseDefinition(MVP_EXERCISE_DEFINITION_IDS.inclineDumbbellPress, 'Incline Dumbbell Press', 'chest', 'dumbbell', 6, 10, 'double_progression', 5, 180, ['triceps', 'front_delts'], { movementPattern: 'incline_press' }),
